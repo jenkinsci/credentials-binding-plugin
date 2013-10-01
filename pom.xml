@@ -10,7 +10,7 @@
     </properties>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>credentials-binding</artifactId>
-    <version>1.0-beta-1-SNAPSHOT</version>
+    <version>1.0-beta-1</version>
     <packaging>hpi</packaging>
     <name>Credentials Binding Plugin</name>
     <description>Allows credentials to be bound to environment variables for use from miscellaneous build steps.</description>

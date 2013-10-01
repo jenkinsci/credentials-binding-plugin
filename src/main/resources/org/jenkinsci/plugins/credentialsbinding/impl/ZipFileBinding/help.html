@@ -1,0 +1,9 @@
+<div>
+    Unpacks the ZIP file given in the credentials to a temporary directory, then sets the variable to that location.
+    (The directory is deleted when the build completes.)
+</div>
+<div>
+    <strong>Warning</strong>: if the master or slave node has multiple executors,
+    any other build running concurrently on the same node will be able to read
+    the contents of this directory.
+</div>

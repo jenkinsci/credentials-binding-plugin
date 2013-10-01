@@ -1,0 +1,9 @@
+<div>
+    Copies the file given in the credentials to a temporary location, then sets the variable to that location.
+    (The file is deleted when the build completes.)
+</div>
+<div>
+    <strong>Warning</strong>: if the master or slave node has multiple executors,
+    any other build running concurrently on the same node will be able to read
+    the contents of this file.
+</div>

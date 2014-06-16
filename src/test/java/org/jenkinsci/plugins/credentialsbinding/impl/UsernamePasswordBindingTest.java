@@ -53,6 +53,7 @@ public class UsernamePasswordBindingTest {
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
         assertEquals(username + ':' + password, b.getWorkspace().child("auth.txt").readToString().trim());
+        assertEquals("[AUTH]", b.getSensitiveBuildVariables().toString());
     }
 
 }

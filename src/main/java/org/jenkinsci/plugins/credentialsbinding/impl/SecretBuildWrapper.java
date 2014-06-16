@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -68,6 +69,12 @@ public class SecretBuildWrapper extends BuildWrapper {
                 return true;
             }
         };
+    }
+
+    @Override public void makeSensitiveBuildVariables(AbstractBuild build, Set<String> sensitiveVariables) {
+        for (Binding binding : bindings) {
+            sensitiveVariables.add(binding.getVariable());
+        }
     }
 
     @Extension public static class DescriptorImpl extends BuildWrapperDescriptor {

@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.509.2</version>
+        <version>1.532.2</version>
     </parent>
     <properties>
         <maven-hpi-plugin.version>1.99</maven-hpi-plugin.version>
@@ -30,7 +30,7 @@
     <licenses>
         <license>
             <name>MIT</name>
-            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <url>http://opensource.org/licenses/MIT</url>
         </license>
     </licenses>
     <scm>

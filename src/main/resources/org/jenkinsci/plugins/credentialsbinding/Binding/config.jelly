@@ -28,7 +28,7 @@ THE SOFTWARE.
         <f:textbox/>
     </f:entry>
     <f:entry title="${%Credentials}" field="credentialsId">
-        <c:select/>
+        <c:select expressionAllowed="true"/>
     </f:entry>
     <st:include page="config-details.jelly" optional="true"/>
 </j:jelly>

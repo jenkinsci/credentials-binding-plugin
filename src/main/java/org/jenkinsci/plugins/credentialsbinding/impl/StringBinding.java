@@ -29,6 +29,7 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import java.io.IOException;
+
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -45,7 +46,7 @@ public class StringBinding extends Binding<StringCredentials> {
     }
 
     @Override public Environment bind(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        final String value = getCredentials(build.getProject()).getSecret().getPlainText();
+        final String value = getCredentials(build).getSecret().getPlainText();
         return new Environment() {
             @Override public String value() {
                 return value;

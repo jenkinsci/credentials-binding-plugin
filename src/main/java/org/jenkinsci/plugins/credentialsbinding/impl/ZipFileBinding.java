@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.UUID;
+
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
@@ -55,7 +56,7 @@ public class ZipFileBinding extends Binding<FileCredentials> {
     }
 
     @Override public Environment bind(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        FileCredentials credentials = getCredentials(build.getProject());
+        FileCredentials credentials = getCredentials(build);
         FilePath secrets = build.getBuiltOn().getRootPath().child("secretFiles");
         final FilePath dir = secrets.child(UUID.randomUUID().toString());
         dir.mkdirs();

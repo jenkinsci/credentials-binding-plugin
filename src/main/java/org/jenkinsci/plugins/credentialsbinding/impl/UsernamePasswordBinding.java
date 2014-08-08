@@ -30,6 +30,7 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import java.io.IOException;
+
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -45,7 +46,7 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
     }
 
     @Override public Environment bind(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        StandardUsernamePasswordCredentials credentials = getCredentials(build.getProject());
+        StandardUsernamePasswordCredentials credentials = getCredentials(build);
         final String username = credentials.getUsername();
         final String password = credentials.getPassword().getPlainText();
         return new Environment() {

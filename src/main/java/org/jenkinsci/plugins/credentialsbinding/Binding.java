@@ -32,11 +32,19 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.BuildListener;
+import hudson.model.Cause;
 import hudson.model.Item;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import javax.annotation.Nonnull;
+
+import hudson.model.Job;
+import hudson.security.ACL;
+import hudson.util.VariableResolver;
+import jenkins.model.Jenkins;
+import org.acegisecurity.Authentication;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -83,15 +91,14 @@ public abstract class Binding<C extends StandardCredentials> extends AbstractDes
 
     /**
      * Looks up the actual credentials.
-     * @param owner the owning item, such as {@link AbstractBuild#getProject}
+     * @param build the build.
      * @return the credentials
      * @throws FileNotFoundException if the credentials could not be found (for convenience, rather than returning null)
      */
-    protected final @Nonnull C getCredentials(@Nonnull Item owner) throws IOException {
-        for (C c : CredentialsProvider.lookupCredentials(type(), owner, null, Collections.<DomainRequirement>emptyList())) {
-            if (c.getId().equals(credentialsId)) {
-                return c;
-            }
+    protected final @Nonnull C getCredentials(@Nonnull AbstractBuild<?,?> build) throws IOException {
+        C c = CredentialsProvider.findCredentialById(credentialsId, type(), build);
+        if (c != null) {
+            return c;
         }
         throw new FileNotFoundException(credentialsId);
     }

@@ -45,6 +45,9 @@ public abstract class BindingDescriptor<C extends StandardCredentials> extends D
     protected abstract Class<C> type();
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item owner) {
+        if (owner == null || !owner.hasPermission(Item.CONFIGURE)) {
+            return new ListBoxModel();
+        }
         // when configuring the job, you only want those credentials that are available to ACL.SYSTEM selectable
         // as we cannot select from a user's credentials unless they are the only user submitting the build
         // (which we cannot assume) thus ACL.SYSTEM is correct here.

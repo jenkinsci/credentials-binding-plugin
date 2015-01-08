@@ -32,39 +32,40 @@ import hudson.model.BuildListener;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.jenkinsci.plugins.credentialsbinding.Binding;
+import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+@SuppressWarnings({"rawtypes", "unchecked"}) // inherited from BuildWrapper
 public class SecretBuildWrapper extends BuildWrapper {
 
-    private final List<Binding<?>> bindings;
+    private final List<? extends MultiBinding<?>> bindings;
 
-    @DataBoundConstructor public SecretBuildWrapper(List<Binding<?>> bindings) {
+    @DataBoundConstructor public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings) {
         this.bindings = bindings;
     }
     
-    public List<Binding<?>> getBindings() {
+    public List<? extends MultiBinding<?>> getBindings() {
         return bindings;
     }
 
     @Override public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        final Map<String,Binding.Environment> m = new HashMap<String,Binding.Environment>();
-        for (Binding binding : bindings) {
-            m.put(binding.getVariable(), binding.bind(build, launcher, listener));
+        final List<MultiBinding.MultiEnvironment> m = new ArrayList<MultiBinding.MultiEnvironment>();
+        for (MultiBinding binding : bindings) {
+            m.add(binding.bind(build, build.getWorkspace(), launcher, listener));
         }
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {
-                for (Map.Entry<String,Binding.Environment> entry : m.entrySet()) {
-                    env.put(entry.getKey(), entry.getValue().value());
+                for (MultiBinding.MultiEnvironment e : m) {
+                    env.putAll(e.values());
                 }
             }
             @Override public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
-                for (Binding.Environment env : m.values()) {
-                    env.unbind();
+                for (MultiBinding.MultiEnvironment e : m) {
+                    e.unbind();
                 }
                 return true;
             }
@@ -72,8 +73,8 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
     @Override public void makeSensitiveBuildVariables(AbstractBuild build, Set<String> sensitiveVariables) {
-        for (Binding binding : bindings) {
-            sensitiveVariables.add(binding.getVariable());
+        for (MultiBinding binding : bindings) {
+            sensitiveVariables.addAll(binding.variables());
         }
     }
 

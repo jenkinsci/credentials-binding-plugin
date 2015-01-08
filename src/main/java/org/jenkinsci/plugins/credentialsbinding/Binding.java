@@ -24,55 +24,39 @@
 
 package org.jenkinsci.plugins.credentialsbinding;
 
-import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
-import hudson.ExtensionPoint;
+import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractDescribableImpl;
 import hudson.model.BuildListener;
-import hudson.model.Cause;
-import hudson.model.Item;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
 import javax.annotation.Nonnull;
 
-import hudson.model.Job;
-import hudson.security.ACL;
-import hudson.util.VariableResolver;
-import jenkins.model.Jenkins;
-import org.acegisecurity.Authentication;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * A way of binding a kind of credentials to an environment variable during a build.
+ * A binding of a single variable.
  * @param <C> a kind of credentials
  */
-public abstract class Binding<C extends StandardCredentials> extends AbstractDescribableImpl<Binding<C>> implements ExtensionPoint {
+public abstract class Binding<C extends StandardCredentials> extends MultiBinding<C> {
 
     private final String variable;
-    private final String credentialsId;
 
     /** For use with {@link DataBoundConstructor}. */
     protected Binding(String variable, String credentialsId) {
+        super(credentialsId);
         this.variable = variable;
-        this.credentialsId = credentialsId;
     }
-
-    /** Type token. */
-    protected abstract Class<C> type();
 
     /** Environment variable name. */
     public String getVariable() {
         return variable;
-    }
-
-    /** Identifier of the credentials to be bound. */
-    public String getCredentialsId() {
-        return credentialsId;
     }
 
     /** Callback for processing during a build. */
@@ -86,25 +70,40 @@ public abstract class Binding<C extends StandardCredentials> extends AbstractDes
 
     }
 
-    /** Sets up bindings for a build. */
-    public abstract Environment bind(@Nonnull AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException;
-
-    /**
-     * Looks up the actual credentials.
-     * @param build the build.
-     * @return the credentials
-     * @throws FileNotFoundException if the credentials could not be found (for convenience, rather than returning null)
-     */
-    protected final @Nonnull C getCredentials(@Nonnull AbstractBuild<?,?> build) throws IOException {
-        C c = CredentialsProvider.findCredentialById(credentialsId, type(), build);
-        if (c != null) {
-            return c;
-        }
-        throw new FileNotFoundException(credentialsId);
+    @Deprecated
+    @SuppressWarnings("rawtypes")
+    public Environment bind(@Nonnull AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+        return bindSingle(build, build.getWorkspace(), launcher, listener);
     }
 
-    @Override public BindingDescriptor<C> getDescriptor() {
-        return (BindingDescriptor<C>) super.getDescriptor();
+    /** Sets up bindings for a build. */
+    public /* abstract */Environment bindSingle(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        if (Util.isOverridden(Binding.class, getClass(), "bind", AbstractBuild.class, Launcher.class, BuildListener.class) && build instanceof AbstractBuild && listener instanceof BuildListener) {
+            return bind((AbstractBuild) build, launcher, (BuildListener) listener);
+        } else {
+            throw new AbstractMethodError("you must override bindSingle");
+        }
+    }
+
+    @Override public final MultiEnvironment bind(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        final Environment single = bindSingle(build, workspace, launcher, listener);
+        return new MultiEnvironment() {
+            public Map<String,String> values() {
+                return Collections.singletonMap(variable, single.value());
+            }
+            public void unbind() throws IOException, InterruptedException {
+                single.unbind();
+            }
+        };
+    }
+
+    @Override public final Set<String> variables() {
+        return Collections.singleton(variable);
+    }
+
+    @Deprecated
+    protected final @Nonnull C getCredentials(@Nonnull AbstractBuild<?,?> build) throws IOException {
+        return super.getCredentials(build);
     }
 
 }

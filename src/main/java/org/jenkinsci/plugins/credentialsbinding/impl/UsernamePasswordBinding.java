@@ -26,9 +26,10 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import java.io.IOException;
 
 import org.jenkinsci.plugins.credentialsbinding.Binding;
@@ -45,7 +46,7 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
         return StandardUsernamePasswordCredentials.class;
     }
 
-    @Override public Environment bind(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    @Override public Environment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         final String username = credentials.getUsername();
         final String password = credentials.getPassword().getPlainText();

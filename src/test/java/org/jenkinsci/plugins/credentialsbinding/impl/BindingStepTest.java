@@ -31,11 +31,14 @@ import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.FilePath;
 import hudson.model.FileParameterValue;
 import java.io.File;
+import java.util.Collections;
 import org.apache.commons.io.FileUtils;
+import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -47,6 +50,18 @@ import org.jvnet.hudson.test.RestartableJenkinsRule;
 public class BindingStepTest {
 
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
+
+    @Test public void configRoundTrip() throws Exception {
+        story.addStep(new Statement() {
+            @SuppressWarnings("rawtypes")
+            @Override public void evaluate() throws Throwable {
+                UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "bob", "s3cr3t");
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(new UsernamePasswordBinding("userpass", "creds"))));
+                story.j.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(new UsernamePasswordBinding("userpass", "creds")));
+            }
+        });
+    }
 
     @Test public void basics() throws Exception {
         story.addStep(new Statement() {

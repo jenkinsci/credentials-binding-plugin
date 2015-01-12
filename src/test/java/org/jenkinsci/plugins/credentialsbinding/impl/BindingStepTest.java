@@ -29,10 +29,17 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.FilePath;
+import hudson.model.FileParameterValue;
+import java.io.File;
+import org.apache.commons.io.FileUtils;
+import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
@@ -60,6 +67,43 @@ public class BindingStepTest {
                 FilePath script = story.j.jenkins.getWorkspaceFor(p).child("script.sh");
                 assertTrue(script.exists());
                 assertEquals("curl -u bob:s3cr3t server", script.readToString().trim());
+            }
+        });
+    }
+
+    @Ignore("TODO JENKINS-26137 java.io.NotSerializableException: hudson.slaves.WorkspaceList$1")
+    @Test public void cleanupAfterRestart() throws Exception {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                File originalSecret = new File(story.j.jenkins.root, "secret.txt");
+                FileUtils.write(originalSecret, "s3cr3t");
+                FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", new FileParameterValue.FileItemImpl(originalSecret), null, null);
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                story.j.createSlave("myslave", null, null);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "node('myslave') {"
+                        + "  withCredentials([[$class: 'FileBinding', variable: 'SECRET', credentialsId: 'creds']]) {\n"
+                        + "    semaphore 'cleanupAfterRestart'\n"
+                        + "    sh 'cp $SECRET key'\n"
+                        + "  }\n"
+                        + "}", true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                SemaphoreStep.waitForStart("cleanupAfterRestart/1", b);
+            }
+        });
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                SemaphoreStep.success("cleanupAfterRestart/1", null);
+                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
+                assertNotNull(p);
+                WorkflowRun b = p.getBuildByNumber(1);
+                assertNotNull(b);
+                story.j.assertBuildStatusSuccess(b);
+                story.j.assertLogNotContains("s3cr3t", b);
+                FilePath key = story.j.jenkins.getWorkspaceFor(p).child("key");
+                assertTrue(key.exists());
+                assertEquals("s3cr3t", key.readToString());
             }
         });
     }

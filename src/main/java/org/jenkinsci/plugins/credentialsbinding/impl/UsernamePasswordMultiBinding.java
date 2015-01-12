@@ -66,31 +66,10 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
 
     @Override public MultiEnvironment bind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        return new EnvironmentImpl(usernameVariable, credentials.getUsername(), passwordVariable, credentials.getPassword().getPlainText());
-    }
-
-    private static class EnvironmentImpl implements MultiEnvironment {
-
-        private static final long serialVersionUID = 1;
-
-        private final String usernameVariable, username, passwordVariable, password;
-
-        EnvironmentImpl(String usernameVariable, String username, String passwordVariable, String password) {
-            this.usernameVariable = usernameVariable;
-            this.username = username;
-            this.passwordVariable = passwordVariable;
-            this.password = password;
-        }
-
-        @Override public Map<String,String> values() {
-            Map<String,String> m = new HashMap<String,String>();
-            m.put(usernameVariable, username);
-            m.put(passwordVariable, password);
-            return m;
-        }
-
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {}
-
+        Map<String,String> m = new HashMap<String,String>();
+        m.put(usernameVariable, credentials.getUsername());
+        m.put(passwordVariable, credentials.getPassword().getPlainText());
+        return new MultiEnvironment(m);
     }
 
     @Override public Set<String> variables() {

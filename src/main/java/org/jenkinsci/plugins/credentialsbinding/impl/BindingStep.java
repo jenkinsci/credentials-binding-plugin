@@ -75,13 +75,13 @@ public final class BindingStep extends AbstractStepImpl {
 
         @Override public boolean start() throws Exception {
             EnvVars overrides = new EnvVars(env);
-            List<MultiBinding.MultiEnvironment> environments = new ArrayList<MultiBinding.MultiEnvironment>();
+            List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
-                environments.add(environment);
-                overrides.putAll(environment.values());
+                unbinders.add(environment.getUnbinder());
+                overrides.putAll(environment.getValues());
             }
-            getContext().newBodyInvoker().withContext(overrides).withCallback(new Callback(environments)).start();
+            getContext().newBodyInvoker().withContext(overrides).withCallback(new Callback(unbinders)).start();
             return false;
         }
 
@@ -97,16 +97,16 @@ public final class BindingStep extends AbstractStepImpl {
 
         private static final long serialVersionUID = 1;
 
-        private final List<MultiBinding.MultiEnvironment> environments;
+        private final List<MultiBinding.Unbinder> unbinders;
 
-        Callback(List<MultiBinding.MultiEnvironment> environments) {
-            this.environments = environments;
+        Callback(List<MultiBinding.Unbinder> unbinders) {
+            this.unbinders = unbinders;
         }
 
         private void cleanup(StepContext context) {
-            for (MultiBinding.MultiEnvironment environment : environments) {
+            for (MultiBinding.Unbinder unbinder : unbinders) {
                 try {
-                    environment.unbind(context.get(Run.class), context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
+                    unbinder.unbind(context.get(Run.class), context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
                 } catch (Exception x) {
                     context.onFailure(x);
                 }

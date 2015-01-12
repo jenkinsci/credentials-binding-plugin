@@ -58,22 +58,17 @@ public class FileBinding extends Binding<FileCredentials> {
         secrets.chmod(/*0700*/448);
         FilePath secret = dir.child(credentials.getFileName());
         copy(secret, credentials);
-        return new EnvironmentImpl(dirName, secret.getRemote());
+        return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
     }
     
-    private static class EnvironmentImpl implements SingleEnvironment {
+    private static class UnbinderImpl implements Unbinder {
 
         private static final long serialVersionUID = 1;
 
-        private final String dirName, credentialsFileName;
+        private final String dirName;
         
-        EnvironmentImpl(String dirName, String credentialsFileName) {
+        UnbinderImpl(String dirName) {
             this.dirName = dirName;
-            this.credentialsFileName = credentialsFileName;
-        }
-        
-        @Override public String value() {
-            return credentialsFileName;
         }
         
         @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {

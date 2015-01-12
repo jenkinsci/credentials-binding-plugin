@@ -60,12 +60,12 @@ public class SecretBuildWrapper extends BuildWrapper {
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {
                 for (MultiBinding.MultiEnvironment e : m) {
-                    env.putAll(e.values());
+                    env.putAll(e.getValues());
                 }
             }
             @Override public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
                 for (MultiBinding.MultiEnvironment e : m) {
-                    e.unbind(build, build.getWorkspace(), launcher, listener);
+                    e.getUnbinder().unbind(build, build.getWorkspace(), launcher, listener);
                 }
                 return true;
             }

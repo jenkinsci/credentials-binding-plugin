@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.532.2</version>
+    <version>1.580.1</version>
   </parent>
 
   <groupId>org.jenkins-ci.plugins</groupId>
@@ -31,10 +31,6 @@
     <tag>HEAD</tag>
   </scm>
 
-  <properties>
-    <maven-hpi-plugin.version>1.99</maven-hpi-plugin.version>
-  </properties>
-
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
@@ -52,7 +48,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
-      <version>1.16.1</version>
+      <version>1.20</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -60,16 +56,5 @@
       <version>1.0</version>
     </dependency>
   </dependencies>
-
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <artifactId>maven-release-plugin</artifactId>
-          <version>2.5</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
 
 </project>

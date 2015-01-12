@@ -37,10 +37,10 @@ import java.util.Collections;
 import org.kohsuke.stapler.AncestorInPath;
 
 /**
- * Describes a {@link Binding} kind.
+ * Describes a {@link MultiBinding} kind.
  * @param <C> type of credentials to be bound
  */
-public abstract class BindingDescriptor<C extends StandardCredentials> extends Descriptor<Binding<C>> {
+public abstract class BindingDescriptor<C extends StandardCredentials> extends Descriptor<MultiBinding<C>> {
 
     protected abstract Class<C> type();
 

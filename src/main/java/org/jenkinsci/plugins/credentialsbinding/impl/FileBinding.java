@@ -27,8 +27,10 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
+import hudson.model.Computer;
+import hudson.model.Node;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -47,14 +49,17 @@ public class FileBinding extends Binding<FileCredentials> {
         return FileCredentials.class;
     }
 
-    @Override public Environment bind(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    @Override public Environment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         FileCredentials credentials = getCredentials(build);
-        FilePath secrets = build.getBuiltOn().getRootPath().child("secretFiles");
+        Computer computer = workspace.toComputer();
+        Node node = computer == null ? null : computer.getNode();
+        FilePath root = node == null ? workspace : node.getRootPath();
+        FilePath secrets = root.child("secretFiles");
         final FilePath dir = secrets.child(UUID.randomUUID().toString());
         dir.mkdirs();
         secrets.chmod(/*0700*/448);
         final FilePath secret = dir.child(credentials.getFileName());
-        secret.copyFrom(credentials.getContent());
+        copy(secret, credentials);
         return new Environment() {
             @Override public String value() {
                 return secret.getRemote();
@@ -63,6 +68,10 @@ public class FileBinding extends Binding<FileCredentials> {
                 dir.deleteRecursive();
             }
         };
+    }
+
+    protected void copy(FilePath secret, FileCredentials credentials) throws IOException, InterruptedException {
+        secret.copyFrom(credentials.getContent());
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<FileCredentials> {

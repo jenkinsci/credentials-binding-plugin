@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 jglick.
+ * Copyright 2015 Jesse Glick.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,31 +31,56 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
+import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCredentials> {
+public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernamePasswordCredentials> {
 
-    @DataBoundConstructor public UsernamePasswordBinding(String variable, String credentialsId) {
-        super(variable, credentialsId);
+    private final String usernameVariable;
+    private final String passwordVariable;
+
+    @DataBoundConstructor public UsernamePasswordMultiBinding(String usernameVariable, String passwordVariable, String credentialsId) {
+        super(credentialsId);
+        this.usernameVariable = usernameVariable;
+        this.passwordVariable = passwordVariable;
+    }
+
+    public String getUsernameVariable() {
+        return usernameVariable;
+    }
+
+    public String getPasswordVariable() {
+        return passwordVariable;
     }
 
     @Override protected Class<StandardUsernamePasswordCredentials> type() {
         return StandardUsernamePasswordCredentials.class;
     }
 
-    @Override public Environment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public MultiEnvironment bind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         final String username = credentials.getUsername();
         final String password = credentials.getPassword().getPlainText();
-        return new Environment() {
-            @Override public String value() {
-                return username + ':' + password;
+        return new MultiEnvironment() {
+            @Override public Map<String,String> values() {
+                Map<String,String> m = new HashMap<String,String>();
+                m.put(usernameVariable, username);
+                m.put(passwordVariable, password);
+                return m;
             }
             @Override public void unbind() throws IOException, InterruptedException {}
         };
+    }
+
+    @Override public Set<String> variables() {
+        return new HashSet<String>(Arrays.asList(usernameVariable, passwordVariable));
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {
@@ -65,7 +90,7 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
         }
 
         @Override public String getDisplayName() {
-            return Messages.UsernamePasswordBinding_username_and_password();
+            return Messages.UsernamePasswordMultiBinding_username_and_password();
         }
 
     }

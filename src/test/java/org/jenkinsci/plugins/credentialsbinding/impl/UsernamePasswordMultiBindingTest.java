@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014 Jesse Glick.
+ * Copyright 2015 Jesse Glick.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,14 +33,14 @@ import hudson.model.FreeStyleProject;
 import hudson.tasks.Shell;
 import java.util.Collections;
 import java.util.List;
-import org.jenkinsci.plugins.credentialsbinding.Binding;
+import java.util.TreeSet;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.jvnet.hudson.test.JenkinsRule;
 
-public class UsernamePasswordBindingTest {
+public class UsernamePasswordMultiBindingTest {
 
     @Rule public JenkinsRule r = new JenkinsRule();
 
@@ -50,8 +50,8 @@ public class UsernamePasswordBindingTest {
         UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, "sample", username, password);
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
         FreeStyleProject p = r.createFreeStyleProject();
-        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<Binding<?>>singletonList(new UsernamePasswordBinding("AUTH", c.getId()))));
-        p.getBuildersList().add(new Shell("set +x\necho $AUTH > auth.txt"));
+        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("userid", "pass", c.getId()))));
+        p.getBuildersList().add(new Shell("set +x\necho $userid/$pass > auth.txt"));
         r.configRoundtrip(p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
         assertNotNull(wrapper);
@@ -59,12 +59,13 @@ public class UsernamePasswordBindingTest {
         assertEquals(1, bindings.size());
         MultiBinding<?> binding = bindings.get(0);
         assertEquals(c.getId(), binding.getCredentialsId());
-        assertEquals(UsernamePasswordBinding.class, binding.getClass());
-        assertEquals("AUTH", ((UsernamePasswordBinding) binding).getVariable());
+        assertEquals(UsernamePasswordMultiBinding.class, binding.getClass());
+        assertEquals("userid", ((UsernamePasswordMultiBinding) binding).getUsernameVariable());
+        assertEquals("pass", ((UsernamePasswordMultiBinding) binding).getPasswordVariable());
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
-        assertEquals(username + ':' + password, b.getWorkspace().child("auth.txt").readToString().trim());
-        assertEquals("[AUTH]", b.getSensitiveBuildVariables().toString());
+        assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
+        assertEquals("[pass, userid]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
     }
 
 }

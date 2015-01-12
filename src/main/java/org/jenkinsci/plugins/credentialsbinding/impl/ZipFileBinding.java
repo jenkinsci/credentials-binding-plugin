@@ -28,49 +28,25 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import hudson.Extension;
 import hudson.FilePath;
-import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.util.FormValidation;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
-import java.util.UUID;
-
-import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-public class ZipFileBinding extends Binding<FileCredentials> {
+public class ZipFileBinding extends FileBinding {
 
     @DataBoundConstructor public ZipFileBinding(String variable, String credentialsId) {
         super(variable, credentialsId);
     }
 
-    @Override protected Class<FileCredentials> type() {
-        return FileCredentials.class;
-    }
-
-    @Override public Environment bind(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        FileCredentials credentials = getCredentials(build);
-        FilePath secrets = build.getBuiltOn().getRootPath().child("secretFiles");
-        final FilePath dir = secrets.child(UUID.randomUUID().toString());
-        dir.mkdirs();
-        secrets.chmod(/*0700*/448);
-        final FilePath secret = dir.child(credentials.getFileName());
+    @Override protected void copy(FilePath secret, FileCredentials credentials) throws IOException, InterruptedException {
         secret.unzipFrom(credentials.getContent());
-        return new Environment() {
-            @Override public String value() {
-                return secret.getRemote();
-            }
-            @Override public void unbind() throws IOException, InterruptedException {
-                dir.deleteRecursive();
-            }
-        };
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<FileCredentials> {

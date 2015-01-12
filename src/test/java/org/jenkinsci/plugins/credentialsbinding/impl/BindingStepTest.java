@@ -30,6 +30,10 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.FilePath;
 import hudson.model.FileParameterValue;
+import hudson.model.Node;
+import hudson.slaves.DumbSlave;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.RetentionStrategy;
 import java.io.File;
 import java.util.Collections;
 import org.apache.commons.io.FileUtils;
@@ -42,14 +46,15 @@ import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Test;
 import static org.junit.Assert.*;
-import org.junit.Ignore;
 import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 public class BindingStepTest {
 
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
+    @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
     @Test public void configRoundTrip() throws Exception {
         story.addStep(new Statement() {
@@ -86,15 +91,15 @@ public class BindingStepTest {
         });
     }
 
-    @Ignore("TODO JENKINS-26137 java.io.NotSerializableException: hudson.slaves.WorkspaceList$1")
     @Test public void cleanupAfterRestart() throws Exception {
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
-                File originalSecret = new File(story.j.jenkins.root, "secret.txt");
+                File originalSecret = tmp.newFile();
                 FileUtils.write(originalSecret, "s3cr3t");
                 FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", new FileParameterValue.FileItemImpl(originalSecret), null, null);
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
-                story.j.createSlave("myslave", null, null);
+                // TODO JENKINS-26398: story.j.createSlave("myslave", null, null) does not work since the slave root is deleted after restart.
+                story.j.jenkins.addNode(new DumbSlave("myslave", "", tmp.newFolder().getAbsolutePath(), "1", Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP, Collections.<NodeProperty<?>>emptyList()));
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node('myslave') {"
@@ -114,11 +119,17 @@ public class BindingStepTest {
                 assertNotNull(p);
                 WorkflowRun b = p.getBuildByNumber(1);
                 assertNotNull(b);
+                while (b.isBuilding()) { // TODO JENKINS-26399 need utility in JenkinsRule
+                    Thread.sleep(100);
+                }
                 story.j.assertBuildStatusSuccess(b);
                 story.j.assertLogNotContains("s3cr3t", b);
-                FilePath key = story.j.jenkins.getWorkspaceFor(p).child("key");
+                FilePath key = story.j.jenkins.getNode("myslave").getWorkspaceFor(p).child("key");
                 assertTrue(key.exists());
                 assertEquals("s3cr3t", key.readToString());
+                FilePath secretFiles = story.j.jenkins.getNode("myslave").getRootPath().child("secretFiles");
+                assertTrue(secretFiles.isDirectory());
+                assertEquals(Collections.emptyList(), secretFiles.list());
             }
         });
     }

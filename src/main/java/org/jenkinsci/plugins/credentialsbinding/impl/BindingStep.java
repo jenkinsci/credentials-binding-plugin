@@ -45,15 +45,16 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * Workflow step to bind credentials.
  */
+@SuppressWarnings("rawtypes") // TODO DescribableHelper does not yet seem to handle List<? extends MultiBinding<?>> or even List<MultiBinding<?>>
 public final class BindingStep extends AbstractStepImpl {
 
-    private final List<? extends MultiBinding<?>> bindings;
+    private final List<MultiBinding> bindings;
 
-    @DataBoundConstructor public BindingStep(List<? extends MultiBinding<?>> bindings) {
+    @DataBoundConstructor public BindingStep(List<MultiBinding> bindings) {
         this.bindings = bindings;
     }
 
-    public List<? extends MultiBinding<?>> getBindings() {
+    public List<MultiBinding> getBindings() {
         return bindings;
     }
 
@@ -137,6 +138,10 @@ public final class BindingStep extends AbstractStepImpl {
 
         @Override public String getDisplayName() {
             return "Bind credentials to variables";
+        }
+
+        @Override public boolean takesImplicitBlockArgument() {
+            return true;
         }
 
     }

@@ -34,6 +34,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -60,14 +61,15 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         return credentialsId;
     }
 
+    // TODO perhaps this should be split into a struct with a values map, accessible immediately, and an unbinder, which needs to hold serializable state?
     /** Callback for processing during a build. */
-    public interface MultiEnvironment {
+    public interface MultiEnvironment extends Serializable {
 
         /** Produces the value of the environment variables. */
         Map<String,String> values();
 
         /** Performs any needed cleanup. */
-        void unbind() throws IOException, InterruptedException;
+        void unbind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
 
     }
 

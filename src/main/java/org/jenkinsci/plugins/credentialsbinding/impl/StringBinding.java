@@ -46,14 +46,26 @@ public class StringBinding extends Binding<StringCredentials> {
         return StringCredentials.class;
     }
 
-    @Override public Environment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-        final String value = getCredentials(build).getSecret().getPlainText();
-        return new Environment() {
-            @Override public String value() {
-                return value;
-            }
-            @Override public void unbind() throws IOException, InterruptedException {}
-        };
+    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        return new EnvironmentImpl(getCredentials(build).getSecret().getPlainText());
+    }
+
+    private static class EnvironmentImpl implements SingleEnvironment {
+
+        private static final long serialVersionUID = 1;
+
+        private final String value;
+
+        EnvironmentImpl(String value) {
+            this.value = value;
+        }
+
+        @Override public String value() {
+            return value;
+        }
+
+        @Override public void unbind(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {}
+
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<StringCredentials> {

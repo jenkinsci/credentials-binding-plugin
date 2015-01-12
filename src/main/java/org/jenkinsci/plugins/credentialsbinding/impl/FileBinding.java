@@ -49,25 +49,44 @@ public class FileBinding extends Binding<FileCredentials> {
         return FileCredentials.class;
     }
 
-    @Override public Environment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         FileCredentials credentials = getCredentials(build);
+        FilePath secrets = secretsDir(workspace);
+        String dirName = UUID.randomUUID().toString();
+        final FilePath dir = secrets.child(dirName);
+        dir.mkdirs();
+        secrets.chmod(/*0700*/448);
+        FilePath secret = dir.child(credentials.getFileName());
+        copy(secret, credentials);
+        return new EnvironmentImpl(dirName, secret.getRemote());
+    }
+    
+    private static class EnvironmentImpl implements SingleEnvironment {
+
+        private static final long serialVersionUID = 1;
+
+        private final String dirName, credentialsFileName;
+        
+        EnvironmentImpl(String dirName, String credentialsFileName) {
+            this.dirName = dirName;
+            this.credentialsFileName = credentialsFileName;
+        }
+        
+        @Override public String value() {
+            return credentialsFileName;
+        }
+        
+        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+            secretsDir(workspace).child(dirName).deleteRecursive();
+        }
+        
+    }
+
+    private static FilePath secretsDir(FilePath workspace) {
         Computer computer = workspace.toComputer();
         Node node = computer == null ? null : computer.getNode();
         FilePath root = node == null ? workspace : node.getRootPath();
-        FilePath secrets = root.child("secretFiles");
-        final FilePath dir = secrets.child(UUID.randomUUID().toString());
-        dir.mkdirs();
-        secrets.chmod(/*0700*/448);
-        final FilePath secret = dir.child(credentials.getFileName());
-        copy(secret, credentials);
-        return new Environment() {
-            @Override public String value() {
-                return secret.getRemote();
-            }
-            @Override public void unbind() throws IOException, InterruptedException {
-                dir.deleteRecursive();
-            }
-        };
+        return root.child("secretFiles");
     }
 
     protected void copy(FilePath secret, FileCredentials credentials) throws IOException, InterruptedException {

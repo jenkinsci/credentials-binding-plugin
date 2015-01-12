@@ -17,6 +17,9 @@
   <description>Allows credentials to be bound to environment variables for use from miscellaneous build steps.
   </description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Credentials+Binding+Plugin</url>
+  <properties>
+    <workflow.version>1.1</workflow.version>
+  </properties>
   <licenses>
     <license>
       <name>MIT</name>
@@ -54,6 +57,17 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>plain-credentials</artifactId>
       <version>1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-step-api</artifactId>
+      <version>${workflow.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-aggregator</artifactId>
+      <version>${workflow.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

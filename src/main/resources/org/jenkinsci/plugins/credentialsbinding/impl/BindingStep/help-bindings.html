@@ -1,0 +1,10 @@
+<p>
+    List of ways in which credentials should be bound to variables.
+    The results will be set within the step’s body as environment variables.
+    You can then use them directly from any other steps that expect environment variables to be set:
+</p>
+<pre>sh 'curl -u $USERNAME:$PASSWORD http://…'</pre>
+<p>
+    or retrieve values from Groovy code via the <code>env</code> magic variable:
+</p>
+<pre>def password = env.PASSWORD</pre>

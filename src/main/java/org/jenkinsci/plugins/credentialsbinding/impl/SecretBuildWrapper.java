@@ -52,7 +52,7 @@ public class SecretBuildWrapper extends BuildWrapper {
         return bindings;
     }
 
-    @Override public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    @Override public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
         final List<MultiBinding.MultiEnvironment> m = new ArrayList<MultiBinding.MultiEnvironment>();
         for (MultiBinding binding : bindings) {
             m.add(binding.bind(build, build.getWorkspace(), launcher, listener));
@@ -65,7 +65,7 @@ public class SecretBuildWrapper extends BuildWrapper {
             }
             @Override public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
                 for (MultiBinding.MultiEnvironment e : m) {
-                    e.unbind();
+                    e.unbind(build, build.getWorkspace(), launcher, listener);
                 }
                 return true;
             }

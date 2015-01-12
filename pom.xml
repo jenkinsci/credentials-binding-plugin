@@ -83,6 +83,13 @@
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
+    <!-- For some reason this is otherwise missing and causes many verbose errors: -->
+    <dependency>
+      <groupId>org.jenkins-ci.modules</groupId>
+      <artifactId>sshd</artifactId>
+      <version>1.6</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 </project>

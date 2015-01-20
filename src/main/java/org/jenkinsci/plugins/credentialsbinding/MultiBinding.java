@@ -34,6 +34,9 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -60,21 +63,47 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         return credentialsId;
     }
 
-    /** Callback for processing during a build. */
-    public interface MultiEnvironment {
+    /** Result of {@link #bind}. */
+    public static final class MultiEnvironment implements Serializable {
 
-        /** Produces the value of the environment variables. */
-        Map<String,String> values();
+        private final Map<String,String> values;
+        private final Unbinder unbinder;
 
+        public MultiEnvironment(Map<String,String> values) {
+            this(values, new NullUnbinder());
+        }
+
+        public MultiEnvironment(Map<String,String> values, Unbinder unbinder) {
+            this.values = new HashMap<String,String>(values);
+            this.unbinder = unbinder;
+        }
+
+        public Map<String,String> getValues() {
+            return Collections.unmodifiableMap(values);
+        }
+
+        public Unbinder getUnbinder() {
+            return unbinder;
+        }
+
+    }
+
+    /** Callback run at the end of a build. */
+    public interface Unbinder extends Serializable {
         /** Performs any needed cleanup. */
-        void unbind() throws IOException, InterruptedException;
+        void unbind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
+    }
 
+    /** No-op callback. */
+    protected static final class NullUnbinder implements Unbinder {
+        private static final long serialVersionUID = 1;
+        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {}
     }
 
     /** Sets up bindings for a build. */
     public abstract MultiEnvironment bind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
 
-    /** Defines keys expected to be set in {@link MultiEnvironment#values}, particularly any that might be sensitive. */
+    /** Defines keys expected to be set in {@link MultiEnvironment#getValues}, particularly any that might be sensitive. */
     public abstract Set<String> variables();
 
     /**

@@ -1,0 +1,15 @@
+<p>
+    Allows various kinds of credentials (secrets) to be used in idiosyncratic ways.
+    Each binding will define an environment variable active within the scope of the step.
+    You can then use them directly from any other steps that expect environment variables to be set:
+</p>
+<pre>sh 'curl -u $USERNAME:$PASSWORD http://…'</pre>
+<p>
+    or retrieve values from Groovy code via the <code>env</code> magic variable:
+</p>
+<pre>def password = env.PASSWORD</pre>
+<p>
+    Note that some steps explicitly ask for credentials of a particular kind,
+    usually as a <code>credentialsId</code> parameter,
+    in which case this step is unnecessary.
+</p>

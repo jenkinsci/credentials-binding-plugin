@@ -46,16 +46,9 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
         return StandardUsernamePasswordCredentials.class;
     }
 
-    @Override public Environment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        final String username = credentials.getUsername();
-        final String password = credentials.getPassword().getPlainText();
-        return new Environment() {
-            @Override public String value() {
-                return username + ':' + password;
-            }
-            @Override public void unbind() throws IOException, InterruptedException {}
-        };
+        return new SingleEnvironment(credentials.getUsername() + ':' + credentials.getPassword().getPlainText());
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {

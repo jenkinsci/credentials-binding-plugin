@@ -24,12 +24,15 @@
 
 package org.jenkinsci.plugins.credentialsbinding;
 
+import com.cloudbees.plugins.credentials.CredentialsDescriptor;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.FileNotFoundException;
@@ -40,6 +43,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+
+import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -113,11 +119,18 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
      * @throws FileNotFoundException if the credentials could not be found (for convenience, rather than returning null)
      */
     protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws IOException {
-        C c = CredentialsProvider.findCredentialById(credentialsId, type(), build);
-        if (c != null) {
-            return c;
-        }
-        throw new FileNotFoundException(credentialsId);
+        IdCredentials cred = CredentialsProvider.findCredentialById(credentialsId, IdCredentials.class, build);
+        if (cred==null)
+            throw new CredentialNotFoundException(credentialsId);
+
+        if (type().isInstance(cred))
+            return type().cast(cred);
+
+        Descriptor expected = Jenkins.getInstance().getDescriptor(type());
+        throw new CredentialNotFoundException("Credentials '"+credentialsId+"' is of type '"+
+                cred.getDescriptor().getDisplayName()+"' where '"+
+                (expected!=null ? expected.getDisplayName() : type().getName())+
+                "' was expected");
     }
 
     @Override public BindingDescriptor<C> getDescriptor() {

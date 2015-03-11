@@ -26,19 +26,25 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.FilePath;
 import hudson.model.FileParameterValue;
 import hudson.model.Node;
+import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import java.io.File;
 import java.util.Collections;
+
+import hudson.util.Secret;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl.DescriptorImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -50,6 +56,8 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
+
+import javax.inject.Inject;
 
 public class BindingStepTest {
 
@@ -87,6 +95,32 @@ public class BindingStepTest {
                 FilePath script = story.j.jenkins.getWorkspaceFor(p).child("script.sh");
                 assertTrue(script.exists());
                 assertEquals("curl -u bob:s3cr3t server", script.readToString().trim());
+            }
+        });
+    }
+
+    @Inject
+    StringCredentialsImpl.DescriptorImpl stringCredentialsDescriptor;
+
+    @Test public void incorrectType() throws Exception {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                StringCredentialsImpl c = new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t"));
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "node {\n"
+                        + "  withCredentials([[$class: 'UsernamePasswordMultiBinding', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: 'creds']]) {\n"
+                        + "  }\n"
+                        + "}", true));
+                WorkflowRun r = story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
+
+                // make sure error message contains information about the actual type and the expected type
+                story.j.assertLogNotContains("s3cr3t", r);
+                story.j.assertLogContains(CredentialNotFoundException.class.getName(), r);
+                story.j.assertLogContains(StandardUsernamePasswordCredentials.class.getName(), r);
+                story.j.assertLogContains(stringCredentialsDescriptor.getDisplayName(), r);
+                System.out.println(r.getLog());
             }
         });
     }

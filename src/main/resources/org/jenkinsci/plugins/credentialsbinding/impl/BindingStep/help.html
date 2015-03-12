@@ -3,7 +3,16 @@
     Each binding will define an environment variable active within the scope of the step.
     You can then use them directly from any other steps that expect environment variables to be set:
 </p>
-<pre>sh 'curl -u $USERNAME:$PASSWORD http://…'</pre>
+<pre><code>
+node {
+  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'mylogin',
+                    usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+    sh '''
+      set +x
+      curl -u $USERNAME:$PASSWORD https://private.server/ > output
+    '''
+  }
+}</code></pre>
 <p>
     or retrieve values from Groovy code via the <code>env</code> magic variable:
 </p>

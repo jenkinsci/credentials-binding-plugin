@@ -89,11 +89,11 @@ public class BindingStepTest {
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
                         + "  withCredentials([[$class: 'UsernamePasswordMultiBinding', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: '" + credentialsId + "']]) {\n"
+                        + "    semaphore 'basics'\n"
                         + "    sh '''\n"
                         + "      set +x\n"
                         + "      echo curl -u $USERNAME:$PASSWORD server > script.sh\n"
                         + "    '''\n"
-                        + "    semaphore 'basics'\n"
                         + "  }\n"
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();

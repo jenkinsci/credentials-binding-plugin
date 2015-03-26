@@ -102,11 +102,12 @@ public class BindingStepTest {
         });
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
-                SemaphoreStep.success("basics/1", null);
                 WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
                 assertNotNull(p);
                 WorkflowRun b = p.getBuildByNumber(1);
                 assertNotNull(b);
+                assertEquals("TODO JENKINS-27631", Collections.singleton("program.dat"), grep(b.getRootDir(), password));
+                SemaphoreStep.success("basics/1", null);
                 while (b.isBuilding()) { // TODO 1.607+ use waitForCompletion
                     Thread.sleep(100);
                 }

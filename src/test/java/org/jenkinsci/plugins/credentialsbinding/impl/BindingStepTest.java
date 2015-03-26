@@ -78,11 +78,11 @@ public class BindingStepTest {
     }
 
     @Test public void basics() throws Exception {
+        final String credentialsId = "creds";
+        final String username = "bob";
+        final String password = "s3cr3t";
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
-                String credentialsId = "creds";
-                String username = "bob";
-                String password = "s3cr3t";
                 UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", username, password);
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
@@ -93,9 +93,24 @@ public class BindingStepTest {
                         + "      set +x\n"
                         + "      echo curl -u $USERNAME:$PASSWORD server > script.sh\n"
                         + "    '''\n"
+                        + "    semaphore 'basics'\n"
                         + "  }\n"
                         + "}", true));
-                WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                SemaphoreStep.waitForStart("basics/1", b);
+            }
+        });
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                SemaphoreStep.success("basics/1", null);
+                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
+                assertNotNull(p);
+                WorkflowRun b = p.getBuildByNumber(1);
+                assertNotNull(b);
+                while (b.isBuilding()) { // TODO 1.607+ use waitForCompletion
+                    Thread.sleep(100);
+                }
+                story.j.assertBuildStatusSuccess(b);
                 story.j.assertLogNotContains(password, b);
                 FilePath script = story.j.jenkins.getWorkspaceFor(p).child("script.sh");
                 assertTrue(script.exists());

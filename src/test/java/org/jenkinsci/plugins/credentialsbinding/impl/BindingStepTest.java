@@ -53,7 +53,6 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.junit.Assert.*;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -195,7 +194,6 @@ public class BindingStepTest {
         });
     }
 
-    @Ignore("TODO reproduced")
     @Issue("JENKINS-27389")
     @Test public void grabEnv() {
         story.addStep(new Statement() {

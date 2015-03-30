@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.580.1</version>
+    <version>1.596.1</version>
   </parent>
 
   <groupId>org.jenkins-ci.plugins</groupId>
@@ -18,7 +18,7 @@
   </description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Credentials+Binding+Plugin</url>
   <properties>
-    <workflow.version>1.4</workflow.version>
+    <workflow.version>1.5-SNAPSHOT</workflow.version> <!-- TODO withEnv-JENKINS-26128 @ e19ac3608789e841eed2bdd90aff35bc9bd74dc9 -->
   </properties>
   <licenses>
     <license>
@@ -61,25 +61,25 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>${workflow.version}</version>
+      <version>1.5-20150330.201447-2</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-aggregator</artifactId>
-      <version>${workflow.version}</version>
+      <version>1.5-20150330.201704-2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>${workflow.version}</version>
+      <version>1.5-20150330.201447-2</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>${workflow.version}</version>
+      <version>1.5-20150330.201513-2</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>

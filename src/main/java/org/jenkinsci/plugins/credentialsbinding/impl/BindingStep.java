@@ -31,13 +31,18 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.util.Secret;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -67,22 +72,16 @@ public final class BindingStep extends AbstractStepImpl {
         @StepContextParameter private transient FilePath workspace;
         @StepContextParameter private transient Launcher launcher;
         @StepContextParameter private transient TaskListener listener;
-        // TODO ideally we would like to just create a fresh EnvVars with only our own bindings.
-        // But DefaultStepContext has no notion of merging multiple EnvVars instances across nested scopes.
-        // So we need to pick up the bindings created by ExecutorStepExecution and append to them.
-        // This has the unfortunate effect of “freezing” any custom values set via EnvActionImpl.setProperty for the duration of this step,
-        // because these will also be present in the inherited EnvVars.
-        @StepContextParameter private transient EnvVars env;
 
         @Override public boolean start() throws Exception {
-            EnvVars overrides = new EnvVars(env);
+            Map<String,String> overrides = new HashMap<String,String>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
             }
-            getContext().newBodyInvoker().withContext(overrides).withCallback(new Callback(unbinders)).start();
+            getContext().newBodyInvoker().withContext(new Overrider(overrides)).withCallback(new Callback(unbinders)).start();
             return false;
         }
 
@@ -90,7 +89,25 @@ public final class BindingStep extends AbstractStepImpl {
             // should be no need to do anything special (but verify in JENKINS-26148)
         }
 
-        // TODO in case [Workflow]Run gets some equivalent to getSensitiveBuildVariables, this should be implemented here somehow
+    }
+
+    private static final class Overrider extends EnvironmentExpander {
+
+        private static final long serialVersionUID = 1;
+
+        private final Map<String,Secret> overrides = new HashMap<String,Secret>();
+
+        Overrider(Map<String,String> overrides) {
+            for (Map.Entry<String,String> override : overrides.entrySet()) {
+                this.overrides.put(override.getKey(), Secret.fromString(override.getValue()));
+            }
+        }
+
+        @Override public void expand(EnvVars env) throws IOException, InterruptedException {
+            for (Map.Entry<String,Secret> override : overrides.entrySet()) {
+                env.override(override.getKey(), override.getValue().getPlainText());
+            }
+        }
 
     }
 

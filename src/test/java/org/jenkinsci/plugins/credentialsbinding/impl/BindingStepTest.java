@@ -53,6 +53,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -214,6 +215,27 @@ public class BindingStepTest {
                         + "  echo \"got: ${extract('" + credentialsId + "')}\"\n"
                         + "}", true));
                 story.j.assertLogContains("got: " + secret, story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
+            }
+        });
+    }
+
+    @Ignore("TODO reproduced")
+    @Issue("JENKINS-27486")
+    @Test public void masking() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                String credentialsId = "creds";
+                String secret = "s3cr3t";
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "node {\n"
+                        + "  withCredentials([[$class: 'StringBinding', credentialsId: '" + credentialsId + "', variable: 'SECRET']]) {\n"
+                        // forgot set +x, ran /usr/bin/env, etc.
+                        + "    sh 'echo $SECRET > oops'\n"
+                        + "  }\n"
+                        + "}", true));
+                story.j.assertLogNotContains(secret, story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
             }
         });
     }

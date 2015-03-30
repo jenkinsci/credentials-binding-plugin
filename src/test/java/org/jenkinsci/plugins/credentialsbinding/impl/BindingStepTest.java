@@ -53,7 +53,6 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.junit.Assert.*;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -219,7 +218,6 @@ public class BindingStepTest {
         });
     }
 
-    @Ignore("TODO reproduced")
     @Issue("JENKINS-27486")
     @Test public void masking() {
         story.addStep(new Statement() {
@@ -235,7 +233,9 @@ public class BindingStepTest {
                         + "    sh 'echo $SECRET > oops'\n"
                         + "  }\n"
                         + "}", true));
-                story.j.assertLogNotContains(secret, story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
+                WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+                story.j.assertLogNotContains(secret, b);
+                story.j.assertLogContains("echo ****", b);
             }
         });
     }

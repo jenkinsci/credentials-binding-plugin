@@ -29,14 +29,22 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.console.ConsoleLogFilter;
+import hudson.console.LineTransformationOutputStream;
+import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.Secret;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -81,7 +89,7 @@ public final class BindingStep extends AbstractStepImpl {
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
             }
-            getContext().newBodyInvoker().withContext(new Overrider(overrides)).withCallback(new Callback(unbinders)).start();
+            getContext().newBodyInvoker().withContexts(new Overrider(overrides), new Filter(overrides.values())).withCallback(new Callback(unbinders)).start();
             return false;
         }
 
@@ -107,6 +115,41 @@ public final class BindingStep extends AbstractStepImpl {
             for (Map.Entry<String,Secret> override : overrides.entrySet()) {
                 env.override(override.getKey(), override.getValue().getPlainText());
             }
+        }
+
+    }
+
+    /** Similar to {@code MaskPasswordsOutputStream}. */
+    private static final class Filter extends ConsoleLogFilter implements Serializable {
+
+        private static final long serialVersionUID = 1;
+
+        private final Secret pattern;
+
+        Filter(Collection<String> secrets) {
+            StringBuilder b = new StringBuilder();
+            for (String secret : secrets) {
+                if (b.length() > 0) {
+                    b.append('|');
+                }
+                b.append(Pattern.quote(secret));
+            }
+            pattern = Secret.fromString(b.toString());
+        }
+
+        @Override public OutputStream decorateLogger(AbstractBuild _ignore, final OutputStream logger) throws IOException, InterruptedException {
+            final Pattern p = Pattern.compile(pattern.getPlainText());
+            return new LineTransformationOutputStream() {
+                @Override protected void eol(byte[] b, int len) throws IOException {
+                    Matcher m = p.matcher(new String(b, 0, len));
+                    if (m.find()) {
+                        logger.write(m.replaceAll("****").getBytes());
+                    } else {
+                        // Avoid byte → char → byte conversion unless we are actually doing something.
+                        logger.write(b, 0, len);
+                    }
+                }
+            };
         }
 
     }

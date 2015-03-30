@@ -53,10 +53,12 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
@@ -189,6 +191,31 @@ public class BindingStepTest {
                 assertTrue(secretFiles.isDirectory());
                 assertEquals(Collections.emptyList(), secretFiles.list());
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
+            }
+        });
+    }
+
+    @Ignore("TODO reproduced")
+    @Issue("JENKINS-27389")
+    @Test public void grabEnv() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                String credentialsId = "creds";
+                String secret = "s3cr3t";
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "def extract(id) {\n"
+                        + "  def v\n"
+                        + "  withCredentials([[$class: 'StringBinding', credentialsId: id, variable: 'tmp']]) {\n"
+                        + "    v = env.tmp\n"
+                        + "  }\n"
+                        + "  v\n"
+                        + "}\n"
+                        + "node {\n"
+                        + "  echo \"got: ${extract('" + credentialsId + "')}\"\n"
+                        + "}", true));
+                story.j.assertLogContains("got: " + secret, story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
             }
         });
     }

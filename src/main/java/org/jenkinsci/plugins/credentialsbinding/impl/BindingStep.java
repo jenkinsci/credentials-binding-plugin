@@ -50,6 +50,7 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
+import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
@@ -89,7 +90,11 @@ public final class BindingStep extends AbstractStepImpl {
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
             }
-            getContext().newBodyInvoker().withContexts(new Overrider(overrides), new Filter(overrides.values())).withCallback(new Callback(unbinders)).start();
+            getContext().newBodyInvoker().
+                    withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
+                    withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(overrides.values()))).
+                    withCallback(new Callback(unbinders)).
+                    start();
             return false;
         }
 

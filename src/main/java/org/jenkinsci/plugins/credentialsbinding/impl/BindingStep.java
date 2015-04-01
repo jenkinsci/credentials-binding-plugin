@@ -29,15 +29,29 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.console.ConsoleLogFilter;
+import hudson.console.LineTransformationOutputStream;
+import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.util.Secret;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
+import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -67,22 +81,20 @@ public final class BindingStep extends AbstractStepImpl {
         @StepContextParameter private transient FilePath workspace;
         @StepContextParameter private transient Launcher launcher;
         @StepContextParameter private transient TaskListener listener;
-        // TODO ideally we would like to just create a fresh EnvVars with only our own bindings.
-        // But DefaultStepContext has no notion of merging multiple EnvVars instances across nested scopes.
-        // So we need to pick up the bindings created by ExecutorStepExecution and append to them.
-        // This has the unfortunate effect of “freezing” any custom values set via EnvActionImpl.setProperty for the duration of this step,
-        // because these will also be present in the inherited EnvVars.
-        @StepContextParameter private transient EnvVars env;
 
         @Override public boolean start() throws Exception {
-            EnvVars overrides = new EnvVars(env);
+            Map<String,String> overrides = new HashMap<String,String>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
             }
-            getContext().newBodyInvoker().withContext(overrides).withCallback(new Callback(unbinders)).start();
+            getContext().newBodyInvoker().
+                    withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
+                    withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(overrides.values()))).
+                    withCallback(new Callback(unbinders)).
+                    start();
             return false;
         }
 
@@ -90,7 +102,60 @@ public final class BindingStep extends AbstractStepImpl {
             // should be no need to do anything special (but verify in JENKINS-26148)
         }
 
-        // TODO in case [Workflow]Run gets some equivalent to getSensitiveBuildVariables, this should be implemented here somehow
+    }
+
+    private static final class Overrider extends EnvironmentExpander {
+
+        private static final long serialVersionUID = 1;
+
+        private final Map<String,Secret> overrides = new HashMap<String,Secret>();
+
+        Overrider(Map<String,String> overrides) {
+            for (Map.Entry<String,String> override : overrides.entrySet()) {
+                this.overrides.put(override.getKey(), Secret.fromString(override.getValue()));
+            }
+        }
+
+        @Override public void expand(EnvVars env) throws IOException, InterruptedException {
+            for (Map.Entry<String,Secret> override : overrides.entrySet()) {
+                env.override(override.getKey(), override.getValue().getPlainText());
+            }
+        }
+
+    }
+
+    /** Similar to {@code MaskPasswordsOutputStream}. */
+    private static final class Filter extends ConsoleLogFilter implements Serializable {
+
+        private static final long serialVersionUID = 1;
+
+        private final Secret pattern;
+
+        Filter(Collection<String> secrets) {
+            StringBuilder b = new StringBuilder();
+            for (String secret : secrets) {
+                if (b.length() > 0) {
+                    b.append('|');
+                }
+                b.append(Pattern.quote(secret));
+            }
+            pattern = Secret.fromString(b.toString());
+        }
+
+        @Override public OutputStream decorateLogger(AbstractBuild _ignore, final OutputStream logger) throws IOException, InterruptedException {
+            final Pattern p = Pattern.compile(pattern.getPlainText());
+            return new LineTransformationOutputStream() {
+                @Override protected void eol(byte[] b, int len) throws IOException {
+                    Matcher m = p.matcher(new String(b, 0, len));
+                    if (m.find()) {
+                        logger.write(m.replaceAll("****").getBytes());
+                    } else {
+                        // Avoid byte → char → byte conversion unless we are actually doing something.
+                        logger.write(b, 0, len);
+                    }
+                }
+            };
+        }
 
     }
 

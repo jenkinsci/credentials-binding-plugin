@@ -57,6 +57,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
@@ -106,7 +107,7 @@ public class BindingStepTest {
                 assertNotNull(p);
                 WorkflowRun b = p.getBuildByNumber(1);
                 assertNotNull(b);
-                assertEquals("TODO JENKINS-27631", Collections.singleton("program.dat"), grep(b.getRootDir(), password));
+                assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), password));
                 SemaphoreStep.success("basics/1", null);
                 while (b.isBuilding()) { // TODO 1.607+ use waitForCompletion
                     Thread.sleep(100);
@@ -189,6 +190,52 @@ public class BindingStepTest {
                 assertTrue(secretFiles.isDirectory());
                 assertEquals(Collections.emptyList(), secretFiles.list());
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
+            }
+        });
+    }
+
+    @Issue("JENKINS-27389")
+    @Test public void grabEnv() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                String credentialsId = "creds";
+                String secret = "s3cr3t";
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "def extract(id) {\n"
+                        + "  def v\n"
+                        + "  withCredentials([[$class: 'StringBinding', credentialsId: id, variable: 'temp']]) {\n"
+                        + "    v = env.temp\n"
+                        + "  }\n"
+                        + "  v\n"
+                        + "}\n"
+                        + "node {\n"
+                        + "  echo \"got: ${extract('" + credentialsId + "')}\"\n"
+                        + "}", true));
+                story.j.assertLogContains("got: " + secret, story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
+            }
+        });
+    }
+
+    @Issue("JENKINS-27486")
+    @Test public void masking() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                String credentialsId = "creds";
+                String secret = "s3cr3t";
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "node {\n"
+                        + "  withCredentials([[$class: 'StringBinding', credentialsId: '" + credentialsId + "', variable: 'SECRET']]) {\n"
+                        // forgot set +x, ran /usr/bin/env, etc.
+                        + "    sh 'echo $SECRET > oops'\n"
+                        + "  }\n"
+                        + "}", true));
+                WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+                story.j.assertLogNotContains(secret, b);
+                story.j.assertLogContains("echo ****", b);
             }
         });
     }

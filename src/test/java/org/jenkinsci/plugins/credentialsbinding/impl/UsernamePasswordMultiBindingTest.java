@@ -28,8 +28,10 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import hudson.Functions;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +53,11 @@ public class UsernamePasswordMultiBindingTest {
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("userid", "pass", c.getId()))));
-        p.getBuildersList().add(new Shell("set +x\necho $userid/$pass > auth.txt"));
+        if (Functions.isWindows()) {
+            p.getBuildersList().add(new BatchFile("@echo off\necho %userid%/%pass% > auth.txt"));
+        } else {
+            p.getBuildersList().add(new Shell("set +x\necho $userid/$pass > auth.txt"));
+        }
         r.configRoundtrip(p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
         assertNotNull(wrapper);

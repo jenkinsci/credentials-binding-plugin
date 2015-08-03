@@ -159,6 +159,7 @@ public final class BindingStep extends AbstractStepImpl {
 
     }
 
+    // TODO use BodyExecutionCallback.TailCall from https://github.com/jenkinsci/workflow-plugin/pull/168
     private static final class Callback extends BodyExecutionCallback {
 
         private static final long serialVersionUID = 1;

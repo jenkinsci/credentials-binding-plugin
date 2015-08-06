@@ -58,6 +58,7 @@ public class FileBinding extends Binding<FileCredentials> {
         secrets.chmod(/*0700*/448);
         FilePath secret = dir.child(credentials.getFileName());
         copy(secret, credentials);
+        secret.chmod(0400);
         return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
     }
     

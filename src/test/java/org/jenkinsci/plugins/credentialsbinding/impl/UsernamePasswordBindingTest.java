@@ -28,15 +28,21 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
 import hudson.model.FreeStyleBuild;
+import hudson.model.Item;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.Shell;
+
 import java.util.Collections;
 import java.util.List;
+
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
+
 import org.junit.Rule;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -52,7 +58,7 @@ public class UsernamePasswordBindingTest {
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<Binding<?>>singletonList(new UsernamePasswordBinding("AUTH", c.getId()))));
         p.getBuildersList().add(new Shell("set +x\necho $AUTH > auth.txt"));
-        r.configRoundtrip(p);
+        r.configRoundtrip((Item)p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
         assertNotNull(wrapper);
         List<? extends MultiBinding<?>> bindings = wrapper.getBindings();

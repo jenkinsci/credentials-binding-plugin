@@ -28,17 +28,23 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
 import hudson.Functions;
 import hudson.model.FreeStyleBuild;
+import hudson.model.Item;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
+
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
+
 import org.junit.Rule;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -58,7 +64,7 @@ public class UsernamePasswordMultiBindingTest {
         } else {
             p.getBuildersList().add(new Shell("set +x\necho $userid/$pass > auth.txt"));
         }
-        r.configRoundtrip(p);
+        r.configRoundtrip((Item)p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
         assertNotNull(wrapper);
         List<? extends MultiBinding<?>> bindings = wrapper.getBindings();

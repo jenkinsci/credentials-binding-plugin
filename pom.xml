@@ -51,7 +51,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
-      <version>1.20</version>
+      <version>1.23</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -81,6 +81,12 @@
       <artifactId>workflow-support</artifactId>
       <version>${workflow.version}</version>
       <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>authorize-project</artifactId>
+      <version>1.1.0</version>
       <scope>test</scope>
     </dependency>
     <!-- For some reason this is otherwise missing and causes many verbose errors: -->

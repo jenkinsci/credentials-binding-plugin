@@ -29,30 +29,47 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
+import jenkins.security.QueueItemAuthenticatorConfiguration;
+
 import hudson.FilePath;
 import hudson.model.FileParameterValue;
 import hudson.model.Node;
 import hudson.model.Result;
+import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import hudson.util.Secret;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
 import javax.inject.Inject;
+
 import org.apache.commons.io.FileUtils;
+import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
+import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;
+import org.jenkinsci.plugins.authorizeproject.strategy.SpecificUsersAuthorizationStrategy;
+import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectStrategy;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.BlanketWhitelist;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+
 import static org.junit.Assert.*;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -60,6 +77,7 @@ import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.recipes.WithPlugin;
 
 public class BindingStepTest {
 
@@ -236,6 +254,53 @@ public class BindingStepTest {
                 WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
                 story.j.assertLogNotContains(secret, b);
                 story.j.assertLogContains("echo ****", b);
+            }
+        });
+    }
+
+    @Issue("JENKINS-30326")
+    @Test
+    public void testGlobalBindingWithAuthorization() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                // configure security
+                story.j.jenkins.setSecurityRealm(story.j.createDummySecurityRealm());
+                story.j.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
+                // create the user.
+                story.j.jenkins.getUser("dummy");
+                
+                // enable the run as user strategy for the AuthorizeProject plugin
+                Map<String, Boolean> strategies = new HashMap<String, Boolean>();
+                strategies.put(story.j.jenkins.getDescriptor(SpecificUsersAuthorizationStrategy.class).getId(), true);
+                QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new ProjectQueueItemAuthenticator(strategies));
+
+                // blanket whitelist all methods (easier than whitelisting Jenkins.getAuthentication)
+                story.j.jenkins.getExtensionList(Whitelist.class).add(new BlanketWhitelist());
+
+                String credentialsId = "creds";
+                String secret = "s3cr3t";
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "node {\n"
+                        + "  def authentication = Jenkins.getAuthentication()\n"
+                        + "  echo \"running as user: $authentication.principal\"\n"
+                        + "  withCredentials([[$class: 'StringBinding', credentialsId: '" + credentialsId + "', variable: 'SECRET']]) {\n"
+                        + "    writeFile file:'test', text: \"$env.SECRET\"\n"
+                        + "    def content = readFile 'test'\n"
+                        + "    if (\"$content\" != \"" + secret + "\") {\n"
+                        + "      error 'The credential was not bound into the workflow correctly'\n"
+                        + "    }\n"
+                        + "  }\n"
+                        + "}", true));
+                // run the job as a specific user
+                p.addProperty(new AuthorizeProjectProperty(new SpecificUsersAuthorizationStrategy("dummy", true)));
+
+                // the build will fail if we can not locate the credentials
+                WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+                // make sure this was actually run as a user and not system
+                story.j.assertLogContains("running as user: dummy", b);
             }
         });
     }

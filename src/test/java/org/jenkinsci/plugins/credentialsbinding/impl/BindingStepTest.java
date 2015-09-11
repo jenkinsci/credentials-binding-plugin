@@ -287,7 +287,11 @@ public class BindingStepTest {
                         + "  def authentication = Jenkins.getAuthentication()\n"
                         + "  echo \"running as user: $authentication.principal\"\n"
                         + "  withCredentials([[$class: 'StringBinding', credentialsId: '" + credentialsId + "', variable: 'SECRET']]) {\n"
-                        + "    echo 'this will fail if the credentials can not be found'\n"
+                        + "    writeFile file:'test', text: \"$env.SECRET\"\n"
+                        + "    def content = readFile 'test'\n"
+                        + "    if (\"$content\" != \"" + secret + "\") {\n"
+                        + "      error 'The credential was not bound into the workflow correctly'\n"
+                        + "    }\n"
                         + "  }\n"
                         + "}", true));
                 // run the job as a specific user

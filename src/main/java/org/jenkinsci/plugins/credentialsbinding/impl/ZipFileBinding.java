@@ -26,13 +26,17 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Item;
 import hudson.util.FormValidation;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+
+import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
@@ -62,8 +66,9 @@ public class ZipFileBinding extends FileBinding {
         public FormValidation doCheckCredentialsId(@AncestorInPath Item owner, @QueryParameter String value) {
             for (FileCredentials c : CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, Collections.<DomainRequirement>emptyList())) {
                 if (c.getId().equals(value)) {
+                    InputStream is = null;
                     try {
-                        InputStream is = c.getContent();
+                        is = c.getContent();
                         byte[] data = new byte[4];
                         if (is.read(data) == 4 && data[0] == 'P' && data[1] == 'K' && data[2] == 3 && data[3] == 4) {
                             return FormValidation.ok();
@@ -72,6 +77,11 @@ public class ZipFileBinding extends FileBinding {
                         }
                     } catch (IOException x) {
                         return FormValidation.warning("Could not verify file format");
+                    }
+                    finally {
+                        if (is != null) {
+                            IOUtils.closeQuietly(is);
+                        }
                     }
                 }
             }

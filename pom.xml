@@ -18,7 +18,7 @@
   </description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Credentials+Binding+Plugin</url>
   <properties>
-    <workflow.version>1.5</workflow.version>
+    <workflow.version>1.7</workflow.version>
   </properties>
   <licenses>
     <license>

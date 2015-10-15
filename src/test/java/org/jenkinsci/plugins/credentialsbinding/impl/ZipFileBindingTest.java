@@ -24,13 +24,18 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import java.io.File;
+import java.io.InputStream;
 
 import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -41,40 +46,65 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import hudson.Functions;
 import hudson.model.FileParameterValue.FileItemImpl;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+
 public class ZipFileBindingTest {
 
     @Rule
     public JenkinsRule j = new JenkinsRule();
 
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
 
-    @Issue("30941")
+    @Issue("JENKINS-30941")
     @Test
     public void cleanUpSucceeds() throws Exception {
         /** Issue was just present on Linux not windows - but the test will run on both */
 
         final String credentialsId = "zipfile";
-        // grab a jar file here - just use commons.fileupload!
-        File jar = new File(FileItem.class.getProtectionDomain().getCodeSource().getLocation().toURI());
 
-        FileItem fi = new FileItemImpl(jar);
-        FileCredentialsImpl fc = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "Just a zip file", fi, fi.getName(), null);
+        /* do the dance to get a simple zip file into jenkins */
+        InputStream zipStream = this.getClass().getResourceAsStream("a.zip");
+        try {
+            assertThat(zipStream, is(not(nullValue())));
+            File zip = tmp.newFile("a.zip");
+            FileUtils.copyInputStreamToFile(zipStream, zip);
+            FileItem fi = new FileItemImpl(zip);
+            FileCredentialsImpl fc = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "Just a zip file", fi, fi.getName(), null);
+            CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), fc);
+        }
+        finally {
+            IOUtils.closeQuietly(zipStream);
+            zipStream = null;
+        }
 
-        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), fc);
+
+        final String unixFile = "/dir/testfile.txt";
+        final String winFile = unixFile.replace("/", "\\\\"); /* two \\ as we escape the code and then escape for the script */
+        //if this file does not have a line ending then the text is not echoed to the log.
+        // fixed in workflow 1.11+ (which is not released at the time of writing)
+        final String contents = "Test of ZipFileBinding\n";
+        
         WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(""
                                               + "node {\n"
-                                              + "  withCredentials([[$class: 'ZipFileBinding', credentialsId: 'zipfile', variable: 'ziploc']]) {\n"
+                                              + "  withCredentials([[$class: 'ZipFileBinding', credentialsId: '"+ credentialsId +"', variable: 'ziploc']]) {\n"
                                               + (Functions.isWindows() 
-                                                      ? "    bat 'type %ziploc%\\\\META-INF\\\\MANIFEST.MF'\n"
-                                                      : "    sh 'cat ${ziploc}/META-INF/MANIFEST.MF'\n" )
-                                              + "    def manifest = readFile encoding: 'UTF-8', file: \"${env.ziploc}/META-INF/MANIFEST.MF\"\n"
-                                              + "    echo \"manifest contents....\\n${manifest}\"\n"
-                                              + "    if (!manifest.contains('Specification-Title: Apache Commons FileUpload')) {\n"
+                                                      ? "    bat 'type %ziploc%"+ winFile + "'\n"
+                                                      : "    sh 'cat ${ziploc}" + unixFile + "'\n" )
+                                              + "    def text = readFile encoding: 'UTF-8', file: \"${env.ziploc}" + unixFile + "\"\n"
+                                              + "    if (!text.equals('''" + contents + "''')) {\n"
                                               + "      error ('incorrect details from zip file')\n"
                                               + "    }\n"
                                               + "  }\n"
                                               + "}\n"
-                                              , false /* String.contains is not whitelisted until script-security 1.15. */));
-        j.assertBuildStatusSuccess(p.scheduleBuild2(0));
+                                              , true));
+
+        WorkflowRun run = p.scheduleBuild2(0).get();
+        j.assertBuildStatusSuccess(run);
+        j.assertLogContains(contents, run);
     }
 }

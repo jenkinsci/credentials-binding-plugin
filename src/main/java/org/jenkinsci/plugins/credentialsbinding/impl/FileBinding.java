@@ -58,7 +58,14 @@ public class FileBinding extends Binding<FileCredentials> {
         secrets.chmod(/*0700*/448);
         FilePath secret = dir.child(credentials.getFileName());
         copy(secret, credentials);
-        secret.chmod(0400);
+        if (secret.isDirectory()) { /* ZipFileBinding */
+            // needs to be writable so we can delete its contents
+            // needs to be executable so we can list the contents
+            secret.chmod(0700);
+        }
+        else {
+            secret.chmod(0400);
+        }
         return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
     }
     

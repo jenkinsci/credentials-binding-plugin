@@ -24,17 +24,14 @@
 
 package org.jenkinsci.plugins.credentialsbinding;
 
-import com.cloudbees.plugins.credentials.CredentialsDescriptor;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
-import hudson.Launcher;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Run;
-import hudson.model.TaskListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
@@ -97,17 +94,17 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     /** Callback run at the end of a build. */
     public interface Unbinder extends Serializable {
         /** Performs any needed cleanup. */
-        void unbind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
+        void unbind(@Nonnull Run<?,?> build, FilePath workspace) throws IOException, InterruptedException;
     }
 
     /** No-op callback. */
     protected static final class NullUnbinder implements Unbinder {
         private static final long serialVersionUID = 1;
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {}
+        @Override public void unbind(Run<?, ?> build, FilePath workspace) throws IOException, InterruptedException {}
     }
 
     /** Sets up bindings for a build. */
-    public abstract MultiEnvironment bind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
+    public abstract MultiEnvironment bind(@Nonnull Run<?,?> build, FilePath workspace) throws IOException, InterruptedException;
 
     /** Defines keys expected to be set in {@link MultiEnvironment#getValues}, particularly any that might be sensitive. */
     public abstract Set<String> variables();

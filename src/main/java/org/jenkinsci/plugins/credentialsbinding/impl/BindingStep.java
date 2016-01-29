@@ -86,7 +86,7 @@ public final class BindingStep extends AbstractStepImpl {
             Map<String,String> overrides = new HashMap<String,String>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
-                MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
+                MultiBinding.MultiEnvironment environment = binding.bind(run, workspace);
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
             }
@@ -173,7 +173,7 @@ public final class BindingStep extends AbstractStepImpl {
         private void cleanup(StepContext context) {
             for (MultiBinding.Unbinder unbinder : unbinders) {
                 try {
-                    unbinder.unbind(context.get(Run.class), context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
+                    unbinder.unbind(context.get(Run.class), context.get(FilePath.class));
                 } catch (Exception x) {
                     context.onFailure(x);
                 }

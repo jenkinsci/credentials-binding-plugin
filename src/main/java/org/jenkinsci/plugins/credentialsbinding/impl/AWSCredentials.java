@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 Jesse Glick.
+ * Copyright 2013 jglick.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,66 +24,50 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Run;
 import java.io.IOException;
+import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
+import org.kohsuke.stapler.DataBoundConstructor;
+import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsImpl;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
-import org.kohsuke.stapler.DataBoundConstructor;
 
-public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernamePasswordCredentials> {
+public class AWSCredentials extends MultiBinding<AWSCredentialsImpl> {
 
-    private final String usernameVariable;
-    private final String passwordVariable;
-
-    @DataBoundConstructor public UsernamePasswordMultiBinding(String usernameVariable, String passwordVariable, String credentialsId) {
+    @DataBoundConstructor public AWSCredentials(String credentialsId) {
         super(credentialsId);
-        this.usernameVariable = usernameVariable;
-        this.passwordVariable = passwordVariable;
     }
 
-    public String getUsernameVariable() {
-        return usernameVariable;
-    }
-
-    public String getPasswordVariable() {
-        return passwordVariable;
-    }
-
-    @Override protected Class<StandardUsernamePasswordCredentials> type() {
-        return StandardUsernamePasswordCredentials.class;
+    @Override protected Class<AWSCredentialsImpl> type() {
+        return AWSCredentialsImpl.class;
     }
 
     @Override public MultiEnvironment bind(Run<?, ?> build, FilePath workspace) throws IOException, InterruptedException {
-        StandardUsernamePasswordCredentials credentials = getCredentials(build);
+        AWSCredentialsImpl credentials = getCredentials(build);
         Map<String,String> m = new HashMap<String,String>();
-        m.put(usernameVariable, credentials.getUsername());
-        m.put(passwordVariable, credentials.getPassword().getPlainText());
+        m.put("AWS_ACCESS_KEY_ID", credentials.getAccessKey());
+        m.put("AWS_SECRET_ACCESS_KEY", credentials.getSecretKey().getPlainText());
         return new MultiEnvironment(m);
     }
 
     @Override public Set<String> variables() {
-        return new HashSet<String>(Arrays.asList(usernameVariable, passwordVariable));
+        return new HashSet<String>(Arrays.asList("AWS_SECRET_ACCESS_KEY"));
     }
 
-    @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {
-
-        @Override protected Class<StandardUsernamePasswordCredentials> type() {
-            return StandardUsernamePasswordCredentials.class;
+    @Extension public static class DescriptorImpl extends BindingDescriptor<AWSCredentialsImpl> {
+        @Override protected Class<AWSCredentialsImpl> type() {
+            return AWSCredentialsImpl.class;
         }
 
         @Override public String getDisplayName() {
-            return Messages.UsernamePasswordMultiBinding_username_and_password();
+            return Messages.AWSCredentials_aws_credentials();
         }
 
     }
-
 }

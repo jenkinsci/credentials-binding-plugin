@@ -70,7 +70,7 @@ public class SecretBuildWrapper extends BuildWrapper {
         for (MultiBinding binding : bindings) {
             List<String> environements = new ArrayList<String>();
             environements.addAll(binding.variables());
-            
+
             for (Map.Entry<String, String> entry : binding.bind(build, build.getWorkspace()).getValues().entrySet()) {
                 if (environements.contains(entry.getKey())) {
                     passwords.add(entry.getValue());
@@ -82,7 +82,7 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
      /**
-     * Class took from the mask-passwords plugin / envinject plugin
+     * Class taken from the mask-passwords plugin / envinject plugin
      */
     class CredentialsBindingPasswordsOutputStream extends LineTransformationOutputStream {
 
@@ -131,7 +131,7 @@ public class SecretBuildWrapper extends BuildWrapper {
         public void close() throws IOException {
             super.close();
             logger.close();
-        }       
+        }
     }
 
     @Override public void makeBuildVariables(AbstractBuild build, Map<String, String> variables) {
@@ -145,7 +145,7 @@ public class SecretBuildWrapper extends BuildWrapper {
                 Logger.getLogger(SecretBuildWrapper.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        
+
         for (MultiBinding.MultiEnvironment envs : multi) {
             variables.putAll(envs.getValues());
         }

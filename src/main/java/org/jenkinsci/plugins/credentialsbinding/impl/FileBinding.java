@@ -85,7 +85,7 @@ public class FileBinding extends Binding<FileCredentials> {
         
     }
 
-    private static FilePath secretsDir(FilePath workspace) {
+    static FilePath secretsDir(FilePath workspace) {
         Computer computer = workspace.toComputer();
         Node node = computer == null ? null : computer.getNode();
         FilePath root = node == null ? workspace : node.getRootPath();

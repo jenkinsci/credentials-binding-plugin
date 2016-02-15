@@ -125,7 +125,7 @@ public final class BindingStep extends AbstractStepImpl {
     }
 
     /** Similar to {@code MaskPasswordsOutputStream}. */
-    private static final class Filter extends ConsoleLogFilter implements Serializable {
+    static final class Filter extends ConsoleLogFilter implements Serializable {
 
         private static final long serialVersionUID = 1;
 

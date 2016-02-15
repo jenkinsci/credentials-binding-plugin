@@ -29,4 +29,9 @@ THE SOFTWARE.
             <f:repeatableHeteroProperty field="bindings" hasHeader="true"/>
         </f:block>
     </f:section>
+    <f:advanced>
+    	<f:entry title="Show bindings" field="showBindings" description="If checked, all secret variable bindings will be clear-text.">
+			<f:checkbox />
+		</f:entry>
+    </f:advanced>
 </j:jelly>

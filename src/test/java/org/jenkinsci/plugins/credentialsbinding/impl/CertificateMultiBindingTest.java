@@ -59,7 +59,6 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
-import jenkins.model.WorkspaceWriter;
 
 public class CertificateMultiBindingTest {
 
@@ -95,7 +94,6 @@ public class CertificateMultiBindingTest {
 		FreeStyleProject p = r.createFreeStyleProject();
 		p.getBuildWrappersList().add(new SecretBuildWrapper(Collections
 				.<MultiBinding<?>> singletonList(new CertificateMultiBinding("keystore", "password", "alias", c.getId()))));
-		p.getBuildersList().add(new WorkspaceWriter("test.txt", "Hello World!"));
 		if (Functions.isWindows()) {
 			p.getBuildersList().add(new BatchFile(
 					  "@echo off\n"

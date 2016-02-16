@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -36,7 +37,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
-import java.util.TreeSet;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -59,6 +59,7 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
+import jenkins.model.WorkspaceWriter;
 
 public class CertificateMultiBindingTest {
 
@@ -94,6 +95,7 @@ public class CertificateMultiBindingTest {
 		FreeStyleProject p = r.createFreeStyleProject();
 		p.getBuildWrappersList().add(new SecretBuildWrapper(Collections
 				.<MultiBinding<?>> singletonList(new CertificateMultiBinding("keystore", "password", "alias", c.getId()))));
+		p.getBuildersList().add(new WorkspaceWriter("test.txt", "Hello World!"));
 		if (Functions.isWindows()) {
 			p.getBuildersList().add(new BatchFile(
 					  "@echo off\n"
@@ -106,12 +108,12 @@ public class CertificateMultiBindingTest {
 		} else {
 			p.getBuildersList().add(new Shell(
 					  "set +x\n"
-				    + "echo -n \"$alias/$password/\" > secrets.txt\n"
-					+ "if [-f \"$keystore\"]\n"
+					+ "printf $alias/$password/ > secrets.txt\n"
+					+ "if [ -f \"$keystore\" ]\n"
 					+ "then\n"
-					+ "echo -n \"exists\" >> secrets.txt\n"
+					+ "printf exists >> secrets.txt\n"
 					+ "else\n"
-					+ "echo -n \"missing\" >> secrets.txt\n"
+					+ "printf missing >> secrets.txt\n"
 					+ "fi"));
 		}
 		r.configRoundtrip((Item) p);
@@ -128,7 +130,7 @@ public class CertificateMultiBindingTest {
 		FreeStyleBuild b = r.buildAndAssertSuccess(p);
 		r.assertLogNotContains(password, b);
 		assertEquals(alias + '/' + password + "/exists", b.getWorkspace().child("secrets.txt").readToString().trim());
-		assertEquals("[keystore, password, alias]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
+		assertEquals(b.getSensitiveBuildVariables(), containsInAnyOrder("keystore", "password", "alias"));
 	}
 
 }

@@ -68,7 +68,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 
 		if (workspace != null) {
 			FilePath secrets = FileBinding.secretsDir(workspace);
-			String tempKeyStoreName = UUID.randomUUID().toString();
+			final String tempKeyStoreName = UUID.randomUUID().toString();
 			final FilePath secret = secrets.child(tempKeyStoreName);
 			OutputStream out = secret.write();
 			try {
@@ -84,7 +84,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 			}
 			secret.chmod(0400);
 			m.put(keystoreVariable, secret.getRemote());
-			return new MultiEnvironment(m, new UnbinderImpl(tempKeyStoreName));
+			return new MultiEnvironment(m, new UnbinderImpl(secret));
 		} else {
 			return new MultiEnvironment(m);
 		}
@@ -94,16 +94,16 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 
 		private static final long serialVersionUID = 1;
 
-		private final String keyStoreName;
+		private final FilePath keyStoreFile;
 
-		UnbinderImpl(String dirName) {
-			this.keyStoreName = dirName;
+		UnbinderImpl(FilePath keystoreFile) {
+			this.keyStoreFile = keystoreFile;
 		}
 
 		@Override
 		public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener)
 				throws IOException, InterruptedException {
-			FileBinding.secretsDir(workspace).child(keyStoreName).delete();
+			keyStoreFile.delete();
 		}
 
 	}

@@ -128,7 +128,7 @@ public class CertificateMultiBindingTest {
 		FreeStyleBuild b = r.buildAndAssertSuccess(p);
 		r.assertLogNotContains(password, b);
 		assertEquals(alias + '/' + password + "/exists", b.getWorkspace().child("secrets.txt").readToString().trim());
-		assertEquals(b.getSensitiveBuildVariables(), containsInAnyOrder("keystore", "password", "alias"));
+		assertThat(b.getSensitiveBuildVariables(), containsInAnyOrder("keystore", "password", "alias"));
 	}
 
 }

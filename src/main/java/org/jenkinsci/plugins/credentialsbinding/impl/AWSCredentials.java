@@ -1,8 +1,6 @@
 /*
  * The MIT License
  *
- * Copyright 2013 jglick.
- *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -24,50 +22,50 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Run;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
+import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsImpl;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 
-public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCredentials> {
-    private String password;
-    
-    @DataBoundConstructor public UsernamePasswordBinding(String variable, String credentialsId) {
-        super(variable, credentialsId);
+public class AWSCredentials extends MultiBinding<AWSCredentialsImpl> {
+
+    @DataBoundConstructor public AWSCredentials(String credentialsId) {
+        super(credentialsId);
     }
 
-    @Override protected Class<StandardUsernamePasswordCredentials> type() {
-        return StandardUsernamePasswordCredentials.class;
+    @Override protected Class<AWSCredentialsImpl> type() {
+        return AWSCredentialsImpl.class;
     }
 
-    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace) throws IOException, InterruptedException {
-        StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        password = credentials.getPassword().getPlainText();
-        return new SingleEnvironment(credentials.getUsername() + ':' + password);
+    @Override public MultiEnvironment bind(Run<?, ?> build, FilePath workspace) throws IOException, InterruptedException {
+        AWSCredentialsImpl credentials = getCredentials(build);
+        Map<String,String> m = new HashMap<String,String>();
+        m.put("AWS_ACCESS_KEY_ID", credentials.getAccessKey());
+        m.put("AWS_SECRET_ACCESS_KEY", credentials.getSecretKey().getPlainText());
+        return new MultiEnvironment(m);
     }
 
     @Override public Set<String> variables() {
-        return new HashSet<String>(Arrays.asList(password, variable));
+        return new HashSet<String>(Arrays.asList("AWS_SECRET_ACCESS_KEY"));
     }
 
-    @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {
-
-        @Override protected Class<StandardUsernamePasswordCredentials> type() {
-            return StandardUsernamePasswordCredentials.class;
+    @Extension public static class DescriptorImpl extends BindingDescriptor<AWSCredentialsImpl> {
+        @Override protected Class<AWSCredentialsImpl> type() {
+            return AWSCredentialsImpl.class;
         }
 
         @Override public String getDisplayName() {
-            return Messages.UsernamePasswordBinding_username_and_password();
+            return Messages.AWSCredentials_aws_credentials();
         }
 
     }
-
 }

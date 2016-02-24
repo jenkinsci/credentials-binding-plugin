@@ -60,9 +60,9 @@ public class UsernamePasswordMultiBindingTest {
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("userid", "pass", c.getId()))));
         if (Functions.isWindows()) {
-            p.getBuildersList().add(new BatchFile("@echo off\necho %userid%/%pass% > auth.txt"));
+            p.getBuildersList().add(new BatchFile("echo %userid%/%pass% > auth.txt"));
         } else {
-            p.getBuildersList().add(new Shell("set +x\necho $userid/$pass > auth.txt"));
+            p.getBuildersList().add(new Shell("echo $userid/$pass > auth.txt"));
         }
         r.configRoundtrip((Item)p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
@@ -77,7 +77,7 @@ public class UsernamePasswordMultiBindingTest {
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
         assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
-        assertEquals("[pass, userid]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
+        assertEquals("[pass]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
     }
 
 }

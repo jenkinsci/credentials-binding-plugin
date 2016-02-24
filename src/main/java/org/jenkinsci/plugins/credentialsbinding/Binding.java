@@ -34,7 +34,6 @@ import java.io.IOException;
 import javax.annotation.Nonnull;
 
 import hudson.model.Run;
-import hudson.model.TaskListener;
 import java.util.Collections;
 import java.util.Set;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -45,7 +44,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public abstract class Binding<C extends StandardCredentials> extends MultiBinding<C> {
 
-    private final String variable;
+    protected final String variable;
 
     /** For use with {@link DataBoundConstructor}. */
     protected Binding(String variable, String credentialsId) {
@@ -89,22 +88,22 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
 
     @Deprecated
     @SuppressWarnings("rawtypes")
-    public Environment bind(@Nonnull final AbstractBuild build, final Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
-        final SingleEnvironment e = bindSingle(build, build.getWorkspace(), launcher, listener);
+    public Environment bind(@Nonnull final AbstractBuild build) throws IOException, InterruptedException {
+        final SingleEnvironment e = bindSingle(build, build.getWorkspace());
         return new Environment() {
             @Override public String value() {
                 return e.value;
             }
             @Override public void unbind() throws IOException, InterruptedException {
-                e.unbinder.unbind(build, build.getWorkspace(), launcher, listener);
+                e.unbinder.unbind(build, build.getWorkspace());
             }
         };
     }
 
     /** Sets up bindings for a build. */
-    public /* abstract */SingleEnvironment bindSingle(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-        if (Util.isOverridden(Binding.class, getClass(), "bind", AbstractBuild.class, Launcher.class, BuildListener.class) && build instanceof AbstractBuild && listener instanceof BuildListener) {
-            Environment e = bind((AbstractBuild) build, launcher, (BuildListener) listener);
+    public /* abstract */SingleEnvironment bindSingle(@Nonnull Run<?,?> build, FilePath workspace) throws IOException, InterruptedException {
+        if (Util.isOverridden(Binding.class, getClass(), "bind", AbstractBuild.class, Launcher.class, BuildListener.class) && build instanceof AbstractBuild) {
+            Environment e = bind((AbstractBuild) build);
             return new SingleEnvironment(e.value(), new UnbinderWrapper(e));
         } else {
             throw new AbstractMethodError("you must override bindSingle");
@@ -116,18 +115,18 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
         UnbinderWrapper(Environment e) {
             this.e = e;
         }
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        @Override public void unbind(Run<?, ?> build, FilePath workspace) throws IOException, InterruptedException {
             e.unbind();
         }
     }
 
 
-    @Override public final MultiEnvironment bind(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-        SingleEnvironment single = bindSingle(build, workspace, launcher, listener);
+    @Override public final MultiEnvironment bind(Run<?,?> build, FilePath workspace) throws IOException, InterruptedException {
+        SingleEnvironment single = bindSingle(build, workspace);
         return new MultiEnvironment(Collections.singletonMap(variable, single.value), single.unbinder);
     }
 
-    @Override public final Set<String> variables() {
+    @Override public Set<String> variables() {
         return Collections.singleton(variable);
     }
 

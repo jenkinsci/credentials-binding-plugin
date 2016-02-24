@@ -26,11 +26,9 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import hudson.Extension;
 import hudson.FilePath;
-import hudson.Launcher;
 import hudson.model.Computer;
 import hudson.model.Node;
 import hudson.model.Run;
-import hudson.model.TaskListener;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -49,7 +47,7 @@ public class FileBinding extends Binding<FileCredentials> {
         return FileCredentials.class;
     }
 
-    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace) throws IOException, InterruptedException {
         FileCredentials credentials = getCredentials(build);
         FilePath secrets = secretsDir(workspace);
         String dirName = UUID.randomUUID().toString();
@@ -68,21 +66,21 @@ public class FileBinding extends Binding<FileCredentials> {
         }
         return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
     }
-    
+
     private static class UnbinderImpl implements Unbinder {
 
         private static final long serialVersionUID = 1;
 
         private final String dirName;
-        
+
         UnbinderImpl(String dirName) {
             this.dirName = dirName;
         }
-        
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+
+        @Override public void unbind(Run<?, ?> build, FilePath workspace) throws IOException, InterruptedException {
             secretsDir(workspace).child(dirName).deleteRecursive();
         }
-        
+
     }
 
     private static FilePath secretsDir(FilePath workspace) {

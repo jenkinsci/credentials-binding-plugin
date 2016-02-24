@@ -253,7 +253,7 @@ public class BindingStepTest {
                         + "}", true));
                 WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
                 story.j.assertLogNotContains(secret, b);
-                story.j.assertLogContains("echo ****", b);
+                story.j.assertLogContains("echo ********", b);
             }
         });
     }

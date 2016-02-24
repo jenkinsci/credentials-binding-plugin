@@ -86,7 +86,7 @@ public final class BindingStep extends AbstractStepImpl {
             Map<String,String> overrides = new HashMap<String,String>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
-                MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
+                MultiBinding.MultiEnvironment environment = binding.bind(run, workspace);
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
             }
@@ -125,7 +125,7 @@ public final class BindingStep extends AbstractStepImpl {
     }
 
     /** Similar to {@code MaskPasswordsOutputStream}. */
-    private static final class Filter extends ConsoleLogFilter implements Serializable {
+    public static final class Filter extends ConsoleLogFilter implements Serializable {
 
         private static final long serialVersionUID = 1;
 
@@ -148,7 +148,7 @@ public final class BindingStep extends AbstractStepImpl {
                 @Override protected void eol(byte[] b, int len) throws IOException {
                     Matcher m = p.matcher(new String(b, 0, len));
                     if (m.find()) {
-                        logger.write(m.replaceAll("****").getBytes());
+                        logger.write(m.replaceAll("********").getBytes());
                     } else {
                         // Avoid byte → char → byte conversion unless we are actually doing something.
                         logger.write(b, 0, len);
@@ -173,7 +173,7 @@ public final class BindingStep extends AbstractStepImpl {
         private void cleanup(StepContext context) {
             for (MultiBinding.Unbinder unbinder : unbinders) {
                 try {
-                    unbinder.unbind(context.get(Run.class), context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
+                    unbinder.unbind(context.get(Run.class), context.get(FilePath.class));
                 } catch (Exception x) {
                     context.onFailure(x);
                 }

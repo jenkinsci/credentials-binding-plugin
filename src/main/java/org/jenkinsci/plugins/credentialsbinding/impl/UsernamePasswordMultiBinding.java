@@ -27,9 +27,7 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import hudson.Extension;
 import hudson.FilePath;
-import hudson.Launcher;
 import hudson.model.Run;
-import hudson.model.TaskListener;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -64,7 +62,7 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return StandardUsernamePasswordCredentials.class;
     }
 
-    @Override public MultiEnvironment bind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public MultiEnvironment bind(Run<?, ?> build, FilePath workspace) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         Map<String,String> m = new HashMap<String,String>();
         m.put(usernameVariable, credentials.getUsername());
@@ -73,7 +71,7 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
     }
 
     @Override public Set<String> variables() {
-        return new HashSet<String>(Arrays.asList(usernameVariable, passwordVariable));
+        return new HashSet<String>(Arrays.asList(passwordVariable));
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {

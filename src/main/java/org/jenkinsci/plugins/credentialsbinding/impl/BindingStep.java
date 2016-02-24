@@ -125,7 +125,7 @@ public final class BindingStep extends AbstractStepImpl {
     }
 
     /** Similar to {@code MaskPasswordsOutputStream}. */
-    private static final class Filter extends ConsoleLogFilter implements Serializable {
+    public static final class Filter extends ConsoleLogFilter implements Serializable {
 
         private static final long serialVersionUID = 1;
 
@@ -148,7 +148,7 @@ public final class BindingStep extends AbstractStepImpl {
                 @Override protected void eol(byte[] b, int len) throws IOException {
                     Matcher m = p.matcher(new String(b, 0, len));
                     if (m.find()) {
-                        logger.write(m.replaceAll("****").getBytes());
+                        logger.write(m.replaceAll("********").getBytes());
                     } else {
                         // Avoid byte → char → byte conversion unless we are actually doing something.
                         logger.write(b, 0, len);

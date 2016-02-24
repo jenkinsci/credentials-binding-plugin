@@ -57,7 +57,7 @@ public class UsernamePasswordBindingTest {
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<Binding<?>>singletonList(new UsernamePasswordBinding("AUTH", c.getId()))));
-        p.getBuildersList().add(new Shell("set +x\necho $AUTH > auth.txt"));
+        p.getBuildersList().add(new Shell("echo $AUTH > auth.txt"));
         r.configRoundtrip((Item)p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
         assertNotNull(wrapper);
@@ -70,7 +70,6 @@ public class UsernamePasswordBindingTest {
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
         assertEquals(username + ':' + password, b.getWorkspace().child("auth.txt").readToString().trim());
-        assertEquals("[AUTH]", b.getSensitiveBuildVariables().toString());
     }
 
 }

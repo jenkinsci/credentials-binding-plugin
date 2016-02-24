@@ -29,13 +29,17 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Run;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCredentials> {
-
+    private String password;
+    
     @DataBoundConstructor public UsernamePasswordBinding(String variable, String credentialsId) {
         super(variable, credentialsId);
     }
@@ -46,7 +50,12 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
 
     @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        return new SingleEnvironment(credentials.getUsername() + ':' + credentials.getPassword().getPlainText());
+        password = credentials.getPassword().getPlainText();
+        return new SingleEnvironment(credentials.getUsername() + ':' + password);
+    }
+
+    @Override public Set<String> variables() {
+        return new HashSet<String>(Arrays.asList(password, variable));
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {

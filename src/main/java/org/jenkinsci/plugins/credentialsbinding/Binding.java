@@ -44,7 +44,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public abstract class Binding<C extends StandardCredentials> extends MultiBinding<C> {
 
-    private final String variable;
+    protected final String variable;
 
     /** For use with {@link DataBoundConstructor}. */
     protected Binding(String variable, String credentialsId) {
@@ -126,7 +126,7 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
         return new MultiEnvironment(Collections.singletonMap(variable, single.value), single.unbinder);
     }
 
-    @Override public final Set<String> variables() {
+    @Override public Set<String> variables() {
         return Collections.singleton(variable);
     }
 

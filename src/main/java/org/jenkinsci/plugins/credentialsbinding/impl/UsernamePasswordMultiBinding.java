@@ -71,7 +71,7 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
     }
 
     @Override public Set<String> variables() {
-        return new HashSet<String>(Arrays.asList(usernameVariable, passwordVariable));
+        return new HashSet<String>(Arrays.asList(passwordVariable));
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {

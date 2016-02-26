@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 @SuppressWarnings({"rawtypes", "unchecked"}) // inherited from BuildWrapper
 public class SecretBuildWrapper extends BuildWrapper {
@@ -48,13 +49,23 @@ public class SecretBuildWrapper extends BuildWrapper {
     private final List<? extends MultiBinding<?>> bindings;
     private boolean showBindings;
 
-    @DataBoundConstructor public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings, boolean showBindings) {
+    public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings, boolean showBindings) {
         this.bindings = bindings;
         this.showBindings = showBindings;
     }
     
+    @DataBoundConstructor public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings) {
+        this.bindings = bindings;
+        showBindings = true;
+    }
+    
     public List<? extends MultiBinding<?>> getBindings() {
         return bindings;
+    }
+    
+    @DataBoundSetter
+    public void setShowBindings(boolean showBindings) {
+        this.showBindings = showBindings;
     }
 
     @Override public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {

@@ -92,8 +92,11 @@ public class CertificateMultiBindingTest {
 				password, new CertificateCredentialsImpl.FileOnMasterKeyStoreSource(certificate.getAbsolutePath()));
 		CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
 		FreeStyleProject p = r.createFreeStyleProject();
+		CertificateMultiBinding binding = new CertificateMultiBinding("keystore", c.getId());
+		binding.setAliasVariable("alias");
+		binding.setPasswordVariable("password");
 		p.getBuildWrappersList().add(new SecretBuildWrapper(Collections
-				.<MultiBinding<?>> singletonList(new CertificateMultiBinding("keystore", "password", "alias", c.getId()))));
+				.<MultiBinding<?>> singletonList(binding)));
 		if (Functions.isWindows()) {
 			p.getBuildersList().add(new BatchFile(
 					  "@echo off\n"
@@ -119,12 +122,12 @@ public class CertificateMultiBindingTest {
 		assertNotNull(wrapper);
 		List<? extends MultiBinding<?>> bindings = wrapper.getBindings();
 		assertEquals(1, bindings.size());
-		MultiBinding<?> binding = bindings.get(0);
-		assertEquals(c.getId(), binding.getCredentialsId());
-		assertEquals(CertificateMultiBinding.class, binding.getClass());
-		assertEquals("password", ((CertificateMultiBinding) binding).getPasswordVariable());
-		assertEquals("alias", ((CertificateMultiBinding) binding).getAliasVariable());
-		assertEquals("keystore", ((CertificateMultiBinding) binding).getKeystoreVariable());
+		MultiBinding<?> testBinding = bindings.get(0);
+		assertEquals(c.getId(), testBinding.getCredentialsId());
+		assertEquals(CertificateMultiBinding.class, testBinding.getClass());
+		assertEquals("password", ((CertificateMultiBinding) testBinding).getPasswordVariable());
+		assertEquals("alias", ((CertificateMultiBinding) testBinding).getAliasVariable());
+		assertEquals("keystore", ((CertificateMultiBinding) testBinding).getKeystoreVariable());
 		FreeStyleBuild b = r.buildAndAssertSuccess(p);
 		r.assertLogNotContains(password, b);
 		assertEquals(alias + '/' + password + "/exists", b.getWorkspace().child("secrets.txt").readToString().trim());

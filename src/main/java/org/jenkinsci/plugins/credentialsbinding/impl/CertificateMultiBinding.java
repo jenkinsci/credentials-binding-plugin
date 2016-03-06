@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 
@@ -40,16 +41,24 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 		return aliasVariable;
 	}
 
-	private final String passwordVariable;
-	private final String aliasVariable;
+	private String passwordVariable;
+	
+	@DataBoundSetter
+	public void setPasswordVariable(String passwordVariable) {
+		this.passwordVariable = passwordVariable;
+	}
+
+	@DataBoundSetter
+	public void setAliasVariable(String aliasVariable) {
+		this.aliasVariable = aliasVariable;
+	}
+
+	private String aliasVariable;
 
 	@DataBoundConstructor
-	public CertificateMultiBinding(String keystoreVariable, String passwordVariable, String aliasVariable,
-			String credentialsId) {
+	public CertificateMultiBinding(String keystoreVariable, String credentialsId) {
 		super(credentialsId);
 		this.keystoreVariable = keystoreVariable;
-		this.passwordVariable = passwordVariable;
-		this.aliasVariable = aliasVariable;
 	}
 
 	@Override
@@ -63,8 +72,10 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 		StandardCertificateCredentials credentials = getCredentials(build);
 		final String storePassword = credentials.getPassword().getPlainText();
 		Map<String, String> m = new HashMap<String, String>();
-		m.put(aliasVariable, credentials.getDescription());
-		m.put(passwordVariable, storePassword);
+		if(aliasVariable!=null && !aliasVariable.isEmpty())
+			m.put(aliasVariable, credentials.getDescription());
+		if(passwordVariable!=null && !passwordVariable.isEmpty())
+			m.put(passwordVariable, storePassword);
 
 		if (workspace != null) {
 			FilePath secrets = FileBinding.secretsDir(workspace);

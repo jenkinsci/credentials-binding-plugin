@@ -40,6 +40,7 @@ import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
+import hudson.slaves.WorkspaceList;
 import hudson.util.Secret;
 
 import java.io.File;
@@ -56,7 +57,6 @@ import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
 import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;
 import org.jenkinsci.plugins.authorizeproject.strategy.SpecificUsersAuthorizationStrategy;
-import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectStrategy;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -77,7 +77,6 @@ import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
-import org.jvnet.hudson.test.recipes.WithPlugin;
 
 public class BindingStepTest {
 
@@ -201,15 +200,21 @@ public class BindingStepTest {
                 }
                 story.j.assertBuildStatusSuccess(b);
                 story.j.assertLogNotContains(secret, b);
-                FilePath key = story.j.jenkins.getNode("myslave").getWorkspaceFor(p).child("key");
+                FilePath ws = story.j.jenkins.getNode("myslave").getWorkspaceFor(p);
+                FilePath key = ws.child("key");
                 assertTrue(key.exists());
                 assertEquals(secret, key.readToString());
-                FilePath secretFiles = story.j.jenkins.getNode("myslave").getRootPath().child("secretFiles");
+                FilePath secretFiles = tempDir(ws).child("secretFiles");
                 assertTrue(secretFiles.isDirectory());
                 assertEquals(Collections.emptyList(), secretFiles.list());
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
             }
         });
+    }
+
+    // TODO 1.652 use WorkspaceList.tempDir
+    private static FilePath tempDir(FilePath ws) {
+        return ws.sibling(ws.getName() + System.getProperty(WorkspaceList.class.getName(), "@") + "tmp");
     }
 
     @Issue("JENKINS-27389")

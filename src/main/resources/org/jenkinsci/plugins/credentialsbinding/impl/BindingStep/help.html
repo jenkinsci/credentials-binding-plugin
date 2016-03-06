@@ -22,3 +22,37 @@ node {
     usually as a <code>credentialsId</code> parameter,
     in which case this step is unnecessary.
 </p>
+<p>
+    For bindings which store a secret file, beware that
+</p>
+<pre><code>
+node {
+  dir('subdir') {
+    withCredentials([[$class: 'FileBinding', credentialsId: 'secret', variable: 'FILE']]) {
+      sh 'use $FILE'
+    }
+  }
+}</code></pre>
+<p>
+    is not safe, as <code>$FILE</code> might be inside the workspace (in <code>subdir@tmp/secretFiles/</code>),
+    and thus visible to anyone able to browse the job’s workspace.
+    If you need to run steps in a different directory than the usual workspace, you should instead use
+</p>
+<pre><code>
+node {
+  withCredentials([[$class: 'FileBinding', credentialsId: 'secret', variable: 'FILE']]) {
+    dir('subdir') {
+      sh 'use $FILE'
+    }
+  }
+}</code></pre>
+<p>
+    to ensure that the secrets are outside the workspace; or choose a different workspace entirely:
+</p>
+node {
+  ws {
+    withCredentials([[$class: 'FileBinding', credentialsId: 'secret', variable: 'FILE']]) {
+      sh 'use $FILE'
+    }
+  }
+}</code></pre>

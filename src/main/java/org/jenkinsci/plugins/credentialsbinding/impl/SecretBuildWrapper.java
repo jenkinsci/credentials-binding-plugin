@@ -95,10 +95,8 @@ public class SecretBuildWrapper extends BuildWrapper {
     		return super.decorateLogger(build, logger);
     	
     	Map<String,String> overrides = new HashMap<String,String>();
-        List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
         for (MultiBinding<?> binding : bindings) {
-            MultiBinding.MultiEnvironment environment = binding.bind(build, build.getWorkspace(), null, null);
-            unbinders.add(environment.getUnbinder());
+            MultiBinding.MultiEnvironment environment = binding.bind(build, null, null, null);
             overrides.putAll(environment.getValues());
         }
         return new BindingStep.Filter(overrides.values()).decorateLogger(build, logger);

@@ -40,6 +40,8 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,10 +132,19 @@ public final class BindingStep extends AbstractStepImpl {
         private static final long serialVersionUID = 1;
 
         private final Secret pattern;
+        
+        private static final Comparator<String> StringLengthComparator = new Comparator<String>() {
+			@Override
+			public int compare(String o1, String o2) {
+				return o1.length() - o2.length();
+			}
+		};
 
         Filter(Collection<String> secrets) {
             StringBuilder b = new StringBuilder();
-            for (String secret : secrets) {
+            List<String> hiddenSecrets = new ArrayList<String>(secrets);
+            hiddenSecrets.sort(StringLengthComparator.reversed());
+            for (String secret : hiddenSecrets) {
                 if (b.length() > 0) {
                     b.append('|');
                 }

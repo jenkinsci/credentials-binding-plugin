@@ -143,7 +143,8 @@ public final class BindingStep extends AbstractStepImpl {
         Filter(Collection<String> secrets) {
             StringBuilder b = new StringBuilder();
             List<String> hiddenSecrets = new ArrayList<String>(secrets);
-            hiddenSecrets.sort(StringLengthComparator.reversed());
+            Collections.sort(hiddenSecrets, StringLengthComparator);
+            Collections.reverse(hiddenSecrets);
             for (String secret : hiddenSecrets) {
                 if (b.length() > 0) {
                     b.append('|');

@@ -27,10 +27,9 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.Computer;
-import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.slaves.WorkspaceList;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -88,10 +87,12 @@ public class FileBinding extends Binding<FileCredentials> {
     }
 
     private static FilePath secretsDir(FilePath workspace) {
-        Computer computer = workspace.toComputer();
-        Node node = computer == null ? null : computer.getNode();
-        FilePath root = node == null ? workspace : node.getRootPath();
-        return root.child("secretFiles");
+        return tempDir(workspace).child("secretFiles");
+    }
+
+    // TODO 1.652 use WorkspaceList.tempDir
+    private static FilePath tempDir(FilePath ws) {
+        return ws.sibling(ws.getName() + System.getProperty(WorkspaceList.class.getName(), "@") + "tmp");
     }
 
     protected void copy(FilePath secret, FileCredentials credentials) throws IOException, InterruptedException {

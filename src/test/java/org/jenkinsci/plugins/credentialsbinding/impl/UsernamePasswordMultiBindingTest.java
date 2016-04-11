@@ -58,11 +58,11 @@ public class UsernamePasswordMultiBindingTest {
         UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, "sample", username, password);
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
         FreeStyleProject p = r.createFreeStyleProject();
-        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("userid", "pass", c.getId()))));
+        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("userid", "pass", c.getId())), false));
         if (Functions.isWindows()) {
-            p.getBuildersList().add(new BatchFile("@echo off\necho %userid%/%pass% > auth.txt"));
+            p.getBuildersList().add(new BatchFile("echo %userid%/%pass% > auth.txt"));
         } else {
-            p.getBuildersList().add(new Shell("set +x\necho $userid/$pass > auth.txt"));
+            p.getBuildersList().add(new Shell("echo $userid/$pass > auth.txt"));
         }
         r.configRoundtrip((Item)p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);

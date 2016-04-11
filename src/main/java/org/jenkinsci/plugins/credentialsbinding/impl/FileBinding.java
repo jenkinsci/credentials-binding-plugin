@@ -49,7 +49,9 @@ public class FileBinding extends Binding<FileCredentials> {
     }
 
     @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-        FileCredentials credentials = getCredentials(build);
+        if(workspace==null)
+        	return new SingleEnvironment("");
+    	FileCredentials credentials = getCredentials(build);
         FilePath secrets = secretsDir(workspace);
         String dirName = UUID.randomUUID().toString();
         final FilePath dir = secrets.child(dirName);

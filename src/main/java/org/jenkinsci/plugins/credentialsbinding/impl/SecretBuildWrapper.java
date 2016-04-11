@@ -29,27 +29,43 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Run.RunnerAbortedException;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 @SuppressWarnings({"rawtypes", "unchecked"}) // inherited from BuildWrapper
 public class SecretBuildWrapper extends BuildWrapper {
 
     private final List<? extends MultiBinding<?>> bindings;
+    private boolean showBindings;
 
+    public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings, boolean showBindings) {
+        this.bindings = bindings;
+        this.showBindings = showBindings;
+    }
+    
     @DataBoundConstructor public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings) {
         this.bindings = bindings;
+        showBindings = true;
     }
     
     public List<? extends MultiBinding<?>> getBindings() {
         return bindings;
+    }
+    
+    @DataBoundSetter
+    public void setShowBindings(boolean showBindings) {
+        this.showBindings = showBindings;
     }
 
     @Override public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
@@ -70,6 +86,28 @@ public class SecretBuildWrapper extends BuildWrapper {
                 return true;
             }
         };
+    }
+    
+    @Override
+    public OutputStream decorateLogger(AbstractBuild build, OutputStream logger)
+    		throws IOException, InterruptedException, RunnerAbortedException {
+    	if(showBindings)
+    		return super.decorateLogger(build, logger);
+    	
+    	Map<String,String> overrides = new HashMap<String,String>();
+        for (MultiBinding<?> binding : bindings) {
+            MultiBinding.MultiEnvironment environment = binding.bind(build, null, null, null);
+            for (String envKey : environment.getValues().keySet()) {
+                if (!environment.getValues().get(envKey).isEmpty()) {
+                    overrides.put(envKey, environment.getValues().get(envKey));
+                }
+            }
+        }
+        if (!overrides.isEmpty()) {
+            return new BindingStep.Filter(overrides.values()).decorateLogger(build, logger);
+        } else {
+            return logger;
+        }
     }
 
     @Override public void makeSensitiveBuildVariables(AbstractBuild build, Set<String> sensitiveVariables) {

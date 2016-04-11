@@ -97,9 +97,17 @@ public class SecretBuildWrapper extends BuildWrapper {
     	Map<String,String> overrides = new HashMap<String,String>();
         for (MultiBinding<?> binding : bindings) {
             MultiBinding.MultiEnvironment environment = binding.bind(build, null, null, null);
-            overrides.putAll(environment.getValues());
+            for (String envKey : environment.getValues().keySet()) {
+                if (!environment.getValues().get(envKey).isEmpty()) {
+                    overrides.put(envKey, environment.getValues().get(envKey));
+                }
+            }
         }
-        return new BindingStep.Filter(overrides.values()).decorateLogger(build, logger);
+        if (!overrides.isEmpty()) {
+            return new BindingStep.Filter(overrides.values()).decorateLogger(build, logger);
+        } else {
+            return logger;
+        }
     }
 
     @Override public void makeSensitiveBuildVariables(AbstractBuild build, Set<String> sensitiveVariables) {

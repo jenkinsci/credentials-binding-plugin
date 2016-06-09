@@ -27,7 +27,7 @@ THE SOFTWARE.
     <j:set var="expressionAllowed" value="true"/>
     <f:section title="Bindings">
         <f:block>
-            <f:repeatableHeteroProperty field="bindings" hasHeader="true"/>
+            <f:repeatableHeteroProperty field="bindings" hasHeader="true" capture="expressionAllowed"/>
         </f:block>
     </f:section>
 </j:jelly>

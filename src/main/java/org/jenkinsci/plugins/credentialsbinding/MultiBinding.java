@@ -126,7 +126,8 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         if (type().isInstance(cred))
             return type().cast(cred);
 
-        Descriptor expected = Jenkins.getInstance().getDescriptor(type());
+        
+        Descriptor expected = Jenkins.getActiveInstance().getDescriptor(type());
         throw new CredentialNotFoundException("Credentials '"+credentialsId+"' is of type '"+
                 cred.getDescriptor().getDisplayName()+"' where '"+
                 (expected!=null ? expected.getDisplayName() : type().getName())+

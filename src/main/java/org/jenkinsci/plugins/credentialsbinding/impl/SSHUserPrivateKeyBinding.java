@@ -31,6 +31,7 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
+import hudson.util.Secret;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.remoting.RoleChecker;
@@ -99,7 +100,12 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
 
         Map<String, String> map = new HashMap<String, String>();
         map.put(keyFileVariable, keyFile.getRemote());
-        map.put(passphraseVariable, sshKey.getPassphrase().getPlainText());
+        Secret passphrase = sshKey.getPassphrase();
+        if (passphrase != null) {
+            map.put(passphraseVariable, passphrase.getPlainText());
+        } else {
+            map.put(passphraseVariable, "");
+        }
         map.put(usernameVariable, sshKey.getUsername());
 
         return new MultiEnvironment(map, new KeyRemover(keyFile.getRemote()));

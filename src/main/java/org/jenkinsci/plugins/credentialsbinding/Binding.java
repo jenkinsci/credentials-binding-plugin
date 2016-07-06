@@ -25,12 +25,15 @@
 package org.jenkinsci.plugins.credentialsbinding;
 
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import java.io.IOException;
+
 import javax.annotation.Nonnull;
 
 import hudson.model.Run;
@@ -110,9 +113,13 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
             throw new AbstractMethodError("you must override bindSingle");
         }
     }
+    
     private static class UnbinderWrapper implements Unbinder {
         private static final long serialVersionUID = 1; // only really serialize if what it wraps is, too
+        
+        @SuppressFBWarnings(value="SE_BAD_FIELD", justification="Environment is deprecated and will generally be not serializable")
         private final Environment e;
+        
         UnbinderWrapper(Environment e) {
             this.e = e;
         }

@@ -36,17 +36,18 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.Secret;
 import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -94,7 +95,7 @@ public final class BindingStep extends AbstractStepImpl {
             }
             getContext().newBodyInvoker().
                     withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
-                    withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(overrides.values()))).
+                    withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(overrides.values(), run.getCharset().name()))).
                     withCallback(new Callback(unbinders)).
                     start();
             return false;
@@ -132,35 +133,35 @@ public final class BindingStep extends AbstractStepImpl {
         private static final long serialVersionUID = 1;
 
         private final Secret pattern;
-        
-        private static final Comparator<String> StringLengthComparator = new Comparator<String>() {
-			@Override
-			public int compare(String o1, String o2) {
-				return o1.length() - o2.length();
-			}
-		};
+        private String charsetName;
 
-        Filter(Collection<String> secrets) {
+        Filter(Collection<String> secrets, String charsetName) {
             StringBuilder b = new StringBuilder();
-            List<String> hiddenSecrets = new ArrayList<String>(secrets);
-            Collections.sort(hiddenSecrets, StringLengthComparator);
-            Collections.reverse(hiddenSecrets);
-            for (String secret : hiddenSecrets) {
+            for (String secret : secrets) {
                 if (b.length() > 0) {
                     b.append('|');
                 }
                 b.append(Pattern.quote(secret));
             }
             pattern = Secret.fromString(b.toString());
+            this.charsetName = charsetName;
+        }
+
+        // To avoid de-serialization issues with newly added field (charsetName)
+        private Object readResolve() throws ObjectStreamException {
+            if (this.charsetName == null) {
+                this.charsetName = Charsets.UTF_8.name();
+            }
+            return this;
         }
 
         @Override public OutputStream decorateLogger(AbstractBuild _ignore, final OutputStream logger) throws IOException, InterruptedException {
             final Pattern p = Pattern.compile(pattern.getPlainText());
             return new LineTransformationOutputStream() {
                 @Override protected void eol(byte[] b, int len) throws IOException {
-                    Matcher m = p.matcher(new String(b, 0, len));
+                    Matcher m = p.matcher(new String(b, 0, len, charsetName));
                     if (m.find()) {
-                        logger.write(m.replaceAll("****").getBytes());
+                        logger.write(m.replaceAll("****").getBytes(charsetName));
                     } else {
                         // Avoid byte → char → byte conversion unless we are actually doing something.
                         logger.write(b, 0, len);

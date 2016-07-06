@@ -29,11 +29,9 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
-import hudson.Functions;
 import hudson.model.FreeStyleBuild;
 import hudson.model.Item;
 import hudson.model.FreeStyleProject;
-import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
 
 import java.util.Collections;
@@ -58,8 +56,8 @@ public class UsernamePasswordBindingTest {
         UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, "sample", username, password);
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
         FreeStyleProject p = r.createFreeStyleProject();
-        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<Binding<?>>singletonList(new UsernamePasswordBinding("AUTH", c.getId())), false));
-        p.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo %AUTH% > auth.txt") : new Shell("echo $AUTH > auth.txt"));
+        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<Binding<?>>singletonList(new UsernamePasswordBinding("AUTH", c.getId()))));
+        p.getBuildersList().add(new Shell("set +x\necho $AUTH > auth.txt"));
         r.configRoundtrip((Item)p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
         assertNotNull(wrapper);

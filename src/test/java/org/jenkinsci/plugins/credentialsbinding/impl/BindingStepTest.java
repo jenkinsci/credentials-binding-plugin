@@ -262,31 +262,6 @@ public class BindingStepTest {
             }
         });
     }
-    
-    @Issue("JENKINS-24805")
-    @Test public void maskingSimilarSecrets() {
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
-                String credentialsId = "creds";
-                String username = "s3cr3t";
-                String password = username + "EvenLonger";
-                UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", username, password);
-                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
-                p.setDefinition(new CpsFlowDefinition(""
-                        + "node {\n"
-                        + "  withCredentials([[$class: 'UsernamePasswordMultiBinding', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: '" + credentialsId + "']]) {\n"
-                        // forgot set +x, ran /usr/bin/env, etc.
-                        + "    sh 'echo $USERNAME:$PASSWORD > oopsEvenLonger'\n"
-                        + "  }\n"
-                        + "}", true));
-                WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
-                story.j.assertLogNotContains(username, b);
-                story.j.assertLogNotContains(password, b);
-                story.j.assertLogContains("echo ****:****", b);
-            }
-        });
-    }
 
     @Issue("JENKINS-30326")
     @Test

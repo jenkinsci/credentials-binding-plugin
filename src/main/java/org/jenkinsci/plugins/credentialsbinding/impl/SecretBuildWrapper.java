@@ -24,15 +24,25 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.IdCredentials;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.InvisibleAction;
+import hudson.model.Run;
+import hudson.model.Run.RunnerAbortedException;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,10 +63,13 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
     @Override public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        final List<MultiBinding.MultiEnvironment> m = new ArrayList<MultiBinding.MultiEnvironment>();
-        for (MultiBinding binding : bindings) {
-            m.add(binding.bind(build, build.getWorkspace(), launcher, listener));
-        }
+        final List<MultiBinding.MultiEnvironment> m = Lists.transform(build.getActions(SharedMultiEnvAction.class),
+                new Function<SharedMultiEnvAction, MultiBinding.MultiEnvironment>() {
+                    public MultiBinding.MultiEnvironment apply (SharedMultiEnvAction action) {
+                        return action.get();
+                    }
+        });
+
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {
                 for (MultiBinding.MultiEnvironment e : m) {
@@ -72,9 +85,41 @@ public class SecretBuildWrapper extends BuildWrapper {
         };
     }
 
+    @Override public OutputStream decorateLogger(AbstractBuild build, OutputStream logger)
+            throws IOException, InterruptedException, RunnerAbortedException {
+
+        Map<String,String> overrides = new HashMap<String, String>();
+        for (MultiBinding<?> binding : bindings) {
+            MultiBinding.MultiEnvironment environment = binding.bind(build, null, null, null);
+            build.addAction(new SharedMultiEnvAction(environment));
+            for (String envKey : environment.getValues().keySet()) {
+                if (!environment.getValues().get(envKey).isEmpty()) {
+                    overrides.put(envKey, environment.getValues().get(envKey));
+                }
+            }
+        }
+        if (!overrides.isEmpty()) {
+            return new BindingStep.Filter(overrides.values(), build.getCharset().name()).decorateLogger(build, logger);
+        } else {
+            return logger;
+        }
+    }
+
     @Override public void makeSensitiveBuildVariables(AbstractBuild build, Set<String> sensitiveVariables) {
         for (MultiBinding binding : bindings) {
             sensitiveVariables.addAll(binding.variables());
+        }
+    }
+
+    private static class SharedMultiEnvAction extends InvisibleAction {
+        private final transient MultiBinding.MultiEnvironment me;
+
+        public SharedMultiEnvAction(MultiBinding.MultiEnvironment me){
+            this.me = me;
+        }
+
+        public MultiBinding.MultiEnvironment get() {
+            return this.me;
         }
     }
 

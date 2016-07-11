@@ -41,6 +41,8 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,16 +130,25 @@ public final class BindingStep extends AbstractStepImpl {
     }
 
     /** Similar to {@code MaskPasswordsOutputStream}. */
-    private static final class Filter extends ConsoleLogFilter implements Serializable {
+    static final class Filter extends ConsoleLogFilter implements Serializable {
 
         private static final long serialVersionUID = 1;
 
         private final Secret pattern;
         private String charsetName;
-        
+
+        private static final Comparator<String> StringLengthComparator = new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o2.length() - o1.length();
+            }
+        };
+
         Filter(Collection<String> secrets, String charsetName) {
             StringBuilder b = new StringBuilder();
-            for (String secret : secrets) {
+            List<String> hiddenSecrets = new ArrayList<String>(secrets);
+            Collections.sort(hiddenSecrets, StringLengthComparator);
+            for (String secret : hiddenSecrets) {
                 if (b.length() > 0) {
                     b.append('|');
                 }
@@ -146,7 +157,7 @@ public final class BindingStep extends AbstractStepImpl {
             pattern = Secret.fromString(b.toString());
             this.charsetName = charsetName;
         }
-        
+
         // To avoid de-serialization issues with newly added field (charsetName)
         private Object readResolve() throws ObjectStreamException {
             if (this.charsetName == null) {

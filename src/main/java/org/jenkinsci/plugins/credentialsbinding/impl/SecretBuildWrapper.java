@@ -33,6 +33,7 @@ import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,10 +43,10 @@ import org.kohsuke.stapler.DataBoundConstructor;
 @SuppressWarnings({"rawtypes", "unchecked"}) // inherited from BuildWrapper
 public class SecretBuildWrapper extends BuildWrapper {
 
-    private final List<? extends MultiBinding<?>> bindings;
+    private /*almost final*/ List<? extends MultiBinding<?>> bindings;
 
     @DataBoundConstructor public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings) {
-        this.bindings = bindings;
+        this.bindings = bindings == null ? Collections.<MultiBinding<?>>emptyList() : bindings;
     }
     
     public List<? extends MultiBinding<?>> getBindings() {
@@ -76,6 +77,13 @@ public class SecretBuildWrapper extends BuildWrapper {
         for (MultiBinding binding : bindings) {
             sensitiveVariables.addAll(binding.variables());
         }
+    }
+
+    protected Object readResolve() {
+        if (bindings == null) {
+            bindings = Collections.emptyList();
+        }
+        return this;
     }
 
     @Extension public static class DescriptorImpl extends BuildWrapperDescriptor {

@@ -49,10 +49,21 @@ node {
 <p>
     to ensure that the secrets are outside the workspace; or choose a different workspace entirely:
 </p>
+<pre><code>
 node {
   ws {
     withCredentials([[$class: 'FileBinding', credentialsId: 'secret', variable: 'FILE']]) {
       sh 'use $FILE'
     }
+  }
+}</code></pre>
+
+<p>
+    You can also access secret text credentials:
+</p>    
+<pre><code>
+node {
+  withCredentials([[$class: 'StringBinding', credentialsId: 'mytoken', variable: 'TOKEN' ]]) {
+    sh 'use $TOKEN'
   }
 }</code></pre>

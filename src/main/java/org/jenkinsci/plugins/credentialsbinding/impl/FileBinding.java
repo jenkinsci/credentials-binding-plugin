@@ -32,6 +32,7 @@ import hudson.model.TaskListener;
 import hudson.slaves.WorkspaceList;
 import java.io.IOException;
 import java.util.UUID;
+import org.jenkinsci.Symbol;
 
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
@@ -97,6 +98,7 @@ public class FileBinding extends Binding<FileCredentials> {
         secret.copyFrom(credentials.getContent());
     }
 
+    @Symbol("file")
     @Extension public static class DescriptorImpl extends BindingDescriptor<FileCredentials> {
 
         @Override protected Class<FileCredentials> type() {

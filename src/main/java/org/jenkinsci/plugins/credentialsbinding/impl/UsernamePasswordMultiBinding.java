@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.jenkinsci.Symbol;
 
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
@@ -76,6 +77,7 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return new HashSet<String>(Arrays.asList(usernameVariable, passwordVariable));
     }
 
+    @Symbol("usernamePassword")
     @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {
 
         @Override protected Class<StandardUsernamePasswordCredentials> type() {

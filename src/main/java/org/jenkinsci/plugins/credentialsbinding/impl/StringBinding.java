@@ -30,6 +30,7 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
+import org.jenkinsci.Symbol;
 
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
@@ -50,6 +51,7 @@ public class StringBinding extends Binding<StringCredentials> {
         return new SingleEnvironment(getCredentials(build).getSecret().getPlainText());
     }
 
+    @Symbol("string")
     @Extension public static class DescriptorImpl extends BindingDescriptor<StringCredentials> {
 
         @Override protected Class<StringCredentials> type() {

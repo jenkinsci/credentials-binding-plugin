@@ -24,21 +24,16 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.model.Run;
-import hudson.model.TaskListener;
-import hudson.slaves.WorkspaceList;
 import java.io.IOException;
-import java.util.UUID;
 
-import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class FileBinding extends Binding<FileCredentials> {
+import hudson.Extension;
+import hudson.FilePath;
+
+public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
 
     @DataBoundConstructor public FileBinding(String variable, String credentialsId) {
         super(variable, credentialsId);
@@ -48,13 +43,7 @@ public class FileBinding extends Binding<FileCredentials> {
         return FileCredentials.class;
     }
 
-    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-        FileCredentials credentials = getCredentials(build);
-        FilePath secrets = secretsDir(workspace);
-        String dirName = UUID.randomUUID().toString();
-        final FilePath dir = secrets.child(dirName);
-        dir.mkdirs();
-        secrets.chmod(/*0700*/448);
+    @Override protected final FilePath write(FileCredentials credentials, FilePath dir) throws IOException, InterruptedException {
         FilePath secret = dir.child(credentials.getFileName());
         copy(secret, credentials);
         if (secret.isDirectory()) { /* ZipFileBinding */
@@ -65,32 +54,7 @@ public class FileBinding extends Binding<FileCredentials> {
         else {
             secret.chmod(0400);
         }
-        return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
-    }
-    
-    private static class UnbinderImpl implements Unbinder {
-
-        private static final long serialVersionUID = 1;
-
-        private final String dirName;
-        
-        UnbinderImpl(String dirName) {
-            this.dirName = dirName;
-        }
-        
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-            secretsDir(workspace).child(dirName).deleteRecursive();
-        }
-        
-    }
-
-    private static FilePath secretsDir(FilePath workspace) {
-        return tempDir(workspace).child("secretFiles");
-    }
-
-    // TODO 1.652 use WorkspaceList.tempDir
-    private static FilePath tempDir(FilePath ws) {
-        return ws.sibling(ws.getName() + System.getProperty(WorkspaceList.class.getName(), "@") + "tmp");
+        return secret;
     }
 
     protected void copy(FilePath secret, FileCredentials credentials) throws IOException, InterruptedException {

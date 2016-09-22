@@ -45,20 +45,9 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
 
     @Override protected final FilePath write(FileCredentials credentials, FilePath dir) throws IOException, InterruptedException {
         FilePath secret = dir.child(credentials.getFileName());
-        copy(secret, credentials);
-        if (secret.isDirectory()) { /* ZipFileBinding */
-            // needs to be writable so we can delete its contents
-            // needs to be executable so we can list the contents
-            secret.chmod(0700);
-        }
-        else {
-            secret.chmod(0400);
-        }
-        return secret;
-    }
-
-    protected void copy(FilePath secret, FileCredentials credentials) throws IOException, InterruptedException {
         secret.copyFrom(credentials.getContent());
+        secret.chmod(0400);
+        return secret;
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<FileCredentials> {

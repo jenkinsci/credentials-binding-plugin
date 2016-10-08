@@ -309,12 +309,12 @@ public class BindingStepTest {
         });
     }
 
-    private static Set<String> grep(File dir, String text) throws IOException {
+    /* package */static Set<String> grep(File dir, String text) throws IOException {
         Set<String> matches = new TreeSet<String>();
         grep(dir, text, "", matches);
         return matches;
     }
-    private static void grep(File dir, String text, String prefix, Set<String> matches) throws IOException {
+    /* package */static void grep(File dir, String text, String prefix, Set<String> matches) throws IOException {
         File[] kids = dir.listFiles();
         if (kids == null) {
             return;

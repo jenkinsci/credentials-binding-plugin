@@ -42,7 +42,7 @@ public class StringBinding extends Binding<StringCredentials> {
         super(variable, credentialsId);
     }
 
-    @Override protected Class<StringCredentials> type() {
+    @Override public Class<StringCredentials> type() {
         return StringCredentials.class;
     }
 

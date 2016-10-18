@@ -24,6 +24,8 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.IdCredentials;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -57,6 +59,8 @@ public class SecretBuildWrapper extends BuildWrapper {
         final List<MultiBinding.MultiEnvironment> m = new ArrayList<MultiBinding.MultiEnvironment>();
         for (MultiBinding binding : bindings) {
             m.add(binding.bind(build, build.getWorkspace(), launcher, listener));
+            IdCredentials id = CredentialsProvider.findCredentialById(binding.getCredentialsId(), binding.type(), build);
+            CredentialsProvider.track(build, id);
         }
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {

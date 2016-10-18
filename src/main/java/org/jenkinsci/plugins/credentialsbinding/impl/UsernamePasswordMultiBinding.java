@@ -60,7 +60,7 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return passwordVariable;
     }
 
-    @Override protected Class<StandardUsernamePasswordCredentials> type() {
+    @Override public Class<StandardUsernamePasswordCredentials> type() {
         return StandardUsernamePasswordCredentials.class;
     }
 

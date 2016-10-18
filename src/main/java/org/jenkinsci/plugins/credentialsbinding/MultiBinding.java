@@ -62,7 +62,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     }
 
     /** Type token. */
-    protected abstract Class<C> type();
+    public abstract Class<C> type();
 
     /** Identifier of the credentials to be bound. */
     public final String getCredentialsId() {

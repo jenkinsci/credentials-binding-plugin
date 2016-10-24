@@ -24,17 +24,13 @@
 
 package org.jenkinsci.plugins.credentialsbinding;
 
-import com.cloudbees.plugins.credentials.CredentialsDescriptor;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
@@ -62,7 +58,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     }
 
     /** Type token. */
-    public abstract Class<C> type();
+    protected abstract Class<C> type();
 
     /** Identifier of the credentials to be bound. */
     public final String getCredentialsId() {
@@ -120,6 +116,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
      */
     protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws IOException {
         IdCredentials cred = CredentialsProvider.findCredentialById(credentialsId, IdCredentials.class, build);
+        CredentialsProvider.track(build, cred);
         if (cred==null)
             throw new CredentialNotFoundException(credentialsId);
 

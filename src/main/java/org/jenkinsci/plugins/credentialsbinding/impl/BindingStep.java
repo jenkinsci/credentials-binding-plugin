@@ -24,8 +24,6 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.google.inject.Inject;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -94,8 +92,6 @@ public final class BindingStep extends AbstractStepImpl {
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
-                IdCredentials id = CredentialsProvider.findCredentialById(binding.getCredentialsId(), binding.type(), run);
-                CredentialsProvider.track(run, id);
             }
             getContext().newBodyInvoker().
                     withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).

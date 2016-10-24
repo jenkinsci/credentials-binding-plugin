@@ -42,7 +42,7 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
         super(variable, credentialsId);
     }
 
-    @Override public Class<StandardUsernamePasswordCredentials> type() {
+    @Override protected Class<StandardUsernamePasswordCredentials> type() {
         return StandardUsernamePasswordCredentials.class;
     }
 

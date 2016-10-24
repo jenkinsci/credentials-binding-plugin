@@ -44,7 +44,7 @@ public class FileBinding extends Binding<FileCredentials> {
         super(variable, credentialsId);
     }
 
-    @Override public Class<FileCredentials> type() {
+    @Override protected Class<FileCredentials> type() {
         return FileCredentials.class;
     }
 

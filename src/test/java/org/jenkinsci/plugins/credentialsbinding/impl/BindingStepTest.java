@@ -69,17 +69,19 @@ import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 
 import static org.junit.Assert.*;
+import org.junit.ClassRule;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 public class BindingStepTest {
 
+    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
@@ -126,9 +128,7 @@ public class BindingStepTest {
                 assertNotNull(b);
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), password));
                 SemaphoreStep.success("basics/1", null);
-                while (b.isBuilding()) { // TODO 1.607+ use waitForCompletion
-                    Thread.sleep(100);
-                }
+                story.j.waitForCompletion(b);
                 story.j.assertBuildStatusSuccess(b);
                 story.j.assertLogNotContains(password, b);
                 FilePath script = story.j.jenkins.getWorkspaceFor(p).child("script.sh");
@@ -160,7 +160,6 @@ public class BindingStepTest {
                 story.j.assertLogContains(CredentialNotFoundException.class.getName(), r);
                 story.j.assertLogContains(StandardUsernamePasswordCredentials.class.getName(), r);
                 story.j.assertLogContains(stringCredentialsDescriptor.getDisplayName(), r);
-                System.out.println(JenkinsRule.getLog(r)); // TODO 1.607+ use BuildWatcher
             }
         });
     }

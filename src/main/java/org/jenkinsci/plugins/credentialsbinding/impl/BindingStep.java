@@ -172,8 +172,7 @@ public final class BindingStep extends AbstractStepImpl {
 
     }
 
-    // TODO use BodyExecutionCallback.TailCall from https://github.com/jenkinsci/workflow-plugin/pull/168
-    private static final class Callback extends BodyExecutionCallback {
+    private static final class Callback extends BodyExecutionCallback.TailCall {
 
         private static final long serialVersionUID = 1;
 
@@ -183,24 +182,22 @@ public final class BindingStep extends AbstractStepImpl {
             this.unbinders = unbinders;
         }
 
-        private void cleanup(StepContext context) {
+        @Override protected void finished(StepContext context) throws Exception {
+            Exception xx = null;
             for (MultiBinding.Unbinder unbinder : unbinders) {
                 try {
                     unbinder.unbind(context.get(Run.class), context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
                 } catch (Exception x) {
-                    context.onFailure(x);
+                    if (xx == null) {
+                        xx = x;
+                    } else {
+                        xx.addSuppressed(x);
+                    }
                 }
             }
-        }
-
-        @Override public void onSuccess(StepContext context, Object result) {
-            cleanup(context);
-            context.onSuccess(result);
-        }
-
-        @Override public void onFailure(StepContext context, Throwable t) {
-            cleanup(context);
-            context.onFailure(t);
+            if (xx != null) {
+                throw xx;
+            }
         }
 
     }

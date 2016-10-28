@@ -30,7 +30,6 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
 import hudson.model.FreeStyleBuild;
-import hudson.model.Item;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.Shell;
 
@@ -58,7 +57,7 @@ public class UsernamePasswordBindingTest {
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<Binding<?>>singletonList(new UsernamePasswordBinding("AUTH", c.getId()))));
         p.getBuildersList().add(new Shell("set +x\necho $AUTH > auth.txt"));
-        r.configRoundtrip((Item)p);
+        r.configRoundtrip(p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
         assertNotNull(wrapper);
         List<? extends MultiBinding<?>> bindings = wrapper.getBindings();

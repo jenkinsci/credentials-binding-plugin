@@ -49,6 +49,8 @@ import javax.annotation.Nonnull;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -142,11 +144,12 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     }
 
     /**
-     * Utility method for turning a collection of secret strings into a {@link Secret}.
+     * Utility method for turning a collection of secret strings into a single {@link String} for pattern compilation.
      * @param secrets A collection of secret strings
-     * @return A {@link Secret} generated from that collection.
+     * @return A {@link String} generated from that collection.
      */
-    public static Secret getSecretForStrings(Collection<String> secrets) {
+    @Restricted(NoExternalUse.class)
+    public static String getPatternStringForSecrets(Collection<String> secrets) {
         StringBuilder b = new StringBuilder();
         for (String secret : secrets) {
             if (b.length() > 0) {
@@ -154,6 +157,6 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
             }
             b.append(Pattern.quote(secret));
         }
-        return Secret.fromString(b.toString());
+        return b.toString();
     }
 }

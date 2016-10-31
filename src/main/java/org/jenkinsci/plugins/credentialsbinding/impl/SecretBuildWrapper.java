@@ -35,9 +35,7 @@ import hudson.model.Run;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import java.io.IOException;
-import java.io.ObjectStreamException;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,7 +68,7 @@ public class SecretBuildWrapper extends BuildWrapper {
      */
     public static @CheckForNull Pattern getPatternForBuild(@Nonnull AbstractBuild<?, ?> build) {
         if (secretsForBuild.containsKey(build)) {
-            return Pattern.compile(MultiBinding.getSecretForStrings(secretsForBuild.get(build)).getPlainText());
+            return Pattern.compile(MultiBinding.getPatternStringForSecrets(secretsForBuild.get(build)));
         } else {
             return null;
         }
@@ -86,11 +84,7 @@ public class SecretBuildWrapper extends BuildWrapper {
 
     @Override
     public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws IOException, InterruptedException, Run.RunnerAbortedException {
-        if (!bindings.isEmpty()) {
-            return new Filter(build.getCharset().name()).decorateLogger(build, logger);
-        } else {
-            return logger;
-        }
+        return new Filter(build.getCharset().name()).decorateLogger(build, logger);
     }
 
     @Override public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
@@ -104,9 +98,7 @@ public class SecretBuildWrapper extends BuildWrapper {
             secrets.addAll(e.getValues().values());
         }
 
-        if (!secrets.isEmpty()) {
-            secretsForBuild.put(build, secrets);
-        }
+        secretsForBuild.put(build, secrets);
 
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {

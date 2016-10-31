@@ -32,7 +32,6 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.tasks.Shell;
 import hudson.util.Secret;
-import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,34 +46,24 @@ public class SecretBuildWrapperTest {
 
     @Issue("JENKINS-24805")
     @Test public void maskingFreeStyleSecrets() throws Exception {
-        String credentialsId_1 = "creds_1";
-        String username_1 = "s3cr3t";
-        String password_1 = "p4ss";
-        StringCredentialsImpl c_1 = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId_1, "sample1", Secret.fromString(password_1));
-        String credentialsId_2 = "creds_2";
-        String username_2 = "s3cr3t0";
-        String password_2 = "p4ss" + "EvenLonger";
-        StringCredentialsImpl c_2 = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId_2, "sample2", Secret.fromString(password_2));
+        String firstCredentialsId = "creds_1";
+        String firstPassword = "p4ss";
+        StringCredentialsImpl firstCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, firstCredentialsId, "sample1", Secret.fromString(firstPassword));
 
-        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c_1);
-        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c_2);
+        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), firstCreds);
 
-        SecretBuildWrapper bw_1 = new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new StringBinding("PASS_1", credentialsId_1)));
-        SecretBuildWrapper bw_2 = new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new StringBinding("PASS_2", credentialsId_2)));
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(Collections.singletonList(new StringBinding("PASS_1", firstCredentialsId)));
 
         FreeStyleProject f = r.createFreeStyleProject();
 
         f.setConcurrentBuild(true);
         f.getBuildersList().add(new Shell("echo $PASS_1"));
-        f.getBuildersList().add(new Shell("echo $PASS_2"));
-        f.getBuildWrappersList().add(bw_1);
-        f.getBuildWrappersList().add(bw_2);
+        f.getBuildWrappersList().add(wrapper);
 
         r.configRoundtrip((Item)f);
 
         FreeStyleBuild b = r.buildAndAssertSuccess(f);
-        r.assertLogNotContains(password_1, b);
-        r.assertLogNotContains(password_2, b);
+        r.assertLogNotContains(firstPassword, b);
         r.assertLogContains("echo ****", b);
     }
 

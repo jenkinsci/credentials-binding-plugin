@@ -136,7 +136,7 @@ public final class BindingStep extends AbstractStepImpl {
         private String charsetName;
         
         Filter(Collection<String> secrets, String charsetName) {
-            pattern = MultiBinding.getSecretForStrings(secrets);
+            pattern = Secret.fromString(MultiBinding.getPatternStringForSecrets(secrets));
             this.charsetName = charsetName;
         }
         

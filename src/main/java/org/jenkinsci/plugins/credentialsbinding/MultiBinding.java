@@ -38,9 +38,12 @@ import hudson.model.TaskListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -143,6 +146,13 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         return (BindingDescriptor<C>) super.getDescriptor();
     }
 
+    private static final Comparator<String> stringLengthComparator = new Comparator<String>() {
+        @Override
+        public int compare(String o1, String o2) {
+            return o2.length() - o1.length();
+        }
+    };
+
     /**
      * Utility method for turning a collection of secret strings into a single {@link String} for pattern compilation.
      * @param secrets A collection of secret strings
@@ -151,7 +161,10 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     @Restricted(NoExternalUse.class)
     public static String getPatternStringForSecrets(Collection<String> secrets) {
         StringBuilder b = new StringBuilder();
-        for (String secret : secrets) {
+        List<String> sortedByLength = new ArrayList<String>(secrets);
+        Collections.sort(sortedByLength, stringLengthComparator);
+
+        for (String secret : sortedByLength) {
             if (b.length() > 0) {
                 b.append('|');
             }

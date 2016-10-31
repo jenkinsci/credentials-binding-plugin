@@ -49,20 +49,18 @@ import java.util.WeakHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import hudson.util.Secret;
-import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 @SuppressWarnings({"rawtypes", "unchecked"}) // inherited from BuildWrapper
 public class SecretBuildWrapper extends BuildWrapper {
 
     private /*almost final*/ List<? extends MultiBinding<?>> bindings;
 
-    private static Map<AbstractBuild<?, ?>, Collection<String>> secretsForBuild = new WeakHashMap<AbstractBuild<?, ?>, Collection<String>>();
+    private final static Map<AbstractBuild<?, ?>, Collection<String>> secretsForBuild = new WeakHashMap<AbstractBuild<?, ?>, Collection<String>>();
 
     /**
      * Gets the {@link Pattern} for the secret values for a given build, if that build has secrets defined. If not, return
@@ -70,7 +68,7 @@ public class SecretBuildWrapper extends BuildWrapper {
      * @param build A non-null build.
      * @return A compiled {@link Pattern} from the build's secret values, if the build has any.
      */
-    public static @Nullable Pattern getPatternForBuild(@Nonnull AbstractBuild<?, ?> build) {
+    public static @CheckForNull Pattern getPatternForBuild(@Nonnull AbstractBuild<?, ?> build) {
         if (secretsForBuild.containsKey(build)) {
             return Pattern.compile(MultiBinding.getSecretForStrings(secretsForBuild.get(build)).getPlainText());
         } else {
@@ -95,19 +93,25 @@ public class SecretBuildWrapper extends BuildWrapper {
         }
     }
 
-    @Override public Environment setUp(final AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    @Override public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
         final List<MultiBinding.MultiEnvironment> m = new ArrayList<MultiBinding.MultiEnvironment>();
+
+        Set<String> secrets = new HashSet<String>();
+
         for (MultiBinding binding : bindings) {
-            m.add(binding.bind(build, build.getWorkspace(), launcher, listener));
+            MultiBinding.MultiEnvironment e = binding.bind(build, build.getWorkspace(), launcher, listener);
+            m.add(e);
+            secrets.addAll(e.getValues().values());
         }
 
-        secretsForBuild.put(build, new HashSet<String>());
+        if (!secrets.isEmpty()) {
+            secretsForBuild.put(build, secrets);
+        }
 
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {
                 for (MultiBinding.MultiEnvironment e : m) {
                     env.putAll(e.getValues());
-                    secretsForBuild.get(build).addAll(e.getValues().values());
                 }
             }
             @Override public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
@@ -134,22 +138,12 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
     /** Similar to {@code MaskPasswordsOutputStream}. */
-    private static final class Filter extends ConsoleLogFilter implements Serializable {
+    private static final class Filter extends ConsoleLogFilter {
 
-        private static final long serialVersionUID = 1;
-
-        private String charsetName;
+        private final String charsetName;
 
         Filter(String charsetName) {
             this.charsetName = charsetName;
-        }
-
-        // To avoid de-serialization issues with newly added field (charsetName)
-        private Object readResolve() throws ObjectStreamException {
-            if (this.charsetName == null) {
-                this.charsetName = Charsets.UTF_8.name();
-            }
-            return this;
         }
 
         @Override public OutputStream decorateLogger(final AbstractBuild build, final OutputStream logger) throws IOException, InterruptedException {

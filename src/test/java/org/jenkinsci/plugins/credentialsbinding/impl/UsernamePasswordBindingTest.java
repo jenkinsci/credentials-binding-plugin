@@ -24,7 +24,13 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
-import com.cloudbees.plugins.credentials.*;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsParameterDefinition;
+import com.cloudbees.plugins.credentials.CredentialsParameterValue;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 

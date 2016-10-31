@@ -30,7 +30,10 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
@@ -116,12 +119,13 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
      */
     protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws IOException {
         IdCredentials cred = CredentialsProvider.findCredentialById(credentialsId, IdCredentials.class, build);
-        CredentialsProvider.track(build, cred);
         if (cred==null)
             throw new CredentialNotFoundException(credentialsId);
 
-        if (type().isInstance(cred))
+        if (type().isInstance(cred)) {
+            CredentialsProvider.track(build, cred);
             return type().cast(cred);
+        }
 
         
         Descriptor expected = Jenkins.getActiveInstance().getDescriptor(type());

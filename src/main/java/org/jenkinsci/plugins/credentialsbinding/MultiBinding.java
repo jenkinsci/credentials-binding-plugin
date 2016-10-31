@@ -38,12 +38,15 @@ import hudson.model.TaskListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
+import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -138,4 +141,19 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         return (BindingDescriptor<C>) super.getDescriptor();
     }
 
+    /**
+     * Utility method for turning a collection of secret strings into a {@link Secret}.
+     * @param secrets A collection of secret strings
+     * @return A {@link Secret} generated from that collection.
+     */
+    public static Secret getSecretForStrings(Collection<String> secrets) {
+        StringBuilder b = new StringBuilder();
+        for (String secret : secrets) {
+            if (b.length() > 0) {
+                b.append('|');
+            }
+            b.append(Pattern.quote(secret));
+        }
+        return Secret.fromString(b.toString());
+    }
 }

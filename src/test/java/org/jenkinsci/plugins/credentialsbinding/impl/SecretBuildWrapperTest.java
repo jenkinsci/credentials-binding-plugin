@@ -32,12 +32,14 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.tasks.Shell;
 import hudson.util.Secret;
+import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.util.ArrayList;
 import java.util.Collections;
 
 public class SecretBuildWrapperTest {
@@ -67,4 +69,19 @@ public class SecretBuildWrapperTest {
         r.assertLogContains("echo ****", b);
     }
 
+    @Issue("JENKINS-24805")
+    @Test public void emptySecretsList() throws Exception {
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(new ArrayList<MultiBinding<?>>());
+
+        FreeStyleProject f = r.createFreeStyleProject();
+
+        f.setConcurrentBuild(true);
+        f.getBuildersList().add(new Shell("echo PASSES"));
+        f.getBuildWrappersList().add(wrapper);
+
+        r.configRoundtrip((Item)f);
+
+        FreeStyleBuild b = r.buildAndAssertSuccess(f);
+        r.assertLogContains("PASSES", b);
+    }
 }

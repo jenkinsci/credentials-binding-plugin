@@ -98,7 +98,9 @@ public class SecretBuildWrapper extends BuildWrapper {
             secrets.addAll(e.getValues().values());
         }
 
-        secretsForBuild.put(build, secrets);
+        if (!secrets.isEmpty()) {
+            secretsForBuild.put(build, secrets);
+        }
 
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {

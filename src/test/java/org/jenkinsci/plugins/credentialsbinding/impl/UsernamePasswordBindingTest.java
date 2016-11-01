@@ -33,29 +33,25 @@ import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-
 import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.Util;
-import hudson.model.*;
+import hudson.model.Fingerprint;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
 import hudson.remoting.Future;
 import hudson.tasks.Shell;
-
 import java.util.Collections;
 import java.util.List;
-
 import jenkins.model.Jenkins;
+import static org.hamcrest.Matchers.*;
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
-import org.junit.Test;
-
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
-
 import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.xmlunit.matchers.CompareMatcher;
 
@@ -72,7 +68,7 @@ public class UsernamePasswordBindingTest {
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<Binding<?>>singletonList(new UsernamePasswordBinding("AUTH", c.getId()))));
         p.getBuildersList().add(new Shell("set +x\necho $AUTH > auth.txt"));
-        r.configRoundtrip((Item)p);
+        r.configRoundtrip(p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
         assertNotNull(wrapper);
         List<? extends MultiBinding<?>> bindings = wrapper.getBindings();

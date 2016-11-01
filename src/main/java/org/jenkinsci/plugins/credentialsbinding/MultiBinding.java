@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.credentialsbinding;
 
-import com.cloudbees.plugins.credentials.CredentialsDescriptor;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -131,8 +130,10 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         if (cred==null)
             throw new CredentialNotFoundException(credentialsId);
 
-        if (type().isInstance(cred))
+        if (type().isInstance(cred)) {
+            CredentialsProvider.track(build, cred);
             return type().cast(cred);
+        }
 
         
         Descriptor expected = Jenkins.getActiveInstance().getDescriptor(type());

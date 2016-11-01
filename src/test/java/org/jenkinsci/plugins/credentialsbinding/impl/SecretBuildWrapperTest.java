@@ -40,6 +40,7 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 
 public class SecretBuildWrapperTest {
@@ -54,18 +55,27 @@ public class SecretBuildWrapperTest {
 
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), firstCreds);
 
-        SecretBuildWrapper wrapper = new SecretBuildWrapper(Collections.singletonList(new StringBinding("PASS_1", firstCredentialsId)));
+        String secondCredentialsId = "creds_2";
+        String secondPassword = "p4ss" + "someMoreStuff";
+        StringCredentialsImpl secondCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, secondCredentialsId, "sample2", Secret.fromString(secondPassword));
+
+        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), secondCreds);
+
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(Arrays.asList(new StringBinding("PASS_1", firstCredentialsId),
+                new StringBinding("PASS_2", secondCredentialsId)));
 
         FreeStyleProject f = r.createFreeStyleProject();
 
         f.setConcurrentBuild(true);
         f.getBuildersList().add(new Shell("echo $PASS_1"));
+        f.getBuildersList().add(new Shell("echo $PASS_2"));
         f.getBuildWrappersList().add(wrapper);
 
         r.configRoundtrip((Item)f);
 
         FreeStyleBuild b = r.buildAndAssertSuccess(f);
         r.assertLogNotContains(firstPassword, b);
+        r.assertLogNotContains(secondPassword, b);
         r.assertLogContains("echo ****", b);
     }
 

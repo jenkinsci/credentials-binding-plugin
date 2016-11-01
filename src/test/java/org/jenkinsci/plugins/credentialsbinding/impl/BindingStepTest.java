@@ -31,6 +31,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
+import hudson.model.Fingerprint;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 
 import hudson.FilePath;
@@ -72,6 +73,10 @@ import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
 
@@ -321,6 +326,42 @@ public class BindingStepTest {
                 WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
                 // make sure this was actually run as a user and not system
                 story.j.assertLogContains("running as user: dummy", b);
+            }
+        });
+    }
+
+    @Issue("JENKINS-38831")
+    @Test
+    public void testTrackingOfCredential() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                String credentialsId = "creds";
+                String secret = "s3cr3t";
+                StringCredentialsImpl credentials = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret));
+                Fingerprint fingerprint = CredentialsProvider.getFingerprintOf(credentials);
+
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), credentials);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                  + "def extract(id) {\n"
+                  + "  def v\n"
+                  + "  withCredentials([[$class: 'StringBinding', credentialsId: id, variable: 'temp']]) {\n"
+                  + "    v = env.temp\n"
+                  + "  }\n"
+                  + "  v\n"
+                  + "}\n"
+                  + "node {\n"
+                  + "  echo \"got: ${extract('" + credentialsId + "')}\"\n"
+                  + "}", true));
+
+                assertThat("No fingerprint created until first use", fingerprint, nullValue());
+
+                story.j.assertLogContains("got: " + secret, story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
+
+                fingerprint = CredentialsProvider.getFingerprintOf(credentials);
+
+                assertThat(fingerprint, notNullValue());
+                assertThat(fingerprint.getJobs(), hasItem(is(p.getFullName())));
             }
         });
     }

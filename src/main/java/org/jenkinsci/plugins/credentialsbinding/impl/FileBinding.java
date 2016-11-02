@@ -30,6 +30,9 @@ import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import hudson.Launcher;
+import hudson.model.TaskListener;
+import hudson.model.Run;
 import hudson.Extension;
 import hudson.FilePath;
 
@@ -48,6 +51,33 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
         secret.copyFrom(credentials.getContent());
         secret.chmod(0400);
         return secret;
+    }
+
+    @SuppressWarnings("unused")
+    @Deprecated
+    private static class UnbinderImpl implements Unbinder {
+        private static final long serialVersionUID = 1;
+        private final String dirName;
+        private transient AbstractOnDiskBinding.UnbinderImpl delegate;
+
+        private UnbinderImpl(String dirName) {
+            this.dirName = dirName;
+        }
+
+        protected Object readResolve() {
+            if (dirName != null && delegate == null) {
+                delegate = new AbstractOnDiskBinding.UnbinderImpl(dirName);
+            }
+            return this;
+        }
+
+        @Override
+        public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener)
+                throws IOException, InterruptedException {
+            if (delegate != null) {
+                delegate.unbind(build, workspace, launcher, listener);
+            }
+        }
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<FileCredentials> {

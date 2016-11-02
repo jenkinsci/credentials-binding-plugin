@@ -47,11 +47,11 @@ public abstract class AbstractOnDiskBinding<C extends StandardCredentials> exten
      */
     abstract protected FilePath write(C credentials, FilePath dir) throws IOException, InterruptedException;
 
-    private static class UnbinderImpl implements Unbinder {
+    protected static class UnbinderImpl implements Unbinder {
         private static final long serialVersionUID = 1;
         private final String dirName;
 
-        private UnbinderImpl(String dirName) {
+        protected UnbinderImpl(String dirName) {
             this.dirName = dirName;
         }
 

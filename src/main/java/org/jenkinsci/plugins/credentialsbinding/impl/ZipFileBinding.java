@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.util.Collections;
 
 import org.apache.commons.io.IOUtils;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
@@ -60,6 +61,7 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
         return secret;
     }
 
+    @Symbol("zip")
     @Extension public static class DescriptorImpl extends BindingDescriptor<FileCredentials> {
 
         @Override protected Class<FileCredentials> type() {

@@ -31,6 +31,7 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
+import org.jenkinsci.Symbol;
 
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
@@ -51,6 +52,7 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
         return new SingleEnvironment(credentials.getUsername() + ':' + credentials.getPassword().getPlainText());
     }
 
+    @Symbol("usernameColonPassword")
     @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {
 
         @Override protected Class<StandardUsernamePasswordCredentials> type() {

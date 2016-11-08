@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import java.io.IOException;
 
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -80,6 +81,7 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
         }
     }
 
+    @Symbol("file")
     @Extension public static class DescriptorImpl extends BindingDescriptor<FileCredentials> {
 
         @Override protected Class<FileCredentials> type() {

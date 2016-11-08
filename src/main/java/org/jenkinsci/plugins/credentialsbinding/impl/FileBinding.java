@@ -59,25 +59,19 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
     private static class UnbinderImpl implements Unbinder {
         private static final long serialVersionUID = 1;
         private final String dirName;
-        private transient AbstractOnDiskBinding.UnbinderImpl delegate;
 
         private UnbinderImpl(String dirName) {
             this.dirName = dirName;
         }
 
         protected Object readResolve() {
-            if (dirName != null && delegate == null) {
-                delegate = new AbstractOnDiskBinding.UnbinderImpl(dirName);
-            }
-            return this;
+            return new AbstractOnDiskBinding.UnbinderImpl(dirName);
         }
 
         @Override
         public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener)
                 throws IOException, InterruptedException {
-            if (delegate != null) {
-                delegate.unbind(build, workspace, launcher, listener);
-            }
+            // replaced by the AbstractOnDiskBinding.UnbinderImpl implementation
         }
     }
 

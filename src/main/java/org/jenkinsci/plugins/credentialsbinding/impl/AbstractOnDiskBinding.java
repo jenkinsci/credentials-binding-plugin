@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.UUID;
 
 import org.jenkinsci.plugins.credentialsbinding.Binding;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 
@@ -47,6 +49,7 @@ public abstract class AbstractOnDiskBinding<C extends StandardCredentials> exten
      */
     abstract protected FilePath write(C credentials, FilePath dir) throws IOException, InterruptedException;
 
+    @Restricted(NoExternalUse.class)
     protected static class UnbinderImpl implements Unbinder {
         private static final long serialVersionUID = 1;
         private final String dirName;

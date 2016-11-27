@@ -48,7 +48,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
-import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException;
 import org.kohsuke.accmod.Restricted;

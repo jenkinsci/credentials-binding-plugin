@@ -25,7 +25,7 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
     <j:set var="expressionAllowed" value="true"/>
-    <f:section title="Bindings">
+    <f:section title="${%Bindings}">
         <f:block>
             <f:repeatableHeteroProperty field="bindings" hasHeader="true" capture="expressionAllowed"/>
         </f:block>

@@ -32,6 +32,7 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
 import hudson.model.Fingerprint;
+import hudson.model.User;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 
 import hudson.FilePath;
@@ -292,7 +293,7 @@ public class BindingStepTest {
                 story.j.jenkins.setSecurityRealm(story.j.createDummySecurityRealm());
                 story.j.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
                 // create the user.
-                story.j.jenkins.getUser("dummy");
+                User.get("dummy", true);
                 
                 // enable the run as user strategy for the AuthorizeProject plugin
                 Map<String, Boolean> strategies = new HashMap<String, Boolean>();

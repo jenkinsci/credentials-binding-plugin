@@ -25,19 +25,18 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
+import com.google.common.collect.ImmutableSet;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.remoting.VirtualChannel;
+import hudson.slaves.WorkspaceList;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
-import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -60,32 +59,13 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         return SSHUserPrivateKey.class;
     }
 
-    private static FilePath newTempFile(FilePath workspace, final String prefix, final String suffix) throws IOException, InterruptedException {
-        try {
-            return new FilePath(workspace.getChannel(), workspace.act(new FilePath.FileCallable<String>() {
-                @Override
-                public String invoke(File dir, VirtualChannel channel) throws IOException, InterruptedException {
-                    File f = File.createTempFile(prefix, suffix);
-                    return f.getAbsolutePath();
-                }
-
-                @Override
-                public void checkRoles(RoleChecker checker) throws SecurityException {
-                    // no op
-                }
-            }));
-        } catch (IOException e) {
-            throw new IOException("Failed to create a temp file on " + workspace.getRemote(), e);
-        }
-    }
-
     @Override public Set<String> variables() {
-        return new HashSet<String>(Arrays.asList(keyFileVariable, usernameVariable, passphraseVariable));
+        return ImmutableSet.of(keyFileVariable, usernameVariable, passphraseVariable);
     }
 
     @Override public MultiEnvironment bind(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         SSHUserPrivateKey sshKey = getCredentials(build);
-        FilePath keyFile =  newTempFile(workspace, "ssh", "key");
+        FilePath keyFile =  tempDir(workspace).child("ssh-key-" + keyFileVariable);
 
         StringWriter stringWriter = new StringWriter();
         PrintWriter keysFileStream = new PrintWriter(stringWriter);
@@ -122,9 +102,14 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         }
 
         @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-            new FilePath(workspace.getChannel(), this.filePath).delete();
+            workspace.child(this.filePath).delete();
         }
 
+    }
+
+    // TODO 1.652 use WorkspaceList.tempDir
+    private static FilePath tempDir(FilePath ws) {
+        return ws.sibling(ws.getName() + System.getProperty(WorkspaceList.class.getName(), "@") + "tmp");
     }
 
     @Extension public static class DescriptorImpl extends BindingDescriptor<SSHUserPrivateKey> {

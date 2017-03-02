@@ -111,9 +111,7 @@ public class SSHUserPrivateKeyTest {
 
     @Test public void configRoundTrip() throws Exception {
         story.addStep(new Statement() {
-            @SuppressWarnings("rawtypes")
             @Override public void evaluate() throws Throwable {
-
                 SSHUserPrivateKey c = new DummyPrivateKey("creds", "bob", "secret", "the-key");
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(
@@ -156,9 +154,7 @@ public class SSHUserPrivateKeyTest {
                 WorkflowRun b = p.getBuildByNumber(1);
                 assertNotNull(b);
                 SemaphoreStep.success("basics/1", null);
-                while (b.isBuilding()) { // TODO 1.607+ use waitForCompletion
-                    Thread.sleep(100);
-                }
+                story.j.waitForCompletion(b);
                 story.j.assertBuildStatusSuccess(b);
                 story.j.assertLogNotContains(passphrase, b);
                 FilePath out = story.j.jenkins.getWorkspaceFor(p).child("out.txt");

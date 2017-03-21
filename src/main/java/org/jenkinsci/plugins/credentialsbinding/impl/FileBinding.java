@@ -39,6 +39,8 @@ import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.Nonnull;
+
 public class FileBinding extends Binding<FileCredentials> {
 
     @DataBoundConstructor public FileBinding(String variable, String credentialsId) {
@@ -79,7 +81,7 @@ public class FileBinding extends Binding<FileCredentials> {
             this.dirName = dirName;
         }
         
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        @Override public void unbind(@Nonnull Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
             secretsDir(workspace).child(dirName).deleteRecursive();
         }
         

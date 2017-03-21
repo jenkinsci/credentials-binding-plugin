@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
-import com.google.inject.Inject;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -40,30 +39,36 @@ import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
+import org.jenkinsci.plugins.workflow.steps.MissingContextVariableException;
+import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import javax.annotation.Nonnull;
 
 /**
  * Workflow step to bind credentials.
  */
 @SuppressWarnings("rawtypes") // TODO DescribableHelper does not yet seem to handle List<? extends MultiBinding<?>> or even List<MultiBinding<?>>
-public final class BindingStep extends AbstractStepImpl {
+public final class BindingStep extends Step {
 
     private final List<MultiBinding> bindings;
 
@@ -75,20 +80,41 @@ public final class BindingStep extends AbstractStepImpl {
         return bindings;
     }
 
-    public static final class Execution extends AbstractStepExecutionImpl {
+    @Override
+    public StepExecution start(StepContext context) throws Exception {
+        return new Execution(this, context);
+    }
+
+    public static final class Execution extends StepExecution {
 
         private static final long serialVersionUID = 1;
 
-        @Inject(optional=true) private transient BindingStep step;
-        @StepContextParameter private transient Run<?,?> run;
-        @StepContextParameter private transient FilePath workspace;
-        @StepContextParameter private transient Launcher launcher;
-        @StepContextParameter private transient TaskListener listener;
+        private transient BindingStep step;
+
+        public Execution(@Nonnull BindingStep step, StepContext context) {
+            super(context);
+            this.step = step;
+        }
 
         @Override public boolean start() throws Exception {
+            Run<?,?> run = getContext().get(Run.class);
+            if (run == null) {
+                throw new MissingContextVariableException(Run.class);
+            }
+
+            FilePath workspace = getContext().get(FilePath.class);
+            Launcher launcher = getContext().get(Launcher.class);
+            TaskListener listener = getContext().get(TaskListener.class);
+
             Map<String,String> overrides = new HashMap<String,String>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
+                for (Class<?> requiredContext : binding.getDescriptor().getRequiredContext()) {
+                    Object v = getContext().get(requiredContext);
+                    if (v == null) {
+                        throw new MissingContextVariableException(requiredContext);
+                    }
+                }
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
@@ -177,9 +203,14 @@ public final class BindingStep extends AbstractStepImpl {
 
         @Override protected void finished(StepContext context) throws Exception {
             Exception xx = null;
+            Run<?,?> run = context.get(Run.class);
+            if (run == null) {
+                throw new MissingContextVariableException(Run.class);
+            }
+
             for (MultiBinding.Unbinder unbinder : unbinders) {
                 try {
-                    unbinder.unbind(context.get(Run.class), context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
+                    unbinder.unbind(run, context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
                 } catch (Exception x) {
                     if (xx == null) {
                         xx = x;
@@ -195,11 +226,7 @@ public final class BindingStep extends AbstractStepImpl {
 
     }
 
-    @Extension public static final class DescriptorImpl extends AbstractStepDescriptorImpl {
-
-        public DescriptorImpl() {
-            super(Execution.class);
-        }
+    @Extension public static final class DescriptorImpl extends StepDescriptor {
 
         @Override public String getFunctionName() {
             return "withCredentials";
@@ -211,6 +238,11 @@ public final class BindingStep extends AbstractStepImpl {
 
         @Override public boolean takesImplicitBlockArgument() {
             return true;
+        }
+
+        @Override
+        public Set<? extends Class<?>> getRequiredContext() {
+            return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(TaskListener.class, Run.class)));
         }
 
     }

@@ -29,11 +29,21 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import hudson.FilePath;
+import hudson.Launcher;
 import hudson.model.Descriptor;
 import hudson.model.Item;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
+
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.kohsuke.stapler.AncestorInPath;
 
 /**
@@ -43,6 +53,19 @@ import org.kohsuke.stapler.AncestorInPath;
 public abstract class BindingDescriptor<C extends StandardCredentials> extends Descriptor<MultiBinding<C>> {
 
     protected abstract Class<C> type();
+
+    /**
+     * Returns the context {@link MultiBinding} needs to access. Defaults to {@link Run}, {@link FilePath},
+     * {@link Launcher} and {@link TaskListener}.
+     *
+     * This allows the system to statically infer which steps are applicable in which context
+     * (say in freestyle or in workflow).
+     * @see StepContext#get(Class)
+     */
+    public Set<? extends Class<?>> getRequiredContext() {
+        return Collections.unmodifiableSet(new HashSet<Class<?>>(Arrays.asList(Run.class, FilePath.class, Launcher.class,
+                TaskListener.class)));
+    }
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item owner) {
         if (owner == null || !owner.hasPermission(Item.CONFIGURE)) {

@@ -101,10 +101,13 @@ public final class BindingStep extends Step {
             if (run == null) {
                 throw new MissingContextVariableException(Run.class);
             }
+            TaskListener listener = getContext().get(TaskListener.class);
+            if (listener == null) {
+                throw new MissingContextVariableException(TaskListener.class);
+            }
 
             FilePath workspace = getContext().get(FilePath.class);
             Launcher launcher = getContext().get(Launcher.class);
-            TaskListener listener = getContext().get(TaskListener.class);
 
             Map<String,String> overrides = new HashMap<String,String>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();

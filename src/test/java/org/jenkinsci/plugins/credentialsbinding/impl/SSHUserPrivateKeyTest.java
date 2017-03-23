@@ -1,8 +1,6 @@
 /*
  * The MIT License
  *
- * Copyright 2015 Jesse Glick.
- *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -114,9 +112,12 @@ public class SSHUserPrivateKeyTest {
             @Override public void evaluate() throws Throwable {
                 SSHUserPrivateKey c = new DummyPrivateKey("creds", "bob", "secret", "the-key");
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                SSHUserPrivateKeyBinding binding = new SSHUserPrivateKeyBinding("keyFile", "creds");
+                binding.setPassphraseVariable("passphrase");
+                binding.setUsernameVariable("user");
                 BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(
-                        Collections.<MultiBinding>singletonList(new SSHUserPrivateKeyBinding("keyFile", "passphrase", "user", "creds"))));
-                story.j.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(new SSHUserPrivateKeyBinding("keyFile", "passphrase", "user", "creds")));
+                        Collections.<MultiBinding>singletonList(binding)));
+                story.j.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(binding));
             }
         });
     }
@@ -134,7 +135,7 @@ public class SSHUserPrivateKeyTest {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
-                        + "  withCredentials([[$class: 'SSHUserPrivateKeyBinding', keyFileVariable: 'THEKEY', passphraseVariable: 'THEPASS', usernameVariable: 'THEUSER', credentialsId: '" + credentialsId + "']]) {\n"
+                        + "  withCredentials([sshUserPrivateKey(keyFileVariable: 'THEKEY', passphraseVariable: 'THEPASS', usernameVariable: 'THEUSER', credentialsId: '" + credentialsId + "')]) {\n"
                         + "    semaphore 'basics'\n"
                         + "    sh '''\n"
                         + "      set +x\n"
@@ -160,6 +161,45 @@ public class SSHUserPrivateKeyTest {
                 FilePath out = story.j.jenkins.getWorkspaceFor(p).child("out.txt");
                 assertTrue(out.exists());
                 assertEquals(username + ":" + passphrase, out.readToString().trim());
+
+                FilePath key = story.j.jenkins.getWorkspaceFor(p).child("key.txt");
+                assertTrue(key.exists());
+                assertEquals(keyContent, key.readToString().trim());
+            }
+        });
+    }
+
+    @Test public void noUsernameOrPassphrase() throws Exception {
+        final String credentialsId = "creds";
+        final String keyContent = "the-key";
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                SSHUserPrivateKey c = new DummyPrivateKey(credentialsId, "", "", keyContent);
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "node {\n"
+                        + "  withCredentials([sshUserPrivateKey(keyFileVariable: 'THEKEY', credentialsId: '" + credentialsId + "')]) {\n"
+                        + "    semaphore 'basics'\n"
+                        + "    sh '''\n"
+                        + "      set +x\n"
+                        + "      cat $THEKEY > key.txt"
+                        + "    '''\n"
+                        + "  }\n"
+                        + "}", true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                SemaphoreStep.waitForStart("basics/1", b);
+            }
+        });
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
+                assertNotNull(p);
+                WorkflowRun b = p.getBuildByNumber(1);
+                assertNotNull(b);
+                SemaphoreStep.success("basics/1", null);
+                story.j.waitForCompletion(b);
+                story.j.assertBuildStatusSuccess(b);
 
                 FilePath key = story.j.jenkins.getWorkspaceFor(p).child("key.txt");
                 assertTrue(key.exists());

@@ -107,7 +107,8 @@ public final class BindingStep extends Step {
             Map<String,String> overrides = new HashMap<String,String>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
-                if (binding.getDescriptor().requiresWorkspace() && workspace == null) {
+                if (binding.getDescriptor().requiresWorkspace() &&
+                        (workspace == null || launcher == null)) {
                     throw new MissingContextVariableException(FilePath.class);
                 }
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
@@ -198,14 +199,10 @@ public final class BindingStep extends Step {
 
         @Override protected void finished(StepContext context) throws Exception {
             Exception xx = null;
-            Run<?,?> run = context.get(Run.class);
-            if (run == null) {
-                throw new MissingContextVariableException(Run.class);
-            }
 
             for (MultiBinding.Unbinder unbinder : unbinders) {
                 try {
-                    unbinder.unbind(run, context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
+                    unbinder.unbind(context.get(Run.class), context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
                 } catch (Exception x) {
                     if (xx == null) {
                         xx = x;

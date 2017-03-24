@@ -44,14 +44,21 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-public class ZipFileBinding extends FileBinding {
+public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
 
     @DataBoundConstructor public ZipFileBinding(String variable, String credentialsId) {
         super(variable, credentialsId);
     }
 
-    @Override protected void copy(FilePath secret, FileCredentials credentials) throws IOException, InterruptedException {
+    @Override protected Class<FileCredentials> type() {
+        return FileCredentials.class;
+    }
+
+    @Override protected final FilePath write(FileCredentials credentials, FilePath dir) throws IOException, InterruptedException {
+        FilePath secret = dir.child(credentials.getFileName());
         secret.unzipFrom(credentials.getContent());
+        secret.chmod(0700); // note: it's a directory
+        return secret;
     }
 
     @Symbol("zip")

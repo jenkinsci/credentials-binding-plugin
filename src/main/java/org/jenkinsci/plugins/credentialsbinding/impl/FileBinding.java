@@ -39,7 +39,9 @@ import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class FileBinding extends Binding<FileCredentials> {
 
@@ -51,24 +53,30 @@ public class FileBinding extends Binding<FileCredentials> {
         return FileCredentials.class;
     }
 
-    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
+                                                  @Nullable FilePath workspace,
+                                                  @Nullable Launcher launcher,
+                                                  @Nonnull TaskListener listener) throws IOException, InterruptedException {
         FileCredentials credentials = getCredentials(build);
         FilePath secrets = secretsDir(workspace);
-        String dirName = UUID.randomUUID().toString();
-        final FilePath dir = secrets.child(dirName);
-        dir.mkdirs();
-        secrets.chmod(/*0700*/448);
-        FilePath secret = dir.child(credentials.getFileName());
-        copy(secret, credentials);
-        if (secret.isDirectory()) { /* ZipFileBinding */
-            // needs to be writable so we can delete its contents
-            // needs to be executable so we can list the contents
-            secret.chmod(0700);
+        if (secrets == null) {
+            throw new IOException("Can't proceed with null workspace");
+        } else {
+            String dirName = UUID.randomUUID().toString();
+            final FilePath dir = secrets.child(dirName);
+            dir.mkdirs();
+            secrets.chmod(/*0700*/448);
+            FilePath secret = dir.child(credentials.getFileName());
+            copy(secret, credentials);
+            if (secret.isDirectory()) { /* ZipFileBinding */
+                // needs to be writable so we can delete its contents
+                // needs to be executable so we can list the contents
+                secret.chmod(0700);
+            } else {
+                secret.chmod(0400);
+            }
+            return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
         }
-        else {
-            secret.chmod(0400);
-        }
-        return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
     }
     
     private static class UnbinderImpl implements Unbinder {
@@ -81,14 +89,22 @@ public class FileBinding extends Binding<FileCredentials> {
             this.dirName = dirName;
         }
         
-        @Override public void unbind(@Nonnull Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        @Override public void unbind(@Nonnull Run<?, ?> build,
+                                     @Nullable FilePath workspace,
+                                     @Nullable Launcher launcher,
+                                     @Nonnull TaskListener listener) throws IOException, InterruptedException {
             secretsDir(workspace).child(dirName).deleteRecursive();
         }
         
     }
 
-    private static FilePath secretsDir(FilePath workspace) {
-        return tempDir(workspace).child("secretFiles");
+    @CheckForNull
+    private static FilePath secretsDir(@CheckForNull FilePath workspace) {
+        if (workspace != null) {
+            return tempDir(workspace).child("secretFiles");
+        } else {
+            return null;
+        }
     }
 
     // TODO 1.652 use WorkspaceList.tempDir

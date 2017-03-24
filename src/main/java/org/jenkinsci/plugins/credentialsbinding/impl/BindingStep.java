@@ -52,6 +52,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
+import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
@@ -85,26 +86,20 @@ public final class BindingStep extends Step {
         return new Execution(this, context);
     }
 
-    public static final class Execution extends StepExecution {
+    static final class Execution extends AbstractStepExecutionImpl {
 
         private static final long serialVersionUID = 1;
 
         private transient BindingStep step;
 
-        public Execution(@Nonnull BindingStep step, StepContext context) {
+        Execution(@Nonnull BindingStep step, StepContext context) {
             super(context);
             this.step = step;
         }
 
         @Override public boolean start() throws Exception {
             Run<?,?> run = getContext().get(Run.class);
-            if (run == null) {
-                throw new MissingContextVariableException(Run.class);
-            }
             TaskListener listener = getContext().get(TaskListener.class);
-            if (listener == null) {
-                throw new MissingContextVariableException(TaskListener.class);
-            }
 
             FilePath workspace = getContext().get(FilePath.class);
             Launcher launcher = getContext().get(Launcher.class);
@@ -112,11 +107,8 @@ public final class BindingStep extends Step {
             Map<String,String> overrides = new HashMap<String,String>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
-                for (Class<?> requiredContext : binding.getDescriptor().getRequiredContext()) {
-                    Object v = getContext().get(requiredContext);
-                    if (v == null) {
-                        throw new MissingContextVariableException(requiredContext);
-                    }
+                if (binding.getDescriptor().requiresWorkspace() && workspace == null) {
+                    throw new MissingContextVariableException(FilePath.class);
                 }
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());

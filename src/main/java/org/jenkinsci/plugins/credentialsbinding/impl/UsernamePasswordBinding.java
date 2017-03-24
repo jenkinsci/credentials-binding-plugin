@@ -43,6 +43,7 @@ import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCredentials> {
 
@@ -54,7 +55,10 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
         return StandardUsernamePasswordCredentials.class;
     }
 
-    @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
+                                                  @Nullable FilePath workspace,
+                                                  @Nullable Launcher launcher,
+                                                  @Nonnull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         return new SingleEnvironment(credentials.getUsername() + ':' + credentials.getPassword().getPlainText());
     }
@@ -70,8 +74,8 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
             return Messages.UsernamePasswordBinding_username_and_password();
         }
 
-        @Override public Set<? extends Class<?>> getRequiredContext() {
-            return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(Run.class, TaskListener.class)));
+        @Override public boolean requiresWorkspace() {
+            return false;
         }
     }
 

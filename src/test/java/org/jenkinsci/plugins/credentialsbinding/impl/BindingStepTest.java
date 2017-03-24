@@ -177,14 +177,9 @@ public class BindingStepTest {
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
-                        + "withCredentials([usernamePassword(usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: '" + credentialsId + "')]) {\n"
-                        + "  node {\n"  // We still need to enter a node to get the actual creds via the file.
-                        + "    semaphore 'basics'\n"
-                        + "    sh '''\n"
-                        + "      set +x\n"
-                        + "      echo curl -u $USERNAME:$PASSWORD server > script.sh\n"
-                        + "    '''\n"
-                        + "  }\n"
+                        + "withCredentials([usernameColonPassword(variable: 'USERPASS', credentialsId: '" + credentialsId + "')]) {\n"
+                        + "  semaphore 'basics'\n"
+                        + "  echo USERPASS.toUpperCase()\n"
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 SemaphoreStep.waitForStart("basics/1", b);
@@ -200,11 +195,8 @@ public class BindingStepTest {
                 SemaphoreStep.success("basics/1", null);
                 story.j.waitForCompletion(b);
                 story.j.assertBuildStatusSuccess(b);
+                story.j.assertLogContains((username + ":" + password).toUpperCase(), b);
                 story.j.assertLogNotContains(password, b);
-                FilePath script = story.j.jenkins.getWorkspaceFor(p).child("script.sh");
-                assertTrue(script.exists());
-                assertEquals("curl -u " + username + ":" + password + " server", script.readToString().trim());
-                assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), password));
             }
         });
     }
@@ -227,8 +219,7 @@ public class BindingStepTest {
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 story.j.assertBuildStatus(Result.FAILURE, story.j.waitForCompletion(b));
                 story.j.assertLogNotContains("We should fail before getting here", b);
-                // We can't guarantee whether this will fail due to missing FilePath.class or Launcher.class.
-                // So look for the follow-up error instead.
+                story.j.assertLogContains("Required context class hudson.FilePath is missing", b);
                 story.j.assertLogContains("Perhaps you forgot to surround the code with a step that provides this, such as: node", b);
             }
         });

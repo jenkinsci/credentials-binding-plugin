@@ -43,6 +43,7 @@ import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class StringBinding extends Binding<StringCredentials> {
 
@@ -54,15 +55,18 @@ public class StringBinding extends Binding<StringCredentials> {
         return StringCredentials.class;
     }
 
-    @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
+                                                  @Nullable FilePath workspace,
+                                                  @Nullable Launcher launcher,
+                                                  @Nonnull TaskListener listener) throws IOException, InterruptedException {
         return new SingleEnvironment(getCredentials(build).getSecret().getPlainText());
     }
 
     @Symbol("string")
     @Extension public static class DescriptorImpl extends BindingDescriptor<StringCredentials> {
 
-        @Override public Set<? extends Class<?>> getRequiredContext() {
-            return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(Run.class, TaskListener.class)));
+        @Override public boolean requiresWorkspace() {
+            return false;
         }
 
         @Override protected Class<StringCredentials> type() {

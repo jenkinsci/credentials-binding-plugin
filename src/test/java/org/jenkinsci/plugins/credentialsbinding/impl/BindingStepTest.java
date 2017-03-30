@@ -165,6 +165,66 @@ public class BindingStepTest {
         });
     }
 
+    @Issue("JENKINS-42999")
+    @Test
+    public void limitedRequiredContext() throws Exception {
+        final String credentialsId = "creds";
+        final String username = "bob";
+        final String password = "s3cr3t";
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", username, password);
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "withCredentials([usernameColonPassword(variable: 'USERPASS', credentialsId: '" + credentialsId + "')]) {\n"
+                        + "  semaphore 'basics'\n"
+                        + "  echo USERPASS.toUpperCase()\n"
+                        + "}", true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                SemaphoreStep.waitForStart("basics/1", b);
+            }
+        });
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
+                assertNotNull(p);
+                WorkflowRun b = p.getBuildByNumber(1);
+                assertNotNull(b);
+                assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), password));
+                SemaphoreStep.success("basics/1", null);
+                story.j.waitForCompletion(b);
+                story.j.assertBuildStatusSuccess(b);
+                story.j.assertLogContains((username + ":" + password).toUpperCase(), b);
+                story.j.assertLogNotContains(password, b);
+            }
+        });
+    }
+
+    @Issue("JENKINS-42999")
+    @Test
+    public void widerRequiredContext() throws Exception {
+        final String credentialsId = "creds";
+        final String credsFile = "credsFile";
+        final String credsContent = "s3cr3t";
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", credsFile, SecretBytes.fromBytes(credsContent.getBytes()));
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "withCredentials([file(variable: 'targetFile', credentialsId: '" + credentialsId + "')]) {\n"
+                        + "  echo 'We should fail before getting here'\n"
+                        + "}", true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.assertBuildStatus(Result.FAILURE, story.j.waitForCompletion(b));
+                story.j.assertLogNotContains("We should fail before getting here", b);
+                story.j.assertLogContains("Required context class hudson.FilePath is missing", b);
+                story.j.assertLogContains("Perhaps you forgot to surround the code with a step that provides this, such as: node", b);
+            }
+        });
+    }
+
     @Inject
     StringCredentialsImpl.DescriptorImpl stringCredentialsDescriptor;
 

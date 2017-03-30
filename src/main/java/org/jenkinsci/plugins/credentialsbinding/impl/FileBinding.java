@@ -39,6 +39,10 @@ import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 public class FileBinding extends Binding<FileCredentials> {
 
     @DataBoundConstructor public FileBinding(String variable, String credentialsId) {
@@ -49,7 +53,10 @@ public class FileBinding extends Binding<FileCredentials> {
         return FileCredentials.class;
     }
 
-    @Override public SingleEnvironment bindSingle(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
+                                                  FilePath workspace,
+                                                  Launcher launcher,
+                                                  @Nonnull TaskListener listener) throws IOException, InterruptedException {
         FileCredentials credentials = getCredentials(build);
         FilePath secrets = secretsDir(workspace);
         String dirName = UUID.randomUUID().toString();
@@ -62,8 +69,7 @@ public class FileBinding extends Binding<FileCredentials> {
             // needs to be writable so we can delete its contents
             // needs to be executable so we can list the contents
             secret.chmod(0700);
-        }
-        else {
+        } else {
             secret.chmod(0400);
         }
         return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
@@ -79,7 +85,10 @@ public class FileBinding extends Binding<FileCredentials> {
             this.dirName = dirName;
         }
         
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        @Override public void unbind(@Nonnull Run<?, ?> build,
+                                     FilePath workspace,
+                                     Launcher launcher,
+                                     @Nonnull TaskListener listener) throws IOException, InterruptedException {
             secretsDir(workspace).child(dirName).deleteRecursive();
         }
         

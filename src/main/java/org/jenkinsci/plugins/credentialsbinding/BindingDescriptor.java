@@ -33,7 +33,9 @@ import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
+
 import java.util.Collections;
+
 import org.kohsuke.stapler.AncestorInPath;
 
 /**
@@ -43,6 +45,13 @@ import org.kohsuke.stapler.AncestorInPath;
 public abstract class BindingDescriptor<C extends StandardCredentials> extends Descriptor<MultiBinding<C>> {
 
     protected abstract Class<C> type();
+
+    /**
+     * Determines whether this {@link MultiBinding} needs a workspace to evaluate.
+     */
+    public boolean requiresWorkspace() {
+        return true;
+    }
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item owner) {
         if (owner == null || !owner.hasPermission(Item.CONFIGURE)) {

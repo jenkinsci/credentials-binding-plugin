@@ -47,8 +47,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException;
 import org.kohsuke.accmod.Restricted;
@@ -103,18 +103,40 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
 
     /** Callback run at the end of a build. */
     public interface Unbinder extends Serializable {
-        /** Performs any needed cleanup. */
-        void unbind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
+        /**
+         * Performs any needed cleanup.
+         * @param build The build. Cannot be null
+         * @param workspace The workspace - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+         * @param launcher The launcher - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+         * @param listener The task listener. Cannot be null.
+         */
+        void unbind(@Nonnull Run<?,?> build,
+                    @Nullable FilePath workspace,
+                    @Nullable Launcher launcher,
+                    @Nonnull TaskListener listener) throws IOException, InterruptedException;
     }
 
     /** No-op callback. */
     protected static final class NullUnbinder implements Unbinder {
         private static final long serialVersionUID = 1;
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {}
+        @Override public void unbind(@Nonnull Run<?, ?> build,
+                                     @Nullable FilePath workspace,
+                                     @Nullable Launcher launcher,
+                                     @Nonnull TaskListener listener) throws IOException, InterruptedException {}
     }
 
-    /** Sets up bindings for a build. */
-    public abstract MultiEnvironment bind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
+    /**
+     * Sets up bindings for a build.
+     * @param build The build. Cannot be null
+     * @param workspace The workspace - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+     * @param launcher The launcher - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+     * @param listener The task listener. Cannot be null.
+     * @return The configured {@link MultiEnvironment}
+     */
+    public abstract MultiEnvironment bind(@Nonnull Run<?,?> build,
+                                          @Nullable FilePath workspace,
+                                          @Nullable Launcher launcher,
+                                          @Nonnull TaskListener listener) throws IOException, InterruptedException;
 
     /** Defines keys expected to be set in {@link MultiEnvironment#getValues}, particularly any that might be sensitive. */
     public abstract Set<String> variables();

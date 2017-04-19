@@ -35,6 +35,7 @@ import hudson.model.BuildListener;
 import java.io.IOException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -104,8 +105,18 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
         };
     }
 
-    /** Sets up bindings for a build. */
-    public /* abstract */SingleEnvironment bindSingle(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    /**
+     * Sets up bindings for a build.
+     * @param build The build. Cannot be null
+     * @param workspace The workspace - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+     * @param launcher The launcher - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+     * @param listener The task listener. Cannot be null.
+     * @return The configured {@link SingleEnvironment}
+     */
+    public /* abstract */SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
+                                                      @Nullable FilePath workspace,
+                                                      @Nullable Launcher launcher,
+                                                      @Nonnull TaskListener listener) throws IOException, InterruptedException {
         if (Util.isOverridden(Binding.class, getClass(), "bind", AbstractBuild.class, Launcher.class, BuildListener.class) && build instanceof AbstractBuild && listener instanceof BuildListener) {
             Environment e = bind((AbstractBuild) build, launcher, (BuildListener) listener);
             return new SingleEnvironment(e.value(), new UnbinderWrapper(e));
@@ -123,13 +134,19 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
         UnbinderWrapper(Environment e) {
             this.e = e;
         }
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        @Override public void unbind(@Nonnull Run<?, ?> build,
+                                     @Nullable FilePath workspace,
+                                     @Nullable Launcher launcher,
+                                     @Nonnull TaskListener listener) throws IOException, InterruptedException {
             e.unbind();
         }
     }
 
 
-    @Override public final MultiEnvironment bind(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public final MultiEnvironment bind(@Nonnull Run<?,?> build,
+                                                 @Nullable FilePath workspace,
+                                                 @Nullable Launcher launcher,
+                                                 @Nonnull TaskListener listener) throws IOException, InterruptedException {
         SingleEnvironment single = bindSingle(build, workspace, launcher, listener);
         return new MultiEnvironment(Collections.singletonMap(variable, single.value), single.unbinder);
     }

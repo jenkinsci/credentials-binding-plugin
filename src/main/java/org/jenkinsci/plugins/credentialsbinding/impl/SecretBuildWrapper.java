@@ -149,7 +149,7 @@ public class SecretBuildWrapper extends BuildWrapper {
                         p = getPatternForBuild(build);
                     }
 
-                    if (p != null) {
+                    if (p != null && !p.toString().isEmpty()) {
                         Matcher m = p.matcher(new String(b, 0, len, charsetName));
                         if (m.find()) {
                             logger.write(m.replaceAll("****").getBytes(charsetName));

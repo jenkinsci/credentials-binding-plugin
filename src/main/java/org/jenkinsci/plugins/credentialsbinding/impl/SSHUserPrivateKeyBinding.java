@@ -29,7 +29,6 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.slaves.WorkspaceList;
 import hudson.util.Secret;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
@@ -93,7 +92,8 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
 
     @Override public MultiEnvironment bind(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         SSHUserPrivateKey sshKey = getCredentials(build);
-        FilePath keyFile =  tempDir(workspace).child("ssh-key-" + keyFileVariable);
+        UnbindableDir keyDir = UnbindableDir.create(workspace);
+        FilePath keyFile =  keyDir.getDirPath().child("ssh-key-" + keyFileVariable);
 
         StringWriter stringWriter = new StringWriter();
         PrintWriter keysFileStream = new PrintWriter(stringWriter);
@@ -120,28 +120,7 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
             map.put(usernameVariable, sshKey.getUsername());
         }
 
-        return new MultiEnvironment(map, new KeyRemover(keyFile.getRemote()));
-    }
-
-    private static class KeyRemover implements MultiBinding.Unbinder {
-
-        private static final long serialVersionUID = 1;
-
-        private final String filePath;
-
-        KeyRemover(String filePath) {
-            this.filePath = filePath;
-        }
-
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-            workspace.child(this.filePath).delete();
-        }
-
-    }
-
-    // TODO 1.652 use WorkspaceList.tempDir
-    private static FilePath tempDir(FilePath ws) {
-        return ws.sibling(ws.getName() + System.getProperty(WorkspaceList.class.getName(), "@") + "tmp");
+        return new MultiEnvironment(map, keyDir.getUnbinder());
     }
 
     @Symbol("sshUserPrivateKey")

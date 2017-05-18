@@ -67,7 +67,7 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
         }
 
         protected Object readResolve() {
-            return new AbstractOnDiskBinding.UnbinderImpl(dirName);
+            return new UnbindableDir.UnbinderImpl(dirName);
         }
 
         @Override
@@ -75,7 +75,7 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
                            FilePath workspace,
                            Launcher launcher,
                            @Nonnull TaskListener listener) throws IOException, InterruptedException {
-            // replaced by the AbstractOnDiskBinding.UnbinderImpl implementation
+            // replaced by the UnbindableDir.UnbinderImpl implementation
         }
     }
 

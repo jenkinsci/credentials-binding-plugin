@@ -1,13 +1,11 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
 import org.jenkinsci.plugins.credentialsbinding.Binding;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 
@@ -15,11 +13,12 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.slaves.WorkspaceList;
 
 /**
  * Base class for writing credentials to a file or directory, and binding its path to a single variable. Handles
- * creation of a -rwx------ temporary directory, and its full deletion when unbinding.
+ * creation of a -rwx------ temporary directory, and its full deletion when unbinding, using {@link UnbindableDir}.
+ * This can only safely be used for binding implementations for which {@link BindingDescriptor#requiresWorkspace()}
+ * is true.
  * @param <C> a kind of credentials
  */
 public abstract class AbstractOnDiskBinding<C extends StandardCredentials> extends Binding<C> {
@@ -33,14 +32,12 @@ public abstract class AbstractOnDiskBinding<C extends StandardCredentials> exten
                                               FilePath workspace,
                                               Launcher launcher,
                                               @Nonnull TaskListener listener) throws IOException, InterruptedException {
-        final FilePath secrets = secretsDir(workspace);
-        final String dirName = UUID.randomUUID().toString();
-        final FilePath dir = secrets.child(dirName);
-        dir.mkdirs();
-        secrets.chmod(0700);
-        dir.chmod(0700);
-        final FilePath secret = write(getCredentials(build), dir);
-        return new SingleEnvironment(secret.getRemote(), new UnbinderImpl(dirName));
+        if (workspace == null) {
+            throw new IllegalArgumentException("This Binding implementation requires a non-null workspace");
+        }
+        final UnbindableDir dir = UnbindableDir.create(workspace);
+        final FilePath secret = write(getCredentials(build), dir.getDirPath());
+        return new SingleEnvironment(secret.getRemote(), dir.getUnbinder());
     }
 
     /**
@@ -53,32 +50,5 @@ public abstract class AbstractOnDiskBinding<C extends StandardCredentials> exten
      * @throws InterruptedException
      */
     abstract protected FilePath write(C credentials, FilePath dir) throws IOException, InterruptedException;
-
-    @Restricted(NoExternalUse.class)
-    protected static class UnbinderImpl implements Unbinder {
-        private static final long serialVersionUID = 1;
-        private final String dirName;
-
-        protected UnbinderImpl(String dirName) {
-            this.dirName = dirName;
-        }
-
-        @Override
-        public void unbind(@Nonnull Run<?, ?> build,
-                           FilePath workspace,
-                           Launcher launcher,
-                           @Nonnull TaskListener listener) throws IOException, InterruptedException {
-            secretsDir(workspace).child(dirName).deleteRecursive();
-        }
-    }
-
-    private static FilePath secretsDir(FilePath workspace) {
-        return tempDir(workspace).child("secretFiles");
-    }
-
-    // TODO 1.652 use WorkspaceList.tempDir
-    private static FilePath tempDir(FilePath ws) {
-        return ws.sibling(ws.getName() + System.getProperty(WorkspaceList.class.getName(), "@") + "tmp");
-    }
 
 }

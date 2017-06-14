@@ -3,20 +3,29 @@
     Each binding will define an environment variable active within the scope of the step.
     You can then use them directly from any other steps that expect environment variables to be set:
 </p>
-<pre><code>
-node {
-  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'mylogin',
-                    usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+<pre><code>node {
+  withCredentials([usernameColonPassword(credentialsId: 'mylogin', variable: 'USERPASS')]) {
     sh '''
       set +x
-      curl -u $USERNAME:$PASSWORD https://private.server/ > output
+      curl -u $USERPASS https://private.server/ > output
+    '''
+  }
+}</code></pre>
+<p>
+    As another example (use <i>Snippet Generator</i> to see all options):
+</p>
+<pre><code>node {
+  withCredentials([string(credentialsId: 'mytoken', variable: 'TOKEN')]) {
+    sh '''
+      set +x
+      curl -H "Token: $TOKEN" https://some.api/
     '''
   }
 }</code></pre>
 <p>
     or retrieve values from Groovy code via the <code>env</code> magic variable:
 </p>
-<pre>def password = env.PASSWORD</pre>
+<pre><code>def password = env.PASSWORD</code></pre>
 <p>
     Note that some steps explicitly ask for credentials of a particular kind,
     usually as a <code>credentialsId</code> parameter,
@@ -25,10 +34,9 @@ node {
 <p>
     For bindings which store a secret file, beware that
 </p>
-<pre><code>
-node {
+<pre><code>node {
   dir('subdir') {
-    withCredentials([[$class: 'FileBinding', credentialsId: 'secret', variable: 'FILE']]) {
+    withCredentials([file(credentialsId: 'secret', variable: 'FILE')]) {
       sh 'use $FILE'
     }
   }
@@ -38,9 +46,8 @@ node {
     and thus visible to anyone able to browse the job’s workspace.
     If you need to run steps in a different directory than the usual workspace, you should instead use
 </p>
-<pre><code>
-node {
-  withCredentials([[$class: 'FileBinding', credentialsId: 'secret', variable: 'FILE']]) {
+<pre><code>node {
+  withCredentials([file(credentialsId: 'secret', variable: 'FILE')]) {
     dir('subdir') {
       sh 'use $FILE'
     }
@@ -49,9 +56,9 @@ node {
 <p>
     to ensure that the secrets are outside the workspace; or choose a different workspace entirely:
 </p>
-node {
+<pre><code>node {
   ws {
-    withCredentials([[$class: 'FileBinding', credentialsId: 'secret', variable: 'FILE']]) {
+    withCredentials([file(credentialsId: 'secret', variable: 'FILE')]) {
       sh 'use $FILE'
     }
   }

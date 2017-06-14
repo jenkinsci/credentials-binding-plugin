@@ -23,11 +23,11 @@
  */
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
-import java.io.File;
-import java.io.InputStream;
-
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.io.FileUtils;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.SecretBytes;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import hudson.Functions;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -35,29 +35,13 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.domains.Domain;
-
-import hudson.Functions;
-import hudson.model.FileParameterValue.FileItemImpl;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 public class ZipFileBindingTest {
 
     @Rule
     public JenkinsRule j = new JenkinsRule();
-
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
 
     @Issue("JENKINS-30941")
     @Test
@@ -66,21 +50,8 @@ public class ZipFileBindingTest {
 
         final String credentialsId = "zipfile";
 
-        /* do the dance to get a simple zip file into jenkins */
-        InputStream zipStream = this.getClass().getResourceAsStream("a.zip");
-        try {
-            assertThat(zipStream, is(not(nullValue())));
-            File zip = tmp.newFile("a.zip");
-            FileUtils.copyInputStreamToFile(zipStream, zip);
-            FileItem fi = new FileItemImpl(zip);
-            FileCredentialsImpl fc = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "Just a zip file", fi, fi.getName(), null);
-            CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), fc);
-        }
-        finally {
-            IOUtils.closeQuietly(zipStream);
-            zipStream = null;
-        }
-
+        FileCredentialsImpl fc = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "Just a zip file", "a.zip", SecretBytes.fromBytes(IOUtils.toByteArray(ZipFileBindingTest.class.getResource("a.zip"))));
+        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), fc);
 
         final String unixFile = "/dir/testfile.txt";
         final String winFile = unixFile.replace("/", "\\\\"); /* two \\ as we escape the code and then escape for the script */

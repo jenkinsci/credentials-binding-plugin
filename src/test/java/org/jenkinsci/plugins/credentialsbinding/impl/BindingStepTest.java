@@ -26,14 +26,16 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.SecretBytes;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
+import hudson.model.Fingerprint;
+import hudson.model.User;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 
 import hudson.FilePath;
-import hudson.model.FileParameterValue;
 import hudson.model.Node;
 import hudson.model.Result;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
@@ -63,23 +65,35 @@ import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.BlanketWhitelist;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
+import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
+import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
+import org.junit.ClassRule;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.TestExtension;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class BindingStepTest {
 
+    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
@@ -91,8 +105,22 @@ public class BindingStepTest {
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(new UsernamePasswordBinding("userpass", "creds"))));
                 story.j.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(new UsernamePasswordBinding("userpass", "creds")));
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new FileCredentialsImpl(CredentialsScope.GLOBAL, "secrets", "sample", "secrets.zip",
+                    SecretBytes.fromBytes(new byte[] {0x50,0x4B,0x05,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}))); // https://en.wikipedia.org/wiki/Zip_(file_format)#Limits
+                new SnippetizerTester(story.j).assertRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(new ZipFileBinding("file", "secrets"))),
+                    "withCredentials([[$class: 'ZipFileBinding', credentialsId: 'secrets', variable: 'file']]) {\n    // some block\n}");
             }
         });
+    }
+    public static class ZipStep extends AbstractStepImpl {
+        @DataBoundConstructor public ZipStep() {}
+        @TestExtension("configRoundTrip") public static class DescriptorImpl extends AbstractStepDescriptorImpl {
+            public DescriptorImpl() {super(Execution.class);}
+            @Override public String getFunctionName() {return "zip";}
+        }
+        public static class Execution extends AbstractSynchronousStepExecution<Void> {
+            @Override protected Void run() throws Exception {return null;}
+        }
     }
 
     @Test public void basics() throws Exception {
@@ -106,7 +134,7 @@ public class BindingStepTest {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
-                        + "  withCredentials([[$class: 'UsernamePasswordMultiBinding', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: '" + credentialsId + "']]) {\n"
+                        + "  withCredentials([usernamePassword(usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: '" + credentialsId + "')]) {\n"
                         + "    semaphore 'basics'\n"
                         + "    sh '''\n"
                         + "      set +x\n"
@@ -126,15 +154,73 @@ public class BindingStepTest {
                 assertNotNull(b);
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), password));
                 SemaphoreStep.success("basics/1", null);
-                while (b.isBuilding()) { // TODO 1.607+ use waitForCompletion
-                    Thread.sleep(100);
-                }
+                story.j.waitForCompletion(b);
                 story.j.assertBuildStatusSuccess(b);
                 story.j.assertLogNotContains(password, b);
                 FilePath script = story.j.jenkins.getWorkspaceFor(p).child("script.sh");
                 assertTrue(script.exists());
                 assertEquals("curl -u " + username + ":" + password + " server", script.readToString().trim());
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), password));
+            }
+        });
+    }
+
+    @Issue("JENKINS-42999")
+    @Test
+    public void limitedRequiredContext() throws Exception {
+        final String credentialsId = "creds";
+        final String username = "bob";
+        final String password = "s3cr3t";
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", username, password);
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "withCredentials([usernameColonPassword(variable: 'USERPASS', credentialsId: '" + credentialsId + "')]) {\n"
+                        + "  semaphore 'basics'\n"
+                        + "  echo USERPASS.toUpperCase()\n"
+                        + "}", true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                SemaphoreStep.waitForStart("basics/1", b);
+            }
+        });
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
+                assertNotNull(p);
+                WorkflowRun b = p.getBuildByNumber(1);
+                assertNotNull(b);
+                assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), password));
+                SemaphoreStep.success("basics/1", null);
+                story.j.waitForCompletion(b);
+                story.j.assertBuildStatusSuccess(b);
+                story.j.assertLogContains((username + ":" + password).toUpperCase(), b);
+                story.j.assertLogNotContains(password, b);
+            }
+        });
+    }
+
+    @Issue("JENKINS-42999")
+    @Test
+    public void widerRequiredContext() throws Exception {
+        final String credentialsId = "creds";
+        final String credsFile = "credsFile";
+        final String credsContent = "s3cr3t";
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", credsFile, SecretBytes.fromBytes(credsContent.getBytes()));
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "withCredentials([file(variable: 'targetFile', credentialsId: '" + credentialsId + "')]) {\n"
+                        + "  echo 'We should fail before getting here'\n"
+                        + "}", true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.assertBuildStatus(Result.FAILURE, story.j.waitForCompletion(b));
+                story.j.assertLogNotContains("We should fail before getting here", b);
+                story.j.assertLogContains("Required context class hudson.FilePath is missing", b);
+                story.j.assertLogContains("Perhaps you forgot to surround the code with a step that provides this, such as: node", b);
             }
         });
     }
@@ -150,7 +236,7 @@ public class BindingStepTest {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
-                        + "  withCredentials([[$class: 'UsernamePasswordMultiBinding', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: 'creds']]) {\n"
+                        + "  withCredentials([usernamePassword(usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: 'creds')]) {\n"
                         + "  }\n"
                         + "}", true));
                 WorkflowRun r = story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
@@ -160,7 +246,6 @@ public class BindingStepTest {
                 story.j.assertLogContains(CredentialNotFoundException.class.getName(), r);
                 story.j.assertLogContains(StandardUsernamePasswordCredentials.class.getName(), r);
                 story.j.assertLogContains(stringCredentialsDescriptor.getDisplayName(), r);
-                System.out.println(JenkinsRule.getLog(r)); // TODO 1.607+ use BuildWatcher
             }
         });
     }
@@ -169,16 +254,14 @@ public class BindingStepTest {
         final String secret = "s3cr3t";
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
-                File originalSecret = tmp.newFile();
-                FileUtils.write(originalSecret, secret);
-                FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", new FileParameterValue.FileItemImpl(originalSecret), null, null);
+                FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "secret.txt", SecretBytes.fromBytes(secret.getBytes()));
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 // TODO JENKINS-26398: story.j.createSlave("myslave", null, null) does not work since the slave root is deleted after restart.
                 story.j.jenkins.addNode(new DumbSlave("myslave", "", tmp.newFolder().getAbsolutePath(), "1", Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP, Collections.<NodeProperty<?>>emptyList()));
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node('myslave') {"
-                        + "  withCredentials([[$class: 'FileBinding', variable: 'SECRET', credentialsId: 'creds']]) {\n"
+                        + "  withCredentials([file(variable: 'SECRET', credentialsId: 'creds')]) {\n"
                         + "    semaphore 'cleanupAfterRestart'\n"
                         + "    sh 'cp $SECRET key'\n"
                         + "  }\n"
@@ -195,10 +278,7 @@ public class BindingStepTest {
                 assertNotNull(b);
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
                 SemaphoreStep.success("cleanupAfterRestart/1", null);
-                while (b.isBuilding()) { // TODO 1.607+ use waitForCompletion
-                    Thread.sleep(100);
-                }
-                story.j.assertBuildStatusSuccess(b);
+                story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b));
                 story.j.assertLogNotContains(secret, b);
                 FilePath ws = story.j.jenkins.getNode("myslave").getWorkspaceFor(p);
                 FilePath key = ws.child("key");
@@ -228,7 +308,7 @@ public class BindingStepTest {
                 p.setDefinition(new CpsFlowDefinition(""
                         + "def extract(id) {\n"
                         + "  def v\n"
-                        + "  withCredentials([[$class: 'StringBinding', credentialsId: id, variable: 'temp']]) {\n"
+                        + "  withCredentials([string(credentialsId: id, variable: 'temp')]) {\n"
                         + "    v = env.temp\n"
                         + "  }\n"
                         + "  v\n"
@@ -251,7 +331,7 @@ public class BindingStepTest {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
-                        + "  withCredentials([[$class: 'StringBinding', credentialsId: '" + credentialsId + "', variable: 'SECRET']]) {\n"
+                        + "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'SECRET')]) {\n"
                         // forgot set +x, ran /usr/bin/env, etc.
                         + "    sh 'echo $SECRET > oops'\n"
                         + "  }\n"
@@ -267,12 +347,13 @@ public class BindingStepTest {
     @Test
     public void testGlobalBindingWithAuthorization() {
         story.addStep(new Statement() {
+            @SuppressWarnings("deprecation") // using TestExtension would be better, as would calling ScriptApproval.preapprove
             @Override public void evaluate() throws Throwable {
                 // configure security
                 story.j.jenkins.setSecurityRealm(story.j.createDummySecurityRealm());
                 story.j.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
                 // create the user.
-                story.j.jenkins.getUser("dummy");
+                User.get("dummy", true);
                 
                 // enable the run as user strategy for the AuthorizeProject plugin
                 Map<String, Boolean> strategies = new HashMap<String, Boolean>();
@@ -291,7 +372,7 @@ public class BindingStepTest {
                         + "node {\n"
                         + "  def authentication = Jenkins.getAuthentication()\n"
                         + "  echo \"running as user: $authentication.principal\"\n"
-                        + "  withCredentials([[$class: 'StringBinding', credentialsId: '" + credentialsId + "', variable: 'SECRET']]) {\n"
+                        + "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'SECRET')]) {\n"
                         + "    writeFile file:'test', text: \"$env.SECRET\"\n"
                         + "    def content = readFile 'test'\n"
                         + "    if (\"$content\" != \"" + secret + "\") {\n"
@@ -306,6 +387,42 @@ public class BindingStepTest {
                 WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
                 // make sure this was actually run as a user and not system
                 story.j.assertLogContains("running as user: dummy", b);
+            }
+        });
+    }
+
+    @Issue("JENKINS-38831")
+    @Test
+    public void testTrackingOfCredential() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                String credentialsId = "creds";
+                String secret = "s3cr3t";
+                StringCredentialsImpl credentials = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret));
+                Fingerprint fingerprint = CredentialsProvider.getFingerprintOf(credentials);
+
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), credentials);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                  + "def extract(id) {\n"
+                  + "  def v\n"
+                  + "  withCredentials([[$class: 'StringBinding', credentialsId: id, variable: 'temp']]) {\n"
+                  + "    v = env.temp\n"
+                  + "  }\n"
+                  + "  v\n"
+                  + "}\n"
+                  + "node {\n"
+                  + "  echo \"got: ${extract('" + credentialsId + "')}\"\n"
+                  + "}", true));
+
+                assertThat("No fingerprint created until first use", fingerprint, nullValue());
+
+                story.j.assertLogContains("got: " + secret, story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
+
+                fingerprint = CredentialsProvider.getFingerprintOf(credentials);
+
+                assertThat(fingerprint, notNullValue());
+                assertThat(fingerprint.getJobs(), hasItem(is(p.getFullName())));
             }
         });
     }

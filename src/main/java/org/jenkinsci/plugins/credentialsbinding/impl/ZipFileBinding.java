@@ -37,22 +37,31 @@ import java.io.InputStream;
 import java.util.Collections;
 
 import org.apache.commons.io.IOUtils;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-public class ZipFileBinding extends FileBinding {
+public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
 
     @DataBoundConstructor public ZipFileBinding(String variable, String credentialsId) {
         super(variable, credentialsId);
     }
 
-    @Override protected void copy(FilePath secret, FileCredentials credentials) throws IOException, InterruptedException {
-        secret.unzipFrom(credentials.getContent());
+    @Override protected Class<FileCredentials> type() {
+        return FileCredentials.class;
     }
 
+    @Override protected final FilePath write(FileCredentials credentials, FilePath dir) throws IOException, InterruptedException {
+        FilePath secret = dir.child(credentials.getFileName());
+        secret.unzipFrom(credentials.getContent());
+        secret.chmod(0700); // note: it's a directory
+        return secret;
+    }
+
+    @Symbol("zip")
     @Extension public static class DescriptorImpl extends BindingDescriptor<FileCredentials> {
 
         @Override protected Class<FileCredentials> type() {
@@ -73,10 +82,10 @@ public class ZipFileBinding extends FileBinding {
                         if (is.read(data) == 4 && data[0] == 'P' && data[1] == 'K' && data[2] == 3 && data[3] == 4) {
                             return FormValidation.ok();
                         } else {
-                            return FormValidation.error("Not a ZIP file");
+                            return FormValidation.error(Messages.ZipFileBinding_NotZipFile());
                         }
                     } catch (IOException x) {
-                        return FormValidation.warning("Could not verify file format");
+                        return FormValidation.warning(Messages.ZipFileBinding_CouldNotVerifyFileFormat());
                     }
                     finally {
                         if (is != null) {
@@ -85,7 +94,7 @@ public class ZipFileBinding extends FileBinding {
                     }
                 }
             }
-            return FormValidation.error("No such credentials");
+            return FormValidation.error(Messages.ZipFileBinding_NoSuchCredentials());
         }
 
     }

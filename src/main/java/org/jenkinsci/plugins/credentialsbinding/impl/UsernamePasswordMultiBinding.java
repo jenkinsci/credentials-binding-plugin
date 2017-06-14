@@ -32,14 +32,19 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.jenkinsci.Symbol;
 
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernamePasswordCredentials> {
 
@@ -64,7 +69,10 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return StandardUsernamePasswordCredentials.class;
     }
 
-    @Override public MultiEnvironment bind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public MultiEnvironment bind(@Nonnull Run<?, ?> build,
+                                           @Nullable FilePath workspace,
+                                           @Nullable Launcher launcher,
+                                           @Nonnull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         Map<String,String> m = new HashMap<String,String>();
         m.put(usernameVariable, credentials.getUsername());
@@ -76,6 +84,7 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return new HashSet<String>(Arrays.asList(usernameVariable, passwordVariable));
     }
 
+    @Symbol("usernamePassword")
     @Extension public static class DescriptorImpl extends BindingDescriptor<StandardUsernamePasswordCredentials> {
 
         @Override protected Class<StandardUsernamePasswordCredentials> type() {
@@ -86,6 +95,9 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
             return Messages.UsernamePasswordMultiBinding_username_and_password();
         }
 
+        @Override public boolean requiresWorkspace() {
+            return false;
+        }
     }
 
 }

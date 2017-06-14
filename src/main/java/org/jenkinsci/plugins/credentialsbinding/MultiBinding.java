@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.credentialsbinding;
 
-import com.cloudbees.plugins.credentials.CredentialsDescriptor;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -38,14 +37,22 @@ import hudson.model.TaskListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -96,18 +103,40 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
 
     /** Callback run at the end of a build. */
     public interface Unbinder extends Serializable {
-        /** Performs any needed cleanup. */
-        void unbind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
+        /**
+         * Performs any needed cleanup.
+         * @param build The build. Cannot be null
+         * @param workspace The workspace - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+         * @param launcher The launcher - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+         * @param listener The task listener. Cannot be null.
+         */
+        void unbind(@Nonnull Run<?,?> build,
+                    @Nullable FilePath workspace,
+                    @Nullable Launcher launcher,
+                    @Nonnull TaskListener listener) throws IOException, InterruptedException;
     }
 
     /** No-op callback. */
     protected static final class NullUnbinder implements Unbinder {
         private static final long serialVersionUID = 1;
-        @Override public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {}
+        @Override public void unbind(@Nonnull Run<?, ?> build,
+                                     @Nullable FilePath workspace,
+                                     @Nullable Launcher launcher,
+                                     @Nonnull TaskListener listener) throws IOException, InterruptedException {}
     }
 
-    /** Sets up bindings for a build. */
-    public abstract MultiEnvironment bind(@Nonnull Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException;
+    /**
+     * Sets up bindings for a build.
+     * @param build The build. Cannot be null
+     * @param workspace The workspace - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+     * @param launcher The launcher - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
+     * @param listener The task listener. Cannot be null.
+     * @return The configured {@link MultiEnvironment}
+     */
+    public abstract MultiEnvironment bind(@Nonnull Run<?,?> build,
+                                          @Nullable FilePath workspace,
+                                          @Nullable Launcher launcher,
+                                          @Nonnull TaskListener listener) throws IOException, InterruptedException;
 
     /** Defines keys expected to be set in {@link MultiEnvironment#getValues}, particularly any that might be sensitive. */
     public abstract Set<String> variables();
@@ -123,10 +152,13 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         if (cred==null)
             throw new CredentialNotFoundException(credentialsId);
 
-        if (type().isInstance(cred))
+        if (type().isInstance(cred)) {
+            CredentialsProvider.track(build, cred);
             return type().cast(cred);
+        }
 
-        Descriptor expected = Jenkins.getInstance().getDescriptor(type());
+        
+        Descriptor expected = Jenkins.getActiveInstance().getDescriptor(type());
         throw new CredentialNotFoundException("Credentials '"+credentialsId+"' is of type '"+
                 cred.getDescriptor().getDisplayName()+"' where '"+
                 (expected!=null ? expected.getDisplayName() : type().getName())+
@@ -137,4 +169,30 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         return (BindingDescriptor<C>) super.getDescriptor();
     }
 
+    private static final Comparator<String> stringLengthComparator = new Comparator<String>() {
+        @Override
+        public int compare(String o1, String o2) {
+            return o2.length() - o1.length();
+        }
+    };
+
+    /**
+     * Utility method for turning a collection of secret strings into a single {@link String} for pattern compilation.
+     * @param secrets A collection of secret strings
+     * @return A {@link String} generated from that collection.
+     */
+    @Restricted(NoExternalUse.class)
+    public static String getPatternStringForSecrets(Collection<String> secrets) {
+        StringBuilder b = new StringBuilder();
+        List<String> sortedByLength = new ArrayList<String>(secrets);
+        Collections.sort(sortedByLength, stringLengthComparator);
+
+        for (String secret : sortedByLength) {
+            if (b.length() > 0) {
+                b.append('|');
+            }
+            b.append(Pattern.quote(secret));
+        }
+        return b.toString();
+    }
 }

@@ -5,19 +5,22 @@ import java.io.OutputStream;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
+import com.google.common.collect.ImmutableSet;
 
 import hudson.Extension;
 import hudson.FilePath;
@@ -56,7 +59,8 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 	private String aliasVariable;
 
 	@DataBoundConstructor
-	public CertificateMultiBinding(String keystoreVariable, String credentialsId) {
+	@CheckForNull
+	public CertificateMultiBinding(@Nonnull String keystoreVariable, String credentialsId) {
 		super(credentialsId);
 		this.keystoreVariable = keystoreVariable;
 	}
@@ -78,9 +82,8 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 			m.put(passwordVariable, storePassword);
 
 		if (workspace != null) {
-			FilePath secrets = FileBinding.secretsDir(workspace);
-			final String tempKeyStoreName = UUID.randomUUID().toString();
-			final FilePath secret = secrets.child(tempKeyStoreName);
+			final UnbindableDir secrets = UnbindableDir.create(workspace);
+			final FilePath secret = secrets.getDirPath().child("keystore-" + keystoreVariable);
 			OutputStream out = secret.write();
 			try {
 				credentials.getKeyStore().store(out, storePassword.toCharArray());
@@ -95,36 +98,27 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 			}
 			secret.chmod(0400);
 			m.put(keystoreVariable, secret.getRemote());
-			return new MultiEnvironment(m, new UnbinderImpl(secret));
+			return new MultiEnvironment(m, secrets.getUnbinder());
 		} else {
 			return new MultiEnvironment(m);
 		}
 	}
 
-	private static class UnbinderImpl implements Unbinder {
-
-		private static final long serialVersionUID = 1;
-
-		private final FilePath keyStoreFile;
-
-		UnbinderImpl(FilePath keystoreFile) {
-			this.keyStoreFile = keystoreFile;
-		}
-
-		@Override
-		public void unbind(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener)
-				throws IOException, InterruptedException {
-			keyStoreFile.delete();
-		}
-
-	}
-
 	@Override
 	public Set<String> variables() {
-		return new HashSet<String>(Arrays.asList(keystoreVariable, passwordVariable, aliasVariable));
+		Set<String> set = new HashSet<>();
+		set.add(keystoreVariable);
+		if (aliasVariable != null && !aliasVariable.isEmpty()) {
+			set.add(aliasVariable);
+		}
+		if (passwordVariable != null && !passwordVariable.isEmpty()) {
+			set.add(passwordVariable);
+		}
+		return ImmutableSet.copyOf(set);
 	}
 
 	@Extension
+	@Symbol("certificate")
 	public static class DescriptorImpl extends BindingDescriptor<StandardCertificateCredentials> {
 
 		@Override

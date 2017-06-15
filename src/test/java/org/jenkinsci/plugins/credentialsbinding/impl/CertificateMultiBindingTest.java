@@ -41,10 +41,15 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -53,6 +58,7 @@ import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 
+import hudson.FilePath;
 import hudson.Functions;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -61,6 +67,9 @@ import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
 
 public class CertificateMultiBindingTest {
+
+	@ClassRule
+	public static BuildWatcher buildWatcher = new BuildWatcher();
 
 	@Rule
 	public JenkinsRule r = new JenkinsRule();
@@ -132,6 +141,43 @@ public class CertificateMultiBindingTest {
 		r.assertLogNotContains(password, b);
 		assertEquals(alias + '/' + password + "/exists", b.getWorkspace().child("secrets.txt").readToString().trim());
 		assertThat(b.getSensitiveBuildVariables(), containsInAnyOrder("keystore", "password", "alias"));
+	}
+
+	@Test
+	public void basicsPipeline() throws Exception {
+		// create the Credentials
+		String alias = "androiddebugkey";
+		String password = "android";
+		StandardCertificateCredentials c = new CertificateCredentialsImpl(CredentialsScope.GLOBAL, "my-certificate", alias,
+				password, new CertificateCredentialsImpl.FileOnMasterKeyStoreSource(certificate.getAbsolutePath()));
+		CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
+		// create the Pipeline job
+		WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+		String pipelineScript = IOUtils.toString(getTestResourceInputStream("basicsPipeline-Jenkinsfile"));
+		p.setDefinition(new CpsFlowDefinition(pipelineScript, true));
+		// copy resources into workspace
+		FilePath workspace = r.jenkins.getWorkspaceFor(p);
+		copyTestResourceIntoWorkspace(workspace, "basicsPipeline-step1.bat", 0755);
+		copyTestResourceIntoWorkspace(workspace, "basicsPipeline-step2.bat", 0755);
+		copyTestResourceIntoWorkspace(workspace, "basicsPipeline-step1.sh", 0755);
+		copyTestResourceIntoWorkspace(workspace, "basicsPipeline-step2.sh", 0755);
+		// execute the pipeline
+		WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+		r.waitForCompletion(b);
+		r.assertBuildStatusSuccess(b);
+	}
+
+	private InputStream getTestResourceInputStream(String fileName) {
+		return getClass().getResourceAsStream(getClass().getSimpleName() + "/" + fileName);
+	}
+
+	private FilePath copyTestResourceIntoWorkspace(FilePath workspace, String fileName, int mask)
+			throws IOException, InterruptedException {
+		InputStream in = getTestResourceInputStream(fileName);
+		FilePath f = workspace.child(fileName);
+		f.copyFrom(in);
+		f.chmod(mask);
+		return f;
 	}
 
 }

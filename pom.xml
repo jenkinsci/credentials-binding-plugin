@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>credentials-binding</artifactId>
-  <version>1.12-SNAPSHOT</version>
+  <version>1.13-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Credentials Binding Plugin</name>

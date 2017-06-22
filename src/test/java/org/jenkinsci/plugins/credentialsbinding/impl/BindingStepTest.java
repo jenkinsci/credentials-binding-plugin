@@ -136,10 +136,11 @@ public class BindingStepTest {
                         + "node {\n"
                         + "  withCredentials([usernamePassword(usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: '" + credentialsId + "')]) {\n"
                         + "    semaphore 'basics'\n"
-                        + "    sh '''\n"
-                        + "      set +x\n"
-                        + "      echo curl -u $USERNAME:$PASSWORD server > script.sh\n"
-                        + "    '''\n"
+                        + "    if (isUnix()) {\n"
+                        + "      sh 'echo curl -u $USERNAME:$PASSWORD server > script'\n"
+                        + "    } else {\n"
+                        + "      bat 'echo curl -u %USERNAME%:%PASSWORD% server > script'\n"
+                        + "    }\n"
                         + "  }\n"
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -157,7 +158,7 @@ public class BindingStepTest {
                 story.j.waitForCompletion(b);
                 story.j.assertBuildStatusSuccess(b);
                 story.j.assertLogNotContains(password, b);
-                FilePath script = story.j.jenkins.getWorkspaceFor(p).child("script.sh");
+                FilePath script = story.j.jenkins.getWorkspaceFor(p).child("script");
                 assertTrue(script.exists());
                 assertEquals("curl -u " + username + ":" + password + " server", script.readToString().trim());
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), password));
@@ -263,7 +264,7 @@ public class BindingStepTest {
                         + "node('myslave') {"
                         + "  withCredentials([file(variable: 'SECRET', credentialsId: 'creds')]) {\n"
                         + "    semaphore 'cleanupAfterRestart'\n"
-                        + "    sh 'cp $SECRET key'\n"
+                        + "    if (isUnix()) {sh 'cp $SECRET key'} else {bat 'copy %SECRET% key'}\n"
                         + "  }\n"
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -333,7 +334,7 @@ public class BindingStepTest {
                         + "node {\n"
                         + "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'SECRET')]) {\n"
                         // forgot set +x, ran /usr/bin/env, etc.
-                        + "    sh 'echo $SECRET > oops'\n"
+                        + "    if (isUnix()) {sh 'echo $SECRET > oops'} else {bat 'echo %SECRET% > oops'}\n"
                         + "  }\n"
                         + "}", true));
                 WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());

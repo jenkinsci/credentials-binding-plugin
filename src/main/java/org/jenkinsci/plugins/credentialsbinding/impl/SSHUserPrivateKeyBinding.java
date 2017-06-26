@@ -93,11 +93,12 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         UnbindableDir keyDir = UnbindableDir.create(workspace);
         FilePath keyFile =  keyDir.getDirPath().child("ssh-key-" + keyFileVariable);
 
-        String contents = "";
+        StringBuilder contents = new StringBuilder();
         for (String key : sshKey.getPrivateKeys()) {
-            contents += key + "\n";
+            contents.append(key);
+            contents.append('\n');
         }
-        keyFile.write(contents, "UTF-8");
+        keyFile.write(contents.toString(), "UTF-8");
         keyFile.chmod(0400);
 
         Map<String, String> map = new HashMap<String, String>();

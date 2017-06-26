@@ -47,7 +47,7 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
     public String usernameVariable;
     public String passphraseVariable;
 
-    @DataBoundConstructor public SSHUserPrivateKeyBinding(String keyFileVariable, String credentialsId) {
+    @DataBoundConstructor public SSHUserPrivateKeyBinding(@Nonnull String keyFileVariable, String credentialsId) {
         super(credentialsId);
         this.keyFileVariable = keyFileVariable;
     }

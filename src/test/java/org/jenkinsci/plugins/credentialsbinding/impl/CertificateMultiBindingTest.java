@@ -108,17 +108,16 @@ public class CertificateMultiBindingTest {
 				.<MultiBinding<?>> singletonList(binding)));
 		if (Functions.isWindows()) {
 			p.getBuildersList().add(new BatchFile(
-					  "@echo off\n"
-					+ "echo | set /p=\"%alias%/%password%/\" > secrets.txt\n"
-					+ "IF EXIST %keystore% (\n"
-					+ "echo | set /p=\"exists\" >> secrets.txt\n"
-					+ ") ELSE (\n"
-					+ "echo | set /p=\"missing\" >> secrets.txt\n"
-					+ ")"));
+					  "echo | set /p=\"%alias%/%password%/\" > secrets.txt\r\n"
+					+ "IF EXIST %keystore% (\r\n"
+					+ "echo | set /p=\"exists\" >> secrets.txt\r\n"
+					+ ") ELSE (\r\n"
+					+ "echo | set /p=\"missing\" >> secrets.txt\r\n"
+					+ ")\r\n"
+                    + "exit 0"));
 		} else {
 			p.getBuildersList().add(new Shell(
-					  "set +x\n"
-					+ "printf $alias/$password/ > secrets.txt\n"
+					  "printf $alias/$password/ > secrets.txt\n"
 					+ "if [ -f \"$keystore\" ]\n"
 					+ "then\n"
 					+ "printf exists >> secrets.txt\n"

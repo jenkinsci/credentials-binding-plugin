@@ -27,9 +27,11 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import hudson.Functions;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
+import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
@@ -67,8 +69,8 @@ public class SecretBuildWrapperTest {
         FreeStyleProject f = r.createFreeStyleProject();
 
         f.setConcurrentBuild(true);
-        f.getBuildersList().add(new Shell("echo $PASS_1"));
-        f.getBuildersList().add(new Shell("echo $PASS_2"));
+        f.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo %PASS_1%") : new Shell("echo $PASS_1"));
+        f.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo %PASS_2%") : new Shell("echo $PASS_2"));
         f.getBuildWrappersList().add(wrapper);
 
         r.configRoundtrip((Item)f);
@@ -86,7 +88,7 @@ public class SecretBuildWrapperTest {
         FreeStyleProject f = r.createFreeStyleProject();
 
         f.setConcurrentBuild(true);
-        f.getBuildersList().add(new Shell("echo PASSES"));
+        f.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo PASSES") : new Shell("echo PASSES"));
         f.getBuildWrappersList().add(wrapper);
 
         r.configRoundtrip((Item)f);

@@ -39,8 +39,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.*;
 
 public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
@@ -55,21 +53,21 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
     }
 
     @DataBoundSetter
-    @CheckForNull
     public void setUsernameVariable(@Nonnull final String usernameVariable) {
         this.usernameVariable = usernameVariable;
     }
 
+    @CheckForNull
     public String getUsernameVariable() {
         return usernameVariable;
     }
 
     @DataBoundSetter
-    @CheckForNull
     public void setPassphraseVariable(@Nonnull final String passphraseVariable) {
         this.passphraseVariable = passphraseVariable;
     }
 
+    @CheckForNull
     public String getPassphraseVariable() {
         return passphraseVariable;
     }
@@ -95,15 +93,11 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         UnbindableDir keyDir = UnbindableDir.create(workspace);
         FilePath keyFile =  keyDir.getDirPath().child("ssh-key-" + keyFileVariable);
 
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter keysFileStream = new PrintWriter(stringWriter);
-
+        String contents = "";
         for (String key : sshKey.getPrivateKeys()) {
-            keysFileStream.println(key);
+            contents += key + "\n";
         }
-
-        keysFileStream.close();
-        keyFile.write(stringWriter.toString(), "UTF-8");
+        keyFile.write(contents, "UTF-8");
         keyFile.chmod(0400);
 
         Map<String, String> map = new HashMap<String, String>();

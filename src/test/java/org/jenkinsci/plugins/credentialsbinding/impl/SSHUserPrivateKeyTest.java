@@ -29,6 +29,7 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
+import hudson.Functions;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -133,15 +134,26 @@ public class SSHUserPrivateKeyTest {
                 SSHUserPrivateKey c = new DummyPrivateKey(credentialsId, username, passphrase, keyContent);
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                String script;
+                if (Functions.isWindows()) {
+                    script =
+                        "    bat '''\n"
+                        + "      @echo off\n"
+                        + "      echo %THEUSER%:%THEPASS% > out.txt\n"
+                        + "      type \"%THEKEY%\" > key.txt"
+                        + "    '''\n";
+                } else {
+                    script =
+                        "    sh '''\n"
+                        + "      echo $THEUSER:$THEPASS > out.txt\n"
+                        + "      cat $THEKEY > key.txt"
+                        + "    '''\n";
+                }
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
                         + "  withCredentials([sshUserPrivateKey(keyFileVariable: 'THEKEY', passphraseVariable: 'THEPASS', usernameVariable: 'THEUSER', credentialsId: '" + credentialsId + "')]) {\n"
                         + "    semaphore 'basics'\n"
-                        + "    sh '''\n"
-                        + "      set +x\n"
-                        + "      echo $THEUSER:$THEPASS > out.txt\n"
-                        + "      cat $THEKEY > key.txt"
-                        + "    '''\n"
+                        + script
                         + "  }\n"
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -177,14 +189,24 @@ public class SSHUserPrivateKeyTest {
                 SSHUserPrivateKey c = new DummyPrivateKey(credentialsId, "", "", keyContent);
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                String script;
+                if (Functions.isWindows()) {
+                    script =
+                        "    bat '''\n"
+                        + "      @echo off\n"
+                        + "      type \"%THEKEY%\" > key.txt"
+                        + "    '''\n";
+                } else {
+                    script =
+                        "    sh '''\n"
+                        + "      cat $THEKEY > key.txt"
+                        + "    '''\n";
+                }
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
                         + "  withCredentials([sshUserPrivateKey(keyFileVariable: 'THEKEY', credentialsId: '" + credentialsId + "')]) {\n"
                         + "    semaphore 'basics'\n"
-                        + "    sh '''\n"
-                        + "      set +x\n"
-                        + "      cat $THEKEY > key.txt"
-                        + "    '''\n"
+                        + script
                         + "  }\n"
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();

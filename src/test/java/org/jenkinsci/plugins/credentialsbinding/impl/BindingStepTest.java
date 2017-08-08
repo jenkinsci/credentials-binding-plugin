@@ -80,7 +80,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -429,7 +428,6 @@ public class BindingStepTest {
         });
     }
 
-    @Ignore("TODO")
     @Issue("JENKINS-41760")
     @Test public void emptyOrBlankCreds() {
         story.addStep(new Statement() {

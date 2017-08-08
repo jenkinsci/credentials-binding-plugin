@@ -45,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.jvnet.hudson.test.BuildWatcher;
 
 public class SecretBuildWrapperTest {
@@ -101,7 +100,6 @@ public class SecretBuildWrapperTest {
         r.assertLogContains("PASSES", b);
     }
 
-    @Ignore("TODO")
     @Issue("JENKINS-41760")
     @Test public void emptySecret() throws Exception {
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", null, Secret.fromString("")));

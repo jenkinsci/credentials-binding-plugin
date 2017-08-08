@@ -44,9 +44,13 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.jvnet.hudson.test.BuildWatcher;
 
 public class SecretBuildWrapperTest {
 
+    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public JenkinsRule r = new JenkinsRule();
 
     @Issue("JENKINS-24805")
@@ -96,4 +100,15 @@ public class SecretBuildWrapperTest {
         FreeStyleBuild b = r.buildAndAssertSuccess(f);
         r.assertLogContains("PASSES", b);
     }
+
+    @Ignore("TODO")
+    @Issue("JENKINS-41760")
+    @Test public void emptySecret() throws Exception {
+        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", null, Secret.fromString("")));
+        FreeStyleProject p = r.createFreeStyleProject();
+        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.singletonList(new StringBinding("SECRET", "creds"))));
+        p.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo PASSES") : new Shell("echo PASSES"));
+        r.assertLogContains("PASSES", r.buildAndAssertSuccess(p));
+    }
+
 }

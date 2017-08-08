@@ -80,6 +80,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -424,6 +425,21 @@ public class BindingStepTest {
 
                 assertThat(fingerprint, notNullValue());
                 assertThat(fingerprint.getJobs(), hasItem(is(p.getFullName())));
+            }
+        });
+    }
+
+    @Ignore("TODO")
+    @Issue("JENKINS-41760")
+    @Test public void emptyOrBlankCreds() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition("node {withCredentials([]) {echo 'normal output'}}", true));
+                story.j.assertLogContains("normal output", story.j.buildAndAssertSuccess(p));
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", null, Secret.fromString("")));
+                p.setDefinition(new CpsFlowDefinition("node {withCredentials([string(variable: 'SECRET', credentialsId: 'creds')]) {echo 'normal output'}}", true));
+                story.j.assertLogContains("normal output", story.j.buildAndAssertSuccess(p));
             }
         });
     }

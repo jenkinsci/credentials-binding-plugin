@@ -428,6 +428,20 @@ public class BindingStepTest {
         });
     }
 
+    @Issue("JENKINS-41760")
+    @Test public void emptyOrBlankCreds() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition("node {withCredentials([]) {echo 'normal output'}}", true));
+                story.j.assertLogContains("normal output", story.j.buildAndAssertSuccess(p));
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", null, Secret.fromString("")));
+                p.setDefinition(new CpsFlowDefinition("node {withCredentials([string(variable: 'SECRET', credentialsId: 'creds')]) {echo 'normal output'}}", true));
+                story.j.assertLogContains("normal output", story.j.buildAndAssertSuccess(p));
+            }
+        });
+    }
+
     private static Set<String> grep(File dir, String text) throws IOException {
         Set<String> matches = new TreeSet<String>();
         grep(dir, text, "", matches);

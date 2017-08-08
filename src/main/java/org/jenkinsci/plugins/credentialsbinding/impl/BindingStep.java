@@ -174,9 +174,14 @@ public final class BindingStep extends Step {
             final Pattern p = Pattern.compile(pattern.getPlainText());
             return new LineTransformationOutputStream() {
                 @Override protected void eol(byte[] b, int len) throws IOException {
-                    Matcher m = p.matcher(new String(b, 0, len, charsetName));
-                    if (m.find()) {
-                        logger.write(m.replaceAll("****").getBytes(charsetName));
+                    if (!p.toString().isEmpty()) {
+                        Matcher m = p.matcher(new String(b, 0, len, charsetName));
+                        if (m.find()) {
+                            logger.write(m.replaceAll("****").getBytes(charsetName));
+                        } else {
+                            // Avoid byte → char → byte conversion unless we are actually doing something.
+                            logger.write(b, 0, len);
+                        }
                     } else {
                         // Avoid byte → char → byte conversion unless we are actually doing something.
                         logger.write(b, 0, len);

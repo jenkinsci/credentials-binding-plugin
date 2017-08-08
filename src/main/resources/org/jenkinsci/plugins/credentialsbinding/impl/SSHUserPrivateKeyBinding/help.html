@@ -1,0 +1,9 @@
+<div>
+    Copies the SSH key file given in the credentials to a temporary location, then sets a variable to that location.
+    (The file is deleted when the build completes.) Also optionally sets variables for the SSH key's username and passphrase.
+</div>
+<div>
+    <strong>Warning</strong>: if the master or slave node has multiple executors,
+    any other build running concurrently on the same node will be able to read
+    the contents of this file.
+</div>

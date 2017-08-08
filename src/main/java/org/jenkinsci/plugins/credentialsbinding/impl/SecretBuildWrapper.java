@@ -162,6 +162,11 @@ public class SecretBuildWrapper extends BuildWrapper {
                         logger.write(b, 0, len);
                     }
                 }
+
+                @Override public void close() throws IOException {
+                    super.close();
+                    logger.close();
+                }
             };
         }
 

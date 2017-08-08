@@ -188,10 +188,12 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         Collections.sort(sortedByLength, stringLengthComparator);
 
         for (String secret : sortedByLength) {
-            if (b.length() > 0) {
-                b.append('|');
+            if (!secret.isEmpty()) {
+                if (b.length() > 0) {
+                    b.append('|');
+                }
+                b.append(Pattern.quote(secret));
             }
-            b.append(Pattern.quote(secret));
         }
         return b.toString();
     }

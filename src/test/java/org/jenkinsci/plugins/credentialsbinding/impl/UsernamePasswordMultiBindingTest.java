@@ -77,7 +77,7 @@ public class UsernamePasswordMultiBindingTest {
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
         assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
-        assertEquals("[pass, userid]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
+        assertEquals("[pass]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
     }
 
 }

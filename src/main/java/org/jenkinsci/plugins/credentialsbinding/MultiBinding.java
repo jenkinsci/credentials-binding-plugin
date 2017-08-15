@@ -80,19 +80,35 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     public static final class MultiEnvironment implements Serializable {
 
         private final Map<String,String> values;
+        private final Map<String,String> secretValues;
         private final Unbinder unbinder;
 
-        public MultiEnvironment(Map<String,String> values) {
-            this(values, new NullUnbinder());
+        public MultiEnvironment(Map<String,String> secretValues) {
+            this(secretValues, Collections.<String, String>emptyMap());
         }
 
-        public MultiEnvironment(Map<String,String> values, Unbinder unbinder) {
-            this.values = new HashMap<String,String>(values);
+        public MultiEnvironment(Map<String,String> secretValues, Map<String,String> publicValues) {
+            this(secretValues, publicValues, new NullUnbinder());
+        }
+
+        public MultiEnvironment(Map<String,String> secretValues, Unbinder unbinder) {
+            this(secretValues, Collections.<String, String>emptyMap(), unbinder);
+        }
+
+        public MultiEnvironment(Map<String,String> secretValues, Map<String,String> publicValues, Unbinder unbinder) {
+            this.secretValues = new HashMap<String,String>(secretValues);
+            this.values = new HashMap<String,String>();
+            this.values.putAll(secretValues);
+            this.values.putAll(publicValues);
             this.unbinder = unbinder;
         }
 
         public Map<String,String> getValues() {
             return Collections.unmodifiableMap(values);
+        }
+
+        public Map<String,String> getSecretValues() {
+            return Collections.unmodifiableMap(secretValues);
         }
 
         public Unbinder getUnbinder() {

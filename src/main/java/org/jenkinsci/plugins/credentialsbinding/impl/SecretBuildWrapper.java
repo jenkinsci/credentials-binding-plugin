@@ -95,7 +95,7 @@ public class SecretBuildWrapper extends BuildWrapper {
         for (MultiBinding binding : bindings) {
             MultiBinding.MultiEnvironment e = binding.bind(build, build.getWorkspace(), launcher, listener);
             m.add(e);
-            secrets.addAll(e.getValues().values());
+            secrets.addAll(e.getSecretValues().values());
         }
 
         if (!secrets.isEmpty()) {

@@ -21,6 +21,7 @@
     <jenkins.version>1.642.4</jenkins.version>
     <workflow-cps-plugin.version>2.32</workflow-cps-plugin.version>
     <workflow-step-api-plugin.version>2.10</workflow-step-api-plugin.version>
+    <workflow-support-plugin.version>2.14</workflow-support-plugin.version>
   </properties>
   <licenses>
     <license>
@@ -128,13 +129,13 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>2.14</version>
+      <version>${workflow-support-plugin.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>2.14</version>
+      <version>${workflow-support-plugin.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>

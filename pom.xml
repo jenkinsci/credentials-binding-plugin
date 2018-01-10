@@ -158,19 +158,6 @@
       <version>2.2.0</version>
       <scope>test</scope>
     </dependency>
-    <!-- For some reason this is otherwise missing and causes many verbose errors: -->
-    <dependency>
-      <groupId>org.jenkins-ci.modules</groupId>
-      <artifactId>sshd</artifactId>
-      <version>1.11</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.modules</groupId>
-      <artifactId>instance-identity</artifactId>
-      <version>2.1</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
 </project>

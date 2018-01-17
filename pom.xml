@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.30</version>
+    <version>3.2</version>
     <relativePath />
   </parent>
 
@@ -16,9 +16,10 @@
   <name>Credentials Binding Plugin</name>
   <description>Allows credentials to be bound to environment variables for use from miscellaneous build steps.
   </description>
-  <url>http://wiki.jenkins-ci.org/display/JENKINS/Credentials+Binding+Plugin</url>
+  <url>https://wiki.jenkins.io/display/JENKINS/Credentials+Binding+Plugin</url>
   <properties>
-    <jenkins.version>1.642.4</jenkins.version>
+    <jenkins.version>2.7.3</jenkins.version>
+    <java.level>7</java.level>
     <workflow-cps-plugin.version>2.32</workflow-cps-plugin.version>
     <workflow-step-api-plugin.version>2.10</workflow-step-api-plugin.version>
     <workflow-support-plugin.version>2.14</workflow-support-plugin.version>
@@ -26,7 +27,7 @@
   <licenses>
     <license>
       <name>MIT</name>
-      <url>http://opensource.org/licenses/MIT</url>
+      <url>https://opensource.org/licenses/MIT</url>
     </license>
   </licenses>
 
@@ -155,19 +156,6 @@
       <groupId>org.xmlunit</groupId>
       <artifactId>xmlunit-matchers</artifactId>
       <version>2.2.0</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- For some reason this is otherwise missing and causes many verbose errors: -->
-    <dependency>
-      <groupId>org.jenkins-ci.modules</groupId>
-      <artifactId>sshd</artifactId>
-      <version>1.11</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.modules</groupId>
-      <artifactId>instance-identity</artifactId>
-      <version>2.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -97,7 +97,9 @@ public class SecretBuildWrapper extends BuildWrapper {
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {
                 for (MultiBinding.MultiEnvironment e : m) {
-                    env.putAll(e.getValues());
+                    for (Map.Entry<String,String> pair : e.getValues().entrySet()) {
+                        env.put(pair.getKey(), pair.getValue()./* SECURITY-698 */replace("$", "$$$$"));
+                    }
                 }
             }
             @Override public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {

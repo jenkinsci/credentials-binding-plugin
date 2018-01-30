@@ -55,13 +55,13 @@ public class SecretBuildWrapperTest {
     @Issue("JENKINS-24805")
     @Test public void maskingFreeStyleSecrets() throws Exception {
         String firstCredentialsId = "creds_1";
-        String firstPassword = "p4ss";
+        String firstPassword = "p4$$";
         StringCredentialsImpl firstCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, firstCredentialsId, "sample1", Secret.fromString(firstPassword));
 
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), firstCreds);
 
         String secondCredentialsId = "creds_2";
-        String secondPassword = "p4ss" + "someMoreStuff";
+        String secondPassword = "p4$$" + "someMoreStuff";
         StringCredentialsImpl secondCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, secondCredentialsId, "sample2", Secret.fromString(secondPassword));
 
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), secondCreds);
@@ -72,8 +72,8 @@ public class SecretBuildWrapperTest {
         FreeStyleProject f = r.createFreeStyleProject();
 
         f.setConcurrentBuild(true);
-        f.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo %PASS_1%") : new Shell("echo $PASS_1"));
-        f.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo %PASS_2%") : new Shell("echo $PASS_2"));
+        f.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo %PASS_1%") : new Shell("echo \"$PASS_1\""));
+        f.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo %PASS_2%") : new Shell("echo \"$PASS_2\""));
         f.getBuildWrappersList().add(wrapper);
 
         r.configRoundtrip((Item)f);
@@ -81,7 +81,7 @@ public class SecretBuildWrapperTest {
         FreeStyleBuild b = r.buildAndAssertSuccess(f);
         r.assertLogNotContains(firstPassword, b);
         r.assertLogNotContains(secondPassword, b);
-        r.assertLogContains("echo ****", b);
+        r.assertLogContains("****", b);
     }
 
     @Issue("JENKINS-24805")

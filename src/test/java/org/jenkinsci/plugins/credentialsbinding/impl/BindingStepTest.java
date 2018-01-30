@@ -126,7 +126,7 @@ public class BindingStepTest {
     @Test public void basics() throws Exception {
         final String credentialsId = "creds";
         final String username = "bob";
-        final String password = "s3cr3t";
+        final String password = "s$$cr3t";
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
                 UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", username, password);
@@ -137,7 +137,7 @@ public class BindingStepTest {
                         + "  withCredentials([usernamePassword(usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: '" + credentialsId + "')]) {\n"
                         + "    semaphore 'basics'\n"
                         + "    if (isUnix()) {\n"
-                        + "      sh 'echo curl -u $USERNAME:$PASSWORD server > script'\n"
+                        + "      sh 'echo curl -u \"$USERNAME:$PASSWORD\" server > script'\n"
                         + "    } else {\n"
                         + "      bat 'echo curl -u %USERNAME%:%PASSWORD% server > script'\n"
                         + "    }\n"

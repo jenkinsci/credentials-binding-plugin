@@ -150,7 +150,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws IOException {
         IdCredentials cred = CredentialsProvider.findCredentialById(credentialsId, IdCredentials.class, build);
         if (cred==null)
-            throw new CredentialNotFoundException(credentialsId);
+            throw new CredentialNotFoundException("Could not find credentials entry with ID '" + credentialsId + "'");
 
         if (type().isInstance(cred)) {
             CredentialsProvider.track(build, cred);

@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.jenkinsci.Symbol;
 
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
@@ -75,7 +76,9 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
                                            @Nonnull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         Map<String,String> m = new HashMap<String,String>();
-        m.put(usernameVariable, credentials.getUsername());
+        if(usernameVariable != null && usernameVariable.length() != 0) {
+            m.put(usernameVariable, credentials.getUsername());
+        }
         m.put(passwordVariable, credentials.getPassword().getPlainText());
         return new MultiEnvironment(m);
     }

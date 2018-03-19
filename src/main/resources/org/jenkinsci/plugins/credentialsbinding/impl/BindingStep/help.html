@@ -1,5 +1,8 @@
 <p>
     Allows various kinds of credentials (secrets) to be used in idiosyncratic ways.
+    (Some steps explicitly ask for credentials of a particular kind,
+    usually as a <code>credentialsId</code> parameter,
+    in which case this step is unnecessary.)
     Each binding will define an environment variable active within the scope of the step.
     You can then use them directly from any other steps that expect environment variables to be set:
 </p>
@@ -7,7 +10,7 @@
   withCredentials([usernameColonPassword(credentialsId: 'mylogin', variable: 'USERPASS')]) {
     sh '''
       set +x
-      curl -u $USERPASS https://private.server/ > output
+      curl -u "$USERPASS" https://private.server/ > output
     '''
   }
 }</code></pre>
@@ -23,13 +26,37 @@
   }
 }</code></pre>
 <p>
-    or retrieve values from Groovy code via the <code>env</code> magic variable:
+    Note the use of <em>single</em> quotes to define the <code>script</code>
+    (implicit parameter to <code>sh</code>) in Groovy above.
+    You want the secret to be expanded by the shell as an environment variable.
+    The following idiom is potentially less secure, as the secret is interpolated by Groovy
+    and so (for example) typical operating system process listings will accidentally disclose it:
 </p>
-<pre><code>def password = env.PASSWORD</code></pre>
+<pre><code>node {
+  withCredentials([string(credentialsId: 'mytoken', variable: 'TOKEN')]) {
+    sh /* WRONG! */ """
+      set +x
+      curl -H 'Token: $TOKEN' https://some.api/
+    """
+  }
+}</code></pre>
 <p>
-    Note that some steps explicitly ask for credentials of a particular kind,
-    usually as a <code>credentialsId</code> parameter,
-    in which case this step is unnecessary.
+    At least on Linux, environment variables can be obtained by other processes running in the same account,
+    so you should not run a job which uses secrets on the same node as a job controlled by untrusted parties.
+    In any event, you should always prefer expansion as environment variables to inclusion in the command,
+    since Jenkins visualizations such as Blue Ocean will <em>attempt</em> to detect step parameters containing secrets
+    and refuse to display them.
+</p>
+<p>
+    The secret(s) will be masked (<code>****</code>) in case they are printed to the build log.
+    This prevents you from <em>accidentally</em> disclosing passwords and the like via the log.
+    (Bourne shell <code>set +x</code>, or Windows batch <code>@echo off</code>,
+    blocks secrets from being displayed in echoed commands;
+    but build tools in debug mode might dump all environment variables to standard output/error,
+    or poorly designed network clients might display authentication, etc.)
+    The masking could of course be trivially circumvented;
+    anyone permitted to configure a job or define Pipeline steps
+    is assumed to be trusted to use any credentials in scope however they like.
 </p>
 <p>
     For bindings which store a secret file, beware that

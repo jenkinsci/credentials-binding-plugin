@@ -29,8 +29,8 @@
     Note the use of <em>single</em> quotes to define the <code>script</code>
     (implicit parameter to <code>sh</code>) in Groovy above.
     You want the secret to be expanded by the shell as an environment variable.
-    The following idiom is less secure, as the secret is interpolated by Groovy
-    and so (for example) the operating system process listing will show it:
+    The following idiom is potentially less secure, as the secret is interpolated by Groovy
+    and so (for example) typical operating system process listings will accidentally disclose it:
 </p>
 <pre><code>node {
   withCredentials([string(credentialsId: 'mytoken', variable: 'TOKEN')]) {
@@ -40,6 +40,13 @@
     """
   }
 }</code></pre>
+<p>
+    At least on Linux, environment variables can be obtained by other processes running in the same account,
+    so you should not run a job which uses secrets on the same node as a job controlled by untrusted parties.
+    In any event, you should always prefer expansion as environment variables to inclusion in the command,
+    since Jenkins visualizations such as Blue Ocean will <em>attempt</em> to detect step parameters containing secrets
+    and refuse to display them.
+</p>
 <p>
     The secret(s) will be masked (<code>****</code>) in case they are printed to the build log.
     This prevents you from <em>accidentally</em> disclosing passwords and the like via the log.

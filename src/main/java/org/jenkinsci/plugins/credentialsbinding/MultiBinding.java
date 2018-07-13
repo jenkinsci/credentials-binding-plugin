@@ -79,8 +79,10 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     /** Result of {@link #bind}. */
     public static final class MultiEnvironment implements Serializable {
 
-        private final Map<String,String> values;
-        private final Map<String,String> secretValues;
+        @Deprecated
+        private transient Map<String,String> values;
+        private Map<String,String> secretValues;
+        private Map<String,String> publicValues;
         private final Unbinder unbinder;
 
         public MultiEnvironment(Map<String,String> secretValues) {
@@ -96,19 +98,33 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         }
 
         public MultiEnvironment(Map<String,String> secretValues, Map<String,String> publicValues, Unbinder unbinder) {
-            this.secretValues = new HashMap<String,String>(secretValues);
-            this.values = new HashMap<String,String>();
-            this.values.putAll(secretValues);
-            this.values.putAll(publicValues);
+            this.values = null;
+            this.secretValues = new HashMap<>(secretValues);
+            this.publicValues = new HashMap<>(publicValues);
             this.unbinder = unbinder;
         }
 
+        // To avoid de-serialization issues with newly added field (secretValues, publicValues)
+        private Object readResolve() {
+            if (values != null) {
+                secretValues = values;
+                publicValues = Collections.emptyMap();
+                values = null;
+            }
+            return this;
+        }
+
+        @Deprecated
         public Map<String,String> getValues() {
-            return Collections.unmodifiableMap(values);
+            return Collections.unmodifiableMap(secretValues);
         }
 
         public Map<String,String> getSecretValues() {
             return Collections.unmodifiableMap(secretValues);
+        }
+
+        public Map<String,String> getPublicValues() {
+            return Collections.unmodifiableMap(publicValues);
         }
 
         public Unbinder getUnbinder() {
@@ -154,7 +170,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
                                           @Nullable Launcher launcher,
                                           @Nonnull TaskListener listener) throws IOException, InterruptedException;
 
-    /** Defines keys expected to be set in {@link MultiEnvironment#getValues}, particularly any that might be sensitive. */
+    /** Defines keys expected to be set in {@link MultiEnvironment#getSecretValues()}, particularly any that might be sensitive. */
     public abstract Set<String> variables();
 
     /**

@@ -97,7 +97,10 @@ public class SecretBuildWrapper extends BuildWrapper {
         return new Environment() {
             @Override public void buildEnvVars(Map<String,String> env) {
                 for (MultiBinding.MultiEnvironment e : m) {
-                    for (Map.Entry<String,String> pair : e.getValues().entrySet()) {
+                    for (Map.Entry<String,String> pair : e.getSecretValues().entrySet()) {
+                        env.put(pair.getKey(), pair.getValue()./* SECURITY-698 */replace("$", "$$$$"));
+                    }
+                    for (Map.Entry<String,String> pair : e.getPublicValues().entrySet()) {
                         env.put(pair.getKey(), pair.getValue()./* SECURITY-698 */replace("$", "$$$$"));
                     }
                 }

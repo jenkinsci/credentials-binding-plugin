@@ -74,15 +74,12 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
                                            @Nullable Launcher launcher,
                                            @Nonnull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        Map<String,String> secretValues = new HashMap<String,String>();
-        Map<String,String> publicValues = new HashMap<String,String>();
-        secretValues.put(passwordVariable, credentials.getPassword().getPlainText());
-        publicValues.put(usernameVariable, credentials.getUsername());
-        return new MultiEnvironment(secretValues, publicValues);
+        return new MultiEnvironment(Collections.singletonMap(passwordVariable, credentials.getPassword().getPlainText()),
+                Collections.singletonMap(usernameVariable, credentials.getUsername()));
     }
 
     @Override public Set<String> variables() {
-        return new HashSet<String>(Arrays.asList(passwordVariable));
+        return new HashSet<>(Collections.singletonList(passwordVariable));
     }
 
     @Symbol("usernamePassword")

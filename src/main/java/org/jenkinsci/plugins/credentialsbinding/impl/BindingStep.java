@@ -104,8 +104,8 @@ public final class BindingStep extends Step {
             FilePath workspace = getContext().get(FilePath.class);
             Launcher launcher = getContext().get(Launcher.class);
 
-            Map<String,String> overrides = new HashMap<String,String>();
-            Map<String,String> secretOverrides = new HashMap<String,String>();
+            Collection<String> secrets = new HashSet<>();
+            Map<String,String> overrides = new HashMap<>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
                 if (binding.getDescriptor().requiresWorkspace() &&
@@ -114,13 +114,15 @@ public final class BindingStep extends Step {
                 }
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());
-                overrides.putAll(environment.getValues());
-                secretOverrides.putAll(environment.getSecretValues());
+                secrets.addAll(environment.getSecretValues().values());
+                overrides.putAll(environment.getSecretValues());
+                overrides.putAll(environment.getPublicValues());
             }
             getContext().newBodyInvoker().
-                    withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
+                    withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class),
+                            new Overrider(overrides))).
                     withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class),
-                            new Filter(secretOverrides.values(), run.getCharset().name()))).
+                            new Filter(secrets, run.getCharset().name()))).
                     withCallback(new Callback(unbinders)).
                     start();
             return false;

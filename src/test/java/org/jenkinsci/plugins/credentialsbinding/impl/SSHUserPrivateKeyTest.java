@@ -138,7 +138,6 @@ public class SSHUserPrivateKeyTest {
                 if (Functions.isWindows()) {
                     script =
                         "    bat '''\n"
-                        + "      @echo off\n"
                         + "      echo %THEUSER%:%THEPASS% > out.txt\n"
                         + "      type \"%THEKEY%\" > key.txt"
                         + "    '''\n";
@@ -193,7 +192,6 @@ public class SSHUserPrivateKeyTest {
                 if (Functions.isWindows()) {
                     script =
                         "    bat '''\n"
-                        + "      @echo off\n"
                         + "      type \"%THEKEY%\" > key.txt"
                         + "    '''\n";
                 } else {

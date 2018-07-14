@@ -79,6 +79,8 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     /** Result of {@link #bind}. */
     public static final class MultiEnvironment implements Serializable {
 
+        private static final long serialVersionUID = 1;
+
         @Deprecated
         private transient Map<String,String> values;
         private Map<String,String> secretValues;

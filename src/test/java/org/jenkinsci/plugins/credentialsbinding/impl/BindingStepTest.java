@@ -244,9 +244,9 @@ public class BindingStepTest {
 
                 // make sure error message contains information about the actual type and the expected type
                 story.j.assertLogNotContains("s3cr3t", r);
-                story.j.assertLogContains(CredentialNotFoundException.class.getName(), r);
-                story.j.assertLogContains(StandardUsernamePasswordCredentials.class.getName(), r);
+                story.j.assertLogContains(StandardUsernamePasswordCredentials.class.getName(), r); // no descriptor for the interface type
                 story.j.assertLogContains(stringCredentialsDescriptor.getDisplayName(), r);
+                story.j.assertLogNotContains("\tat ", r);
             }
         });
     }

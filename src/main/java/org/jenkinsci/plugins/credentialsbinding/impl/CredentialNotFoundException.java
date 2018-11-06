@@ -1,20 +1,9 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
-import java.io.IOException;
+import hudson.AbortException;
 
-/**
- * @author Kohsuke Kawaguchi
- */
-public class CredentialNotFoundException extends IOException {
+public class CredentialNotFoundException extends AbortException {
     public CredentialNotFoundException(String message) {
         super(message);
-    }
-
-    public CredentialNotFoundException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public CredentialNotFoundException(Throwable cause) {
-        super(cause);
     }
 }

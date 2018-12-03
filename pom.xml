@@ -5,12 +5,12 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.2</version>
+    <version>3.28</version>
     <relativePath />
   </parent>
 
   <artifactId>credentials-binding</artifactId>
-  <version>1.18-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>Credentials Binding Plugin</name>
@@ -18,10 +18,12 @@
   </description>
   <url>https://wiki.jenkins.io/display/JENKINS/Credentials+Binding+Plugin</url>
   <properties>
-    <jenkins.version>2.7.3</jenkins.version>
-    <java.level>7</java.level>
+    <revision>1.18</revision>
+    <changelist>-SNAPSHOT</changelist>
+    <jenkins.version>2.60.3</jenkins.version>
+    <java.level>8</java.level>
     <workflow-cps-plugin.version>2.32</workflow-cps-plugin.version>
-    <workflow-step-api-plugin.version>2.10</workflow-step-api-plugin.version>
+    <workflow-step-api-plugin.version>2.17-rc490.195448874280</workflow-step-api-plugin.version> <!-- TODO https://github.com/jenkinsci/workflow-step-api-plugin/pull/38 -->
     <workflow-support-plugin.version>2.14</workflow-support-plugin.version>
   </properties>
   <licenses>
@@ -35,7 +37,7 @@
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-    <tag>HEAD</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <repositories>

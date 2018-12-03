@@ -56,6 +56,7 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
+import org.jenkinsci.plugins.workflow.steps.GeneralNonBlockingStepExecution;
 import org.jenkinsci.plugins.workflow.steps.MissingContextVariableException;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -83,21 +84,38 @@ public final class BindingStep extends Step {
 
     @Override
     public StepExecution start(StepContext context) throws Exception {
-        return new Execution(this, context);
+        return new Execution2(this, context);
     }
 
-    static final class Execution extends AbstractStepExecutionImpl {
+    /** @deprecated Only here for serial compatibility. */
+    @Deprecated
+    private static final class Execution extends AbstractStepExecutionImpl {
+
+        private static final long serialVersionUID = 1;
+
+        @Override public boolean start() throws Exception {
+            throw new AssertionError();
+        }
+
+    }
+
+    private static final class Execution2 extends GeneralNonBlockingStepExecution {
 
         private static final long serialVersionUID = 1;
 
         private transient BindingStep step;
 
-        Execution(@Nonnull BindingStep step, StepContext context) {
+        Execution2(@Nonnull BindingStep step, StepContext context) {
             super(context);
             this.step = step;
         }
 
         @Override public boolean start() throws Exception {
+            run(this::doStart);
+            return false;
+        }
+        
+        private void doStart() throws Exception {
             Run<?,?> run = getContext().get(Run.class);
             TaskListener listener = getContext().get(TaskListener.class);
 
@@ -118,13 +136,24 @@ public final class BindingStep extends Step {
             getContext().newBodyInvoker().
                     withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
                     withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(overrides.values(), run.getCharset().name()))).
-                    withCallback(new Callback(unbinders)).
+                    withCallback(new Callback2(unbinders)).
                     start();
-            return false;
         }
 
-        @Override public void stop(Throwable cause) throws Exception {
-            // should be no need to do anything special (but verify in JENKINS-26148)
+        private final class Callback2 extends TailCall {
+
+            private static final long serialVersionUID = 1;
+
+            private final List<MultiBinding.Unbinder> unbinders;
+
+            Callback2(List<MultiBinding.Unbinder> unbinders) {
+                this.unbinders = unbinders;
+            }
+
+            @Override protected void finished(StepContext context) throws Exception {
+                new Callback(unbinders).finished(context);
+            }
+
         }
 
     }

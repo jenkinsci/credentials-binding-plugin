@@ -57,6 +57,12 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         this.passwordVariable = passwordVariable;
     }
 
+    @Deprecated
+    public UsernamePasswordMultiBinding(String usernameVariable, String passwordVariable, String credentialsId) {
+        this(passwordVariable, credentialsId);
+        setUsernameVariable(usernameVariable);
+    }
+
     public String getUsernameVariable() {
         return usernameVariable;
     }

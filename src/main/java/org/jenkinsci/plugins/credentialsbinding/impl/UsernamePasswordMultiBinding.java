@@ -25,16 +25,16 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.google.common.collect.ImmutableSet;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.jenkinsci.Symbol;
@@ -45,20 +45,24 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.kohsuke.stapler.DataBoundSetter;
 
 public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernamePasswordCredentials> {
 
-    private final String usernameVariable;
+    private String usernameVariable;
     private final String passwordVariable;
 
-    @DataBoundConstructor public UsernamePasswordMultiBinding(String usernameVariable, String passwordVariable, String credentialsId) {
+    @DataBoundConstructor public UsernamePasswordMultiBinding(String passwordVariable, String credentialsId) {
         super(credentialsId);
-        this.usernameVariable = usernameVariable;
         this.passwordVariable = passwordVariable;
     }
 
     public String getUsernameVariable() {
         return usernameVariable;
+    }
+
+    @DataBoundSetter public void setUsernameVariable(String usernameVariable) {
+        this.usernameVariable = Util.fixEmptyAndTrim(usernameVariable);
     }
 
     public String getPasswordVariable() {
@@ -74,14 +78,16 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
                                            @Nullable Launcher launcher,
                                            @Nonnull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        Map<String,String> m = new HashMap<String,String>();
-        m.put(usernameVariable, credentials.getUsername());
+        Map<String,String> m = new HashMap<>();
+        if (usernameVariable != null) {
+            m.put(usernameVariable, credentials.getUsername());
+        }
         m.put(passwordVariable, credentials.getPassword().getPlainText());
         return new MultiEnvironment(m);
     }
 
     @Override public Set<String> variables() {
-        return new HashSet<String>(Arrays.asList(usernameVariable, passwordVariable));
+        return usernameVariable != null ? ImmutableSet.of(usernameVariable, passwordVariable) : Collections.singleton(passwordVariable);
     }
 
     @Symbol("usernamePassword")

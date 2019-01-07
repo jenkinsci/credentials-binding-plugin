@@ -46,6 +46,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 import org.junit.Rule;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class UsernamePasswordMultiBindingTest {
@@ -58,7 +59,9 @@ public class UsernamePasswordMultiBindingTest {
         UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, "sample", username, password);
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
         FreeStyleProject p = r.createFreeStyleProject();
-        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("userid", "pass", c.getId()))));
+        UsernamePasswordMultiBinding upBinding = new UsernamePasswordMultiBinding("pass", c.getId());
+        upBinding.setUsernameVariable("userid");
+        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(upBinding)));
         if (Functions.isWindows()) {
             p.getBuildersList().add(new BatchFile("@echo off\necho %userid%/%pass% > auth.txt"));
         } else {
@@ -75,9 +78,40 @@ public class UsernamePasswordMultiBindingTest {
         assertEquals("userid", ((UsernamePasswordMultiBinding) binding).getUsernameVariable());
         assertEquals("pass", ((UsernamePasswordMultiBinding) binding).getPasswordVariable());
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
+        r.assertLogNotContains(username, b); // considered secret
         r.assertLogNotContains(password, b);
         assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
         assertEquals("[pass, userid]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
+    }
+
+    @Issue("JENKINS-44860")
+    @Test public void passwordOnly() throws Exception {
+        String username = "bob";
+        String password = "s3cr3t";
+        UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, "sample", username, password);
+        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
+        FreeStyleProject p = r.createFreeStyleProject();
+        p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("pass", c.getId()))));
+        if (Functions.isWindows()) {
+            p.getBuildersList().add(new BatchFile("@echo off\necho %pass% > pass.txt\necho hello " + username));
+        } else {
+            p.getBuildersList().add(new Shell("set +x\necho $pass > pass.txt\necho hello " + username));
+        }
+        r.configRoundtrip((Item)p);
+        SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
+        assertNotNull(wrapper);
+        List<? extends MultiBinding<?>> bindings = wrapper.getBindings();
+        assertEquals(1, bindings.size());
+        MultiBinding<?> binding = bindings.get(0);
+        assertEquals(c.getId(), binding.getCredentialsId());
+        assertEquals(UsernamePasswordMultiBinding.class, binding.getClass());
+        assertNull(((UsernamePasswordMultiBinding) binding).getUsernameVariable());
+        assertEquals("pass", ((UsernamePasswordMultiBinding) binding).getPasswordVariable());
+        FreeStyleBuild b = r.buildAndAssertSuccess(p);
+        r.assertLogContains("hello " + username, b); // not masked
+        r.assertLogNotContains(password, b);
+        assertEquals(password, b.getWorkspace().child("pass.txt").readToString().trim());
+        assertEquals("[pass]", new TreeSet<>(b.getSensitiveBuildVariables()).toString());
     }
 
 }

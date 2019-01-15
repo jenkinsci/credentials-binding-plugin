@@ -78,8 +78,8 @@ foo'bar
 <pre><code>+ echo 'foo'\''bar'
 ****</code></pre>
 <p>
-    (This particular issue can be worked around by turning off echo with <code>set +x</code>,
-    or simply avoiding this character in secrets.)
+    This particular issue can be worked around by turning off echo with <code>set +x</code>,
+    or simply avoiding possible shell metacharacters in secrets.
 </p>
 <p>
     For bindings which store a secret file, beware that

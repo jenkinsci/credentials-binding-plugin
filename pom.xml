@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.28</version>
+    <version>3.33</version>
     <relativePath />
   </parent>
 
@@ -25,6 +25,7 @@
     <workflow-cps-plugin.version>2.32</workflow-cps-plugin.version>
     <workflow-step-api-plugin.version>2.18</workflow-step-api-plugin.version>
     <workflow-support-plugin.version>2.14</workflow-support-plugin.version>
+    <jenkins-test-harness.version>2.45</jenkins-test-harness.version> <!-- TODO pending parent 3.34 -->
   </properties>
   <licenses>
     <license>

@@ -60,15 +60,15 @@
 </p>
 <p>
     Beware that certain tools mangle secrets when displaying them.
-    For example, Bash (as opposed to Ubuntu’s plainer Dash) does so with text containing <code>'</code> in echo mode:
+    As one example, Bash (as opposed to Ubuntu’s plainer Dash) does so with text containing <code>'</code> in echo mode:
 </p>
 <pre><code>$ export PASS=foo"'"bar
 $ env|fgrep PASS
 PASS=foo'bar
-$ sh -c 'set -x; echo $PASS'
+$ sh -xc 'echo $PASS'
 + echo foo'bar
 foo'bar
-$ bash -c 'set -x; echo $PASS'
+$ bash -xc 'echo $PASS'
 + echo 'foo'\''bar'
 foo'bar
 </code></pre>

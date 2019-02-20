@@ -5,14 +5,16 @@ set -e -x
 echo "checking \$MY_KEYSTORE:"
 test -f "$MY_KEYSTORE"
 
+P1=$(dirname "$MY_KEYSTORE")
+P2=$(dirname "$P1")
 if [ "$(uname)" = "Darwin" ]; then
-  [ $(stat -f %p "$MY_KEYSTORE")               = 100400 ]
-  [ $(stat -f %p $(dirname "$MY_KEYSTORE"))    = 40700 ]
-  [ $(stat -f %p $(dirname "$MY_KEYSTORE")/..) = 40700 ]
+  [ $(stat -f %p "$MY_KEYSTORE") = 100400 ]
+  [ $(stat -f %p "$P1")          = 40700  ]
+  [ $(stat -f %p "$P2")          = 40700  ]
 else
-  [ $(stat -c %a "$MY_KEYSTORE")               = 400 ]
-  [ $(stat -c %a $(dirname "$MY_KEYSTORE"))    = 700 ]
-  [ $(stat -c %a $(dirname "$MY_KEYSTORE")/..) = 700 ]
+  [ $(stat -c %a "$MY_KEYSTORE") = 400 ]
+  [ $(stat -c %a "$P1")          = 700 ]
+  [ $(stat -c %a "$P2")          = 700 ]
 fi
 
 # check the other variables

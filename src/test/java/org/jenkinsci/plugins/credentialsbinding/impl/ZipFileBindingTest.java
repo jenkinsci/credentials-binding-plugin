@@ -27,7 +27,6 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SecretBytes;
 import com.cloudbees.plugins.credentials.domains.Domain;
-import hudson.Functions;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -53,23 +52,13 @@ public class ZipFileBindingTest {
         FileCredentialsImpl fc = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "Just a zip file", "a.zip", SecretBytes.fromBytes(IOUtils.toByteArray(ZipFileBindingTest.class.getResource("a.zip"))));
         CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), fc);
 
-        final String unixFile = "/dir/testfile.txt";
-        final String winFile = unixFile.replace("/", "\\\\"); /* two \\ as we escape the code and then escape for the script */
-        //if this file does not have a line ending then the text is not echoed to the log.
-        // fixed in workflow 1.11+ (which is not released at the time of writing)
         final String contents = "Test of ZipFileBinding\n";
         
         WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(""
                                               + "node {\n"
                                               + "  withCredentials([[$class: 'ZipFileBinding', credentialsId: '"+ credentialsId +"', variable: 'ziploc']]) {\n"
-                                              + (Functions.isWindows() 
-                                                      ? "    bat 'type %ziploc%"+ winFile + "'\n"
-                                                      : "    sh 'cat ${ziploc}" + unixFile + "'\n" )
-                                              + "    def text = readFile encoding: 'UTF-8', file: \"${env.ziploc}" + unixFile + "\"\n"
-                                              + "    if (!text.equals('''" + contents + "''')) {\n"
-                                              + "      error ('incorrect details from zip file')\n"
-                                              + "    }\n"
+                                              + "    echo readFile(encoding: 'UTF-8', file: \"${env.ziploc}/dir/testfile.txt\")\n"
                                               + "  }\n"
                                               + "}\n"
                                               , true));

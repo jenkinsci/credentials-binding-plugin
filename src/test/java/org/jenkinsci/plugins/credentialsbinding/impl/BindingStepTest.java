@@ -146,7 +146,7 @@ public class BindingStepTest {
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 SemaphoreStep.waitForStart("basics/1", b);
-                story.j.assertLogContains(Functions.isWindows() ? "Masking exact matches of %USERNAME% or %PASSWORD%" : "Masking exact matches of $USERNAME or $PASSWORD", b);
+                story.j.assertLogContains(Functions.isWindows() ? "Masking only exact matches of %USERNAME% or %PASSWORD%" : "Masking only exact matches of $USERNAME or $PASSWORD", b);
             }
         });
         story.addStep(new Statement() {

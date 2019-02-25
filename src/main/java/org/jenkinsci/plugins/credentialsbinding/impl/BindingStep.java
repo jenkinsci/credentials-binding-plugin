@@ -44,11 +44,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
@@ -122,8 +124,8 @@ public final class BindingStep extends Step {
             FilePath workspace = getContext().get(FilePath.class);
             Launcher launcher = getContext().get(Launcher.class);
 
-            Map<String,String> overrides = new HashMap<String,String>();
-            List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
+            Map<String,String> overrides = new LinkedHashMap<>();
+            List<MultiBinding.Unbinder> unbinders = new ArrayList<>();
             for (MultiBinding<?> binding : step.bindings) {
                 if (binding.getDescriptor().requiresWorkspace() &&
                         (workspace == null || launcher == null)) {
@@ -132,6 +134,12 @@ public final class BindingStep extends Step {
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
+            }
+            if (!overrides.isEmpty()) {
+                boolean unix = launcher != null ? launcher.isUnix() : true;
+                listener.getLogger().println("Masking only exact matches of " + overrides.keySet().stream().map(
+                    v -> unix ? "$" + v : "%" + v + "%"
+                ).collect(Collectors.joining(" or ")));
             }
             getContext().newBodyInvoker().
                     withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).

@@ -32,9 +32,8 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import org.jenkinsci.Symbol;
@@ -74,7 +73,7 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
                                            @Nullable Launcher launcher,
                                            @Nonnull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        Map<String,String> m = new HashMap<String,String>();
+        Map<String,String> m = new LinkedHashMap<>();
         m.put(usernameVariable, credentials.getUsername());
         m.put(passwordVariable, credentials.getPassword().getPlainText());
         return new MultiEnvironment(m);

@@ -36,6 +36,7 @@ import hudson.model.User;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 
 import hudson.FilePath;
+import hudson.Functions;
 import hudson.model.Node;
 import hudson.model.Result;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
@@ -145,6 +146,7 @@ public class BindingStepTest {
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 SemaphoreStep.waitForStart("basics/1", b);
+                story.j.assertLogContains(Functions.isWindows() ? "Masking only exact matches of %USERNAME% or %PASSWORD%" : "Masking only exact matches of $USERNAME or $PASSWORD", b);
             }
         });
         story.addStep(new Statement() {

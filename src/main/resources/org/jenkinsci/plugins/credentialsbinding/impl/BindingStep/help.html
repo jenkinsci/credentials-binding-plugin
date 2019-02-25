@@ -59,6 +59,29 @@
     is assumed to be trusted to use any credentials in scope however they like.
 </p>
 <p>
+    Beware that certain tools mangle secrets when displaying them.
+    As one example, Bash (as opposed to Ubuntu’s plainer Dash) does so with text containing <code>'</code> in echo mode:
+</p>
+<pre><code>$ export PASS=foo"'"bar
+$ env|fgrep PASS
+PASS=foo'bar
+$ sh -xc 'echo $PASS'
++ echo foo'bar
+foo'bar
+$ bash -xc 'echo $PASS'
++ echo 'foo'\''bar'
+foo'bar
+</code></pre>
+<p>
+    Mangled secrets are not detected by Jenkins and will appear in plain text in the log file, in this case as:
+</p>
+<pre><code>+ echo 'foo'\''bar'
+****</code></pre>
+<p>
+    This particular issue can be worked around by turning off echo with <code>set +x</code>,
+    or simply avoiding possible shell metacharacters in secrets.
+</p>
+<p>
     For bindings which store a secret file, beware that
 </p>
 <pre><code>node {
@@ -90,3 +113,8 @@
     }
   }
 }</code></pre>
+<p>
+    Also see the
+    <a href="https://jenkins.io/blog/2019/02/21/credentials-masking/" target="_blank">Limitations of Credentials Masking</a>
+    blog post for more background.
+</p>

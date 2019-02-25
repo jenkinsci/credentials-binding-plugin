@@ -41,7 +41,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,7 +87,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         }
 
         public MultiEnvironment(Map<String,String> values, Unbinder unbinder) {
-            this.values = new HashMap<String,String>(values);
+            this.values = new LinkedHashMap<>(values);
             this.unbinder = unbinder;
         }
 

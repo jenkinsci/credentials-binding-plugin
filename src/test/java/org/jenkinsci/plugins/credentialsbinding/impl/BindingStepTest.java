@@ -219,8 +219,7 @@ public class BindingStepTest {
                         + "withCredentials([file(variable: 'targetFile', credentialsId: '" + credentialsId + "')]) {\n"
                         + "  echo 'We should fail before getting here'\n"
                         + "}", true));
-                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-                story.j.assertBuildStatus(Result.FAILURE, story.j.waitForCompletion(b));
+                WorkflowRun b = story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0));
                 story.j.assertLogNotContains("We should fail before getting here", b);
                 story.j.assertLogContains("Required context class hudson.FilePath is missing", b);
                 story.j.assertLogContains("Perhaps you forgot to surround the code with a step that provides this, such as: node", b);

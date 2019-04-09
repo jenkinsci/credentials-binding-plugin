@@ -1,0 +1,139 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2019 CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+package org.jenkinsci.plugins.credentialsbinding.impl;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import hudson.util.Secret;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+
+import java.io.IOException;
+import java.util.UUID;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.jenkinsci.plugins.credentialsbinding.test.ExecutableExists.executable;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeThat;
+
+public class CredentialsMaskingPowerShellTest {
+
+    private static final String SIMPLE = "abcABC123";
+    private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
+    private static final String ALL_ASCII = "!\"#$%&'()*+,-./ 0123456789:;<=>? @ABCDEFGHIJKLMNO PQRSTUVWXYZ[\\]^_ `abcdefghijklmno pqrstuvwxyz{|}~";
+
+    @Rule
+    public JenkinsRule j = new JenkinsRule();
+
+    private WorkflowJob project;
+
+    private String credentialPlainText;
+    private String credentialId;
+
+    @Before
+    public void assumeWindowsForBatch() throws Exception {
+        // TODO: pwsh is also a valid executable name
+        assumeThat("powershell", is(executable()));
+    }
+
+    private void registerCredentials(String password) throws IOException {
+        this.credentialPlainText = password;
+        this.credentialId = UUID.randomUUID().toString();
+        StringCredentials credentials = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialId, null, Secret.fromString(password));
+        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), credentials);
+    }
+
+    @Test
+    public void simple() throws Exception {
+        registerCredentials(SIMPLE);
+        assertDirectNoPlainTextButStars(runPowerShellInterpretation());
+    }
+    
+    @Test
+    public void allAscii() throws Exception {
+        registerCredentials(ALL_ASCII);
+        assertDirectNoPlainTextButStars(runPowerShellInterpretation());
+    }
+    
+    @Test
+    public void samplePassword() throws Exception {
+        registerCredentials(SAMPLE_PASSWORD);
+        assertDirectNoPlainTextButStars(runPowerShellInterpretation());
+    }
+
+    private void assertDirectNoPlainTextButStars(WorkflowRun run) throws Exception {
+        j.assertLogNotContains(credentialPlainText, run);
+        // powershell x y z => output in 3 different lines
+        assertStringPresentInOrder(run, "before1", "****", "after1");
+        j.assertLogContains("before2 **** after2", run);
+    }
+    
+    private void assertStringPresentInOrder(WorkflowRun run, String... values) throws Exception {
+        String fullLog = run.getLog();
+        int currentIndex = 0;
+        for (int i = 0; i < values.length; i++) {
+            String currentValue = values[i];
+            int nextIndex = fullLog.indexOf(currentValue, currentIndex);
+            if(nextIndex == -1){
+                // use assertThat to have better output
+                assertThat(fullLog.substring(currentIndex), containsString(currentValue));
+            }else{
+                currentIndex = nextIndex + currentValue.length();
+            }
+        }
+    }
+
+    private WorkflowRun runPowerShellInterpretation() throws Exception {
+        setupProject("node {\n" +
+                "  withCredentials([string(credentialsId: '" + credentialId + "', variable: 'CREDENTIALS')]) {\n" +
+                // interpreted by PowerShell
+                "    powershell '''\n" +
+                // echo is an alias for Write-Output
+                "      echo before1 $env:CREDENTIALS after1\n" + // DO NOT DO THIS IN PRODUCTION; IT IS QUOTED WRONG
+                // echo '...' does not let PowerShell to interpret the information
+                "      echo \"before2 $env:CREDENTIALS after2\"\n" + // THIS IS OK THOUGH
+                "    '''\n" +
+                "  }\n" +
+                "}"
+        );
+        return project.scheduleBuild2(0).get();
+    }
+
+    private void setupProject(String pipeline) throws Exception {
+        String projectName = UUID.randomUUID().toString();
+        project = j.jenkins.createProject(WorkflowJob.class, projectName);
+        credentialId = UUID.randomUUID().toString();
+        project.setDefinition(new CpsFlowDefinition(pipeline, true));
+    }
+}

@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.credentialsbinding.impl;
+package org.jenkinsci.plugins.credentialsbinding.masking;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -64,6 +64,7 @@ public class CredentialsMaskingPowerShellTest {
     @Before
     public void assumeWindowsForBatch() throws Exception {
         // TODO: pwsh is also a valid executable name
+        // https://github.com/jenkinsci/durable-task-plugin/pull/88
         assumeThat("powershell", is(executable()));
     }
 

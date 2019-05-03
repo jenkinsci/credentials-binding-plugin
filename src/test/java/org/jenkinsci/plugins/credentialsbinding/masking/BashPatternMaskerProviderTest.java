@@ -36,6 +36,7 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.DataPoints;
@@ -83,9 +84,13 @@ public class BashPatternMaskerProviderTest {
     private WorkflowJob project;
     private String credentialsId;
 
+    @BeforeClass
+    public static void assumeBash() {
+        assumeThat("bash", is(executable()));
+    }
+
     @Before
     public void setUp() throws IOException {
-        assumeThat("bash", is(executable()));
         j.jenkins.getDescriptorByType(Shell.DescriptorImpl.class).setShell(Executables.getPathToExecutable("bash"));
         project = j.createProject(WorkflowJob.class);
         credentialsId = UUID.randomUUID().toString();

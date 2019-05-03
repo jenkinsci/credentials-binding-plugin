@@ -103,7 +103,7 @@ public class BashPatternMaskerProviderTest {
         WorkflowRun run = runProject();
 
         j.assertLogContains(": ****", run);
-        j.assertLogContains(": '< **** >'", run);
+        j.assertLogContains("< **** >", run);
         j.assertLogNotContains(credentials, run);
     }
 

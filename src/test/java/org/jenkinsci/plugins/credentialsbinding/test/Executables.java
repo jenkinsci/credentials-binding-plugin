@@ -25,35 +25,41 @@
 package org.jenkinsci.plugins.credentialsbinding.test;
 
 import hudson.Functions;
-import org.hamcrest.Description;
+import org.apache.commons.io.IOUtils;
+import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.List;
 
-/**
- * Hamcrest matcher for strings to check if the given command is executable.
- * This uses {@code which} or {@code where.exe} to determine this depending on operating system.
- */
-public class ExecutableExists extends TypeSafeMatcher<String> {
-
-    public static Matcher<String> executable() {
-        return new ExecutableExists();
-    }
-
+public class Executables {
     private static final String LOCATOR = Functions.isWindows() ? "where.exe" : "which";
 
-    @Override
-    protected boolean matchesSafely(String item) {
+    public static @CheckForNull String getPathToExecutable(@Nonnull String executable) {
         try {
-            return new ProcessBuilder(LOCATOR, item).start().waitFor() == 0;
-        } catch (InterruptedException | IOException e) {
-            return false;
+            Process process = new ProcessBuilder(LOCATOR, executable).start();
+            List<String> output = IOUtils.readLines(process.getInputStream());
+            if (process.waitFor() != 0) {
+                return null;
+            }
+            return output.isEmpty() ? null : output.get(0);
+        } catch (IOException | InterruptedException e) {
+            return null;
         }
     }
 
-    @Override
-    public void describeTo(Description description) {
-        description.appendText("executable");
+    public static Matcher<String> executable() {
+        return new CustomTypeSafeMatcher<String>("executable") {
+            @Override
+            protected boolean matchesSafely(String item) {
+                try {
+                    return new ProcessBuilder(LOCATOR, item).start().waitFor() == 0;
+                } catch (InterruptedException | IOException e) {
+                    return false;
+                }
+            }
+        };
     }
 }

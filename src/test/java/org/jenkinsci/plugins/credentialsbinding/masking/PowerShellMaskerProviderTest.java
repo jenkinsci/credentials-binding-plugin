@@ -43,7 +43,7 @@ import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.jenkinsci.plugins.credentialsbinding.test.ExecutableExists.executable;
+import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 

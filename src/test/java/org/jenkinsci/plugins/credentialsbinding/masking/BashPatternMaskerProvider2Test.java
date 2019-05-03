@@ -27,7 +27,9 @@ package org.jenkinsci.plugins.credentialsbinding.masking;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import hudson.tasks.Shell;
 import hudson.util.Secret;
+import org.jenkinsci.plugins.credentialsbinding.test.Executables;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -42,7 +44,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
-import static org.jenkinsci.plugins.credentialsbinding.test.ExecutableExists.executable;
+import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
 import static org.junit.Assume.assumeThat;
 
 public class BashPatternMaskerProvider2Test {
@@ -52,6 +54,7 @@ public class BashPatternMaskerProvider2Test {
     @Before
     public void setUp() {
         assumeThat("bash", is(executable()));
+        j.jenkins.getDescriptorByType(Shell.DescriptorImpl.class).setShell(Executables.getPathToExecutable("bash"));
     }
 
     @Test

@@ -35,51 +35,85 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.experimental.theories.DataPoint;
+import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.jenkinsci.plugins.credentialsbinding.test.ExecutableExists.executable;
 import static org.junit.Assume.assumeThat;
 
+@RunWith(Theories.class)
 public class BashPatternMaskerProviderTest {
 
-    public @Rule JenkinsRule j = new JenkinsRule();
+    public static final @DataPoint String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
+    public static final @DataPoint String ANOTHER_SAMPLE_PASSWORD = "a'b\"c\\d(e)#";
 
-    @Before
-    public void setUp() {
-        assumeThat("bash", is(executable()));
+    @DataPoints
+    public static List<String> generatePasswords() {
+        Random random = new Random(100);
+        List<String> passwords = new ArrayList<>(10);
+        for (int i = 0; i < 10; i++) {
+            int length = random.nextInt(24) + 8;
+            StringBuilder sb = new StringBuilder(length);
+            for (int j = 0; j < length; j++) {
+                char next = (char) (random.nextInt('~' - ' ' + 1) + ' '); // space = 0x20, tilde = 0x7E
+                sb.append(next);
+            }
+            passwords.add(sb.toString());
+        }
+        return passwords;
     }
 
-    @Test
-    // DO NOT DO THIS IN PRODUCTION; IT IS QUOTED WRONG
-    public void testSecretsWithBackslashesStillMaskedWhenUsedWithoutProperQuoting() throws Exception {
-        WorkflowJob project = j.createProject(WorkflowJob.class);
-        String password = "foo\\bar\\";
-        String credentialsId = registerStringCredentials(password);
+    @Rule public JenkinsRule j = new JenkinsRule();
+
+    private WorkflowJob project;
+    private String credentialsId;
+
+    @Before
+    public void setUp() throws IOException {
+        assumeThat("bash", is(executable()));
+        project = j.createProject(WorkflowJob.class);
+        credentialsId = UUID.randomUUID().toString();
         project.setDefinition(new CpsFlowDefinition(
                 "node {\n" +
                         "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'CREDENTIALS')]) {\n" +
-                        "    sh ': $CREDENTIALS'\n" + // forgot quotes
-                        "    sh \": $CREDENTIALS\"\n" + // using groovy variable and forgot quotes
+                        "    sh ': \"$CREDENTIALS\"'\n" + // : will expand its parameters and do nothing with them
+                        "    sh ': \"< $CREDENTIALS >\"'\n" +
                         "  }\n" +
                         "}", true));
+    }
 
-        WorkflowRun run = j.assertBuildStatusSuccess(project.scheduleBuild2(0));
+    @Theory
+    public void credentialsAreMaskedInLogs(String credentials) throws Exception {
+        assumeThat(credentials, not(startsWith("****")));
+
+        registerCredentials(credentials);
+        WorkflowRun run = runProject();
 
         j.assertLogContains(": ****", run);
-        j.assertLogNotContains(password, run);
-        j.assertLogNotContains("foo", run);
-        j.assertLogNotContains("bar", run);
+        j.assertLogContains(": '< **** >'", run);
+        j.assertLogNotContains(credentials, run);
     }
 
-    private String registerStringCredentials(String password) throws IOException {
-        String credentialId = UUID.randomUUID().toString();
-        StringCredentials creds = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialId, null, Secret.fromString(password));
-        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), creds);
-        return credentialId;
+    private void registerCredentials(String password) throws IOException {
+        StringCredentials credentials = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, null, Secret.fromString(password));
+        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), credentials);
     }
+
+    private WorkflowRun runProject() throws Exception {
+        return j.assertBuildStatusSuccess(project.scheduleBuild2(0));
+    }
+
 }

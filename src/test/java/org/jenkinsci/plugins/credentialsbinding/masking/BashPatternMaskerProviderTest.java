@@ -72,7 +72,8 @@ public class BashPatternMaskerProviderTest {
 
         j.assertLogContains(": ****", run);
         j.assertLogNotContains(password, run);
-        j.assertLogNotContains("foobar", run);
+        j.assertLogNotContains("foo", run);
+        j.assertLogNotContains("bar", run);
     }
 
     private String registerStringCredentials(String password) throws IOException {

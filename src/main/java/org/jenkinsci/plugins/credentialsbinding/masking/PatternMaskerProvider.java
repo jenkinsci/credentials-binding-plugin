@@ -32,6 +32,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
@@ -51,7 +52,7 @@ public interface PatternMaskerProvider extends ExtensionPoint {
 
     @Restricted(NoExternalUse.class)
     static @Nonnull Collection<String> getAllAlternateForms(@Nonnull String input) {
-        Collection<String> alternateForms = new TreeSet<>(BY_REVERSE_LENGTH);
+        Collection<String> alternateForms = new HashSet<>();
         for (PatternMaskerProvider provider : all()) {
             alternateForms.addAll(provider.getAlternativeForms(input));
         }
@@ -60,7 +61,7 @@ public interface PatternMaskerProvider extends ExtensionPoint {
 
     @Restricted(NoExternalUse.class)
     static @Nonnull Pattern getMaskingPattern(@Nonnull Collection<String> inputs) {
-        Collection<String> patterns = new TreeSet<>(BY_REVERSE_LENGTH);
+        Collection<String> patterns = new TreeSet<>(Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo));
         for (String input : inputs) {
             if (input.isEmpty()) {
                 continue;
@@ -70,8 +71,4 @@ public interface PatternMaskerProvider extends ExtensionPoint {
         }
         return Pattern.compile(String.join("|", patterns));
     }
-
-    @Restricted(NoExternalUse.class) Comparator<String> BY_REVERSE_LENGTH =
-            Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo);
-
 }

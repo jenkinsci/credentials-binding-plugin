@@ -74,7 +74,7 @@ foo'bar
 </code></pre>
 <p>
     Mangled secrets can only be detected on a best effort basis using the <code>PatternMaskerProvider</code>
-    extension point. Default providers include one for handling common ways that data may be encoded by Bash and Batch.
+    extension point. By default, Jenkins will attempt to mask mangled secrets as they would appear in output of Bash and Windows batch.
 </p>
 <p>
     For bindings which store a secret file, beware that

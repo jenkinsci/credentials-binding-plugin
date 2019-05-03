@@ -22,14 +22,13 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.credentialsbinding.impl;
+package org.jenkinsci.plugins.credentialsbinding.masking;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import hudson.Functions;
 import hudson.util.Secret;
-import org.jenkinsci.plugins.credentialsbinding.masking.BatchPatternMaskerProvider;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -39,7 +38,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.IOException;
@@ -47,8 +45,7 @@ import java.util.UUID;
 
 import static org.junit.Assume.assumeTrue;
 
-@For(BatchPatternMaskerProvider.class)
-public class CredentialsMaskingBatchTest {
+public class BatchPatternMaskerProviderTest {
 
     private static final String SIMPLE = "abcABC123";
     private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";

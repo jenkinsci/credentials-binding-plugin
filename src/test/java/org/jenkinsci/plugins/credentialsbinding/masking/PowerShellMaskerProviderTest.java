@@ -47,7 +47,7 @@ import static org.jenkinsci.plugins.credentialsbinding.test.ExecutableExists.exe
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 
-public class CredentialsMaskingPowerShellTest {
+public class PowerShellMaskerProviderTest {
 
     private static final String SIMPLE = "abcABC123";
     private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";

@@ -57,6 +57,9 @@ public class BatchPatternMaskerProviderTest {
     // <>"'^$|
     private static final String NON_DANGEROUS_IN_DOUBLE = "abc<def>$ghi|jkl";
 
+    // quoted form: "^^|\a\\"
+    private static final String NEEDS_QUOTING = "^|\\a\\";
+
     private static final String ALL_ASCII = "!\"#$%&'()*+,-./ 0123456789:;<=>? @ABCDEFGHIJKLMNO PQRSTUVWXYZ[\\]^_ `abcdefghijklmno pqrstuvwxyz{|}~";
 
     @Rule
@@ -211,6 +214,12 @@ public class BatchPatternMaskerProviderTest {
         assertDirectNoPlainTextButStars(runDirectDoubleQuote());
     }
 
+    @Test
+    public void needsQuoting_doubleQuote() throws Exception {
+        registerCredentials(NEEDS_QUOTING);
+        assertDirectNoPlainTextButStars(runDirectDoubleQuote());
+    }
+
     private void assertDirectNoPlainTextButStars(WorkflowRun run) throws Exception {
         j.assertLogNotContains(credentialPlainText, run);
         j.assertLogContains("before1 **** after1", run);
@@ -238,7 +247,7 @@ public class BatchPatternMaskerProviderTest {
                 "  }\n" +
                 "}"
         );
-        return project.scheduleBuild2(0).get();
+        return runProject();
     }
 
     private WorkflowRun runDirectSingleQuote() throws Exception {
@@ -255,7 +264,7 @@ public class BatchPatternMaskerProviderTest {
                 "  }\n" +
                 "}"
         );
-        return project.scheduleBuild2(0).get();
+        return runProject();
     }
 
     private WorkflowRun runDirectDoubleQuote() throws Exception {
@@ -270,7 +279,7 @@ public class BatchPatternMaskerProviderTest {
                 "  }\n" +
                 "}"
         );
-        return project.scheduleBuild2(0).get();
+        return runProject();
     }
 
     private WorkflowRun runDelayedAllQuotes() throws Exception {
@@ -278,14 +287,14 @@ public class BatchPatternMaskerProviderTest {
                 "  withCredentials([string(credentialsId: '" + credentialId + "', variable: 'CREDENTIALS')]) {\n" +
                 "    bat '''\n" +
                 "      SETLOCAL EnableDelayedExpansion\n" +
-                "      echo before1 !CREDENTIALS! after1\n" + // DO NOT DO THIS IN PRODUCTION; IT IS QUOTED WRONG
-                "      echo 'before2 !CREDENTIALS! after2'\n" + // DO NOT DO THIS IN PRODUCTION; IT IS QUOTED WRONG
-                "      echo \"before3 !CREDENTIALS! after3\"\n" + // THIS ONE IS OK THOUGH
+                "      echo before1 !CREDENTIALS! after1\n" +
+                "      echo 'before2 !CREDENTIALS! after2'\n" +
+                "      echo \"before3 !CREDENTIALS! after3\"\n" +
                 "    '''\n" +
                 "  }\n" +
                 "}"
         );
-        return project.scheduleBuild2(0).get();
+        return runProject();
     }
 
     private void setupProject(String pipeline) throws Exception {

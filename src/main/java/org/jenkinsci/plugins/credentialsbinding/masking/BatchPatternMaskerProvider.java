@@ -29,57 +29,18 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.Nonnull;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.regex.Pattern;
 
 @Extension
 @Restricted(NoExternalUse.class)
-public class BatchPatternMaskerProvider extends AbstractShellPatternMaskerProvider {
-
-    // adapted from:
-    // https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
-    // also from WindowsUtil in Jenkins
-
-    private static final Pattern CMD_METACHARS = Pattern.compile("[()%!^\"<>&|]");
+public class BatchPatternMaskerProvider implements PatternMaskerProvider {
     private static final Pattern QUOTED_CHARS = Pattern.compile("(\\^)(\\^?)");
 
     @Override
-    @Nonnull String getQuotedForm(@Nonnull String input) {
-        int end = input.length();
-        StringBuilder sb = new StringBuilder(end);
-        for (int i = 0; i < end; i++) {
-            int nrBackslashes = 0;
-            while (i < end && input.charAt(i) == '\\') {
-                i++;
-                nrBackslashes++;
-            }
-
-            if (i == end) {
-                // backslashes at the end of the argument must be escaped so the terminate quote isn't
-                nrBackslashes = nrBackslashes * 2;
-            } else if (input.charAt(i) == '"') {
-                // backslashes preceding a quote all need to be escaped along with the quote
-                nrBackslashes = nrBackslashes * 2 + 1;
-            }
-            // else backslashes have no special meaning and don't need to be escaped here
-
-            for (int j = 0; j < nrBackslashes; j++) {
-                sb.append('\\');
-            }
-
-            if (i < end) {
-                sb.append(input.charAt(i));
-            }
-        }
-        return CMD_METACHARS.matcher(sb).replaceAll("^$0");
-    }
-
-    @Override
-    @Nonnull String surroundWithQuotes(@Nonnull String input) {
-        return '"' + input + '"';
-    }
-
-    @Override
-    @Nonnull String getUnquotedForm(@Nonnull String input) {
-        return QUOTED_CHARS.matcher(input).replaceAll("$2");
+    public @Nonnull Collection<String> getAlternativeForms(@Nonnull String input) {
+        return input.contains("^") ? Collections.singleton(QUOTED_CHARS.matcher(input).replaceAll("$2"))
+                : Collections.emptySet();
     }
 }

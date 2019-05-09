@@ -29,16 +29,17 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.Nonnull;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.regex.Pattern;
 
 @Extension
 @Restricted(NoExternalUse.class)
-public class BashPatternMaskerProvider extends AbstractShellPatternMaskerProvider {
+public class BashPatternMaskerProvider implements PatternMaskerProvider {
 
     private static final Pattern QUOTED_CHARS = Pattern.compile("(\\\\)(\\\\?)");
 
-    @Override
-    @Nonnull String getQuotedForm(@Nonnull String input) {
+    private @Nonnull String getQuotedForm(@Nonnull String input) {
         StringBuilder sb = new StringBuilder(input.length());
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
@@ -51,14 +52,21 @@ public class BashPatternMaskerProvider extends AbstractShellPatternMaskerProvide
         return sb.toString();
     }
 
-    @Override
-    @Nonnull String surroundWithQuotes(@Nonnull String input) {
+    private @Nonnull String surroundWithQuotes(@Nonnull String input) {
         return "'" + input + "'";
     }
 
-    @Override
-    @Nonnull String getUnquotedForm(@Nonnull String input) {
+    private @Nonnull String getUnquotedForm(@Nonnull String input) {
         return QUOTED_CHARS.matcher(input).replaceAll("$2");
     }
 
+    @Override
+    public @Nonnull Collection<String> getAlternativeForms(@Nonnull String input) {
+        Collection<String> patterns = new HashSet<>();
+        String quotedForm = getQuotedForm(input);
+        patterns.add(Pattern.quote(quotedForm));
+        patterns.add(Pattern.quote(surroundWithQuotes(quotedForm)));
+        patterns.add(Pattern.quote(getUnquotedForm(input)));
+        return patterns;
+    }
 }

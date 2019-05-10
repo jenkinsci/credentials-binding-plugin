@@ -28,6 +28,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import hudson.Functions;
+import hudson.model.Result;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -35,7 +36,6 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -43,6 +43,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.io.IOException;
 import java.util.UUID;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 public class BatchPatternMaskerProviderTest {
@@ -134,13 +136,38 @@ public class BatchPatternMaskerProviderTest {
         assertDelayedNoPlainTextButStars(runDelayedAllQuotes());
     }
 
+    // we do NOT support dangerous characters in direct expansion mode
     @Test
-    @Ignore("Cannot support the dangerous characters in direct expressions")
-    public void allAscii_direct() throws Exception {
+    public void allAscii_direct_noQuote() throws Exception {
         registerCredentials(ALL_ASCII);
-        assertDirectNoPlainTextButStars(runDirectNoQuote());
-        assertDirectNoPlainTextButStars(runDirectSingleQuote());
-        assertDirectNoPlainTextButStars(runDirectDoubleQuote());
+
+        WorkflowRun run = runDirectNoQuote();
+        j.assertLogNotContains(credentialPlainText, run);
+
+        // EFGHIJK is a part of the credentials that should be masked
+        assertStringPresentInOrder(run, "before1", "EFGHIJK", "after1");
+        j.assertLogNotContains("before1 **** after1", run);
+    }
+
+    // we do NOT support dangerous characters in direct expansion mode
+    @Test
+    public void allAscii_direct_singleQuote() throws Exception {
+        registerCredentials(ALL_ASCII);
+
+        WorkflowRun run = runDirectSingleQuote();
+        j.assertLogNotContains(credentialPlainText, run);
+
+        // EFGHIJK is a part of the credentials that should be masked
+        assertStringPresentInOrder(run, "before1", "EFGHIJK", "after1");
+        j.assertLogNotContains("before1 **** after1", run);
+    }
+
+    // we do NOT support dangerous characters in direct expansion mode
+    @Test
+    public void allAscii_direct_doubleQuote() throws Exception {
+        registerCredentials(ALL_ASCII);
+    
+        runDirectDoubleQuote_andFail();
     }
 
     @Test
@@ -148,27 +175,29 @@ public class BatchPatternMaskerProviderTest {
         registerCredentials(ALL_ASCII);
         assertDelayedNoPlainTextButStars(runDelayedAllQuotes());
     }
-    
+
+    // we do NOT support dangerous characters in direct expansion mode
     @Test
-    @Ignore("Cannot support dangerous character & in non-delayed expansion without double quotes")
     public void samplePassword_noQuote() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
-        assertDirectNoPlainTextButStars(runDirectNoQuote());
+
+        runDirectNoQuote_andFail();
     }
-    
+
+    // we do NOT support dangerous characters in direct expansion mode
     @Test
-    @Ignore("Cannot support dangerous character & in non-delayed expansion without double quotes")
     public void samplePassword_singleQuote() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
-        assertDirectNoPlainTextButStars(runDirectSingleQuote());
+
+        runDirectSingleQuote_andFail();
     }
-    
+
     @Test
     public void samplePassword_doubleQuote() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
         assertDirectNoPlainTextButStars(runDirectDoubleQuote());
     }
-    
+
     @Test
     public void samplePassword_delayed() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
@@ -234,6 +263,16 @@ public class BatchPatternMaskerProviderTest {
     }
 
     private WorkflowRun runDirectNoQuote() throws Exception {
+        setupNoQuoteProject();
+        return runProject();
+    }
+
+    private void runDirectNoQuote_andFail() throws Exception {
+        setupNoQuoteProject();
+        j.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+    }
+
+    private void setupNoQuoteProject() throws Exception {
         // DO NOT DO THIS IN PRODUCTION
         // these commands would be completely broken if echo didn't work the way it does when CREDENTIALS contains special characters
         setupProject("node {\n" +
@@ -247,10 +286,19 @@ public class BatchPatternMaskerProviderTest {
                 "  }\n" +
                 "}"
         );
-        return runProject();
     }
 
     private WorkflowRun runDirectSingleQuote() throws Exception {
+        setupSingleQuoteProject();
+        return runProject();
+    }
+
+    private void runDirectSingleQuote_andFail() throws Exception {
+        setupSingleQuoteProject();
+        j.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+    }
+
+    private void setupSingleQuoteProject() throws Exception {
         // DO NOT DO THIS IN PRODUCTION
         // single quotes do not mean anything in batch scripts; use double quotes for escaping/quoting strings
         setupProject("node {\n" +
@@ -264,10 +312,19 @@ public class BatchPatternMaskerProviderTest {
                 "  }\n" +
                 "}"
         );
-        return runProject();
     }
 
     private WorkflowRun runDirectDoubleQuote() throws Exception {
+        setupDoubleQuoteProject();
+        return runProject();
+    }
+
+    private void runDirectDoubleQuote_andFail() throws Exception {
+        setupDoubleQuoteProject();
+        j.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+    }
+
+    private void setupDoubleQuoteProject() throws Exception {
         setupProject("node {\n" +
                 "  withCredentials([string(credentialsId: '" + credentialId + "', variable: 'CREDENTIALS')]) {\n" +
                 "    bat \"\"\"\n" +
@@ -279,7 +336,6 @@ public class BatchPatternMaskerProviderTest {
                 "  }\n" +
                 "}"
         );
-        return runProject();
     }
 
     private WorkflowRun runDelayedAllQuotes() throws Exception {
@@ -295,6 +351,21 @@ public class BatchPatternMaskerProviderTest {
                 "}"
         );
         return runProject();
+    }
+
+    private void assertStringPresentInOrder(WorkflowRun run, String... values) throws Exception {
+        String fullLog = run.getLog();
+        int currentIndex = 0;
+        for (int i = 0; i < values.length; i++) {
+            String currentValue = values[i];
+            int nextIndex = fullLog.indexOf(currentValue, currentIndex);
+            if(nextIndex == -1){
+                // use assertThat to have better output
+                assertThat(fullLog.substring(currentIndex), containsString(currentValue));
+            }else{
+                currentIndex = nextIndex + currentValue.length();
+            }
+        }
     }
 
     private void setupProject(String pipeline) throws Exception {

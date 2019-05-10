@@ -87,6 +87,9 @@ public class BashPatternMaskerProviderTest {
     @BeforeClass
     public static void assumeBash() {
         assumeThat("bash", is(executable()));
+        // due to https://github.com/jenkinsci/durable-task-plugin/blob/e75123eda986f20a390d92cc892c3d206e60aefb/src/main/java/org/jenkinsci/plugins/durabletask/BourneShellScript.java#L149
+        // on Windows
+        assumeThat("nohup", is(executable()));
     }
 
     @Before

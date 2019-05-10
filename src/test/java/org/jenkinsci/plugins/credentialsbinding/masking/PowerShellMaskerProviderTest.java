@@ -121,9 +121,9 @@ public class PowerShellMaskerProviderTest {
                 // interpreted by PowerShell
                 "    powershell '''\n" +
                 // echo is an alias for Write-Output
-                "      echo before1 $env:CREDENTIALS after1\n" + // DO NOT DO THIS IN PRODUCTION; IT IS QUOTED WRONG
+                "      echo before1 $env:CREDENTIALS after1\n" +
                 // echo '...' does not let PowerShell to interpret the information
-                "      echo \"before2 $env:CREDENTIALS after2\"\n" + // THIS IS OK THOUGH
+                "      echo \"before2 $env:CREDENTIALS after2\"\n" +
                 "    '''\n" +
                 "  }\n" +
                 "}"

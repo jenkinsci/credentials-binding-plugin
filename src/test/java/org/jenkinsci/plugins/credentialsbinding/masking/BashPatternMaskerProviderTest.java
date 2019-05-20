@@ -71,7 +71,7 @@ public class BashPatternMaskerProviderTest {
             int length = random.nextInt(24) + 8;
             StringBuilder sb = new StringBuilder(length);
             for (int j = 0; j < length; j++) {
-                char next = (char) (random.nextInt('~' - ' ' + 1) + ' '); // space = 0x20, tilde = 0x7E
+                char next = (char) (random.nextInt('~' - ' ' + 1) + ' '); // space/0x20 is the first printable ASCII char, tilde/0x7E the last
                 sb.append(next);
             }
             passwords.add(sb.toString());

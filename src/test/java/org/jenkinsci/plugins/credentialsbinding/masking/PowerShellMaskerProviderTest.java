@@ -24,12 +24,7 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.domains.Domain;
-import hudson.util.Secret;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
-import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -39,7 +34,6 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -70,9 +64,7 @@ public class PowerShellMaskerProviderTest {
 
     private void registerCredentials(String password) throws IOException {
         this.credentialPlainText = password;
-        this.credentialId = UUID.randomUUID().toString();
-        StringCredentials credentials = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialId, null, Secret.fromString(password));
-        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), credentials);
+        this.credentialId = CredentialsTestUtil.registerStringCredentials(j.jenkins, password);
     }
 
     @Test
@@ -128,13 +120,11 @@ public class PowerShellMaskerProviderTest {
                 "  }\n" +
                 "}"
         );
-        return project.scheduleBuild2(0).get();
+        return j.assertBuildStatusSuccess(project.scheduleBuild2(0));
     }
 
     private void setupProject(String pipeline) throws Exception {
-        String projectName = UUID.randomUUID().toString();
-        project = j.jenkins.createProject(WorkflowJob.class, projectName);
-        credentialId = UUID.randomUUID().toString();
+        project = j.createProject(WorkflowJob.class);
         project.setDefinition(new CpsFlowDefinition(pipeline, true));
     }
 }

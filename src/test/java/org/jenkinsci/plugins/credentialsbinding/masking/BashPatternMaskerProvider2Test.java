@@ -24,14 +24,9 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.domains.Domain;
 import hudson.tasks.Shell;
-import hudson.util.Secret;
+import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.credentialsbinding.test.Executables;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
-import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -39,9 +34,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.io.IOException;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
@@ -65,7 +57,7 @@ public class BashPatternMaskerProvider2Test {
     public void testSecretsWithBackslashesStillMaskedWhenUsedWithoutProperQuoting() throws Exception {
         WorkflowJob project = j.createProject(WorkflowJob.class);
         String password = "foo\\bar\\";
-        String credentialsId = registerStringCredentials(password);
+        String credentialsId = CredentialsTestUtil.registerStringCredentials(j.jenkins, password);
         project.setDefinition(new CpsFlowDefinition(
                 "node {\n" +
                         "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'CREDENTIALS')]) {\n" +
@@ -80,12 +72,5 @@ public class BashPatternMaskerProvider2Test {
         j.assertLogNotContains(password, run);
         j.assertLogNotContains("foo", run);
         j.assertLogNotContains("bar", run);
-    }
-
-    private String registerStringCredentials(String password) throws IOException {
-        String credentialId = UUID.randomUUID().toString();
-        StringCredentials creds = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialId, null, Secret.fromString(password));
-        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), creds);
-        return credentialId;
     }
 }

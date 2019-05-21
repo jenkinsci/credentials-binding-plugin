@@ -24,12 +24,7 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.domains.Domain;
-import hudson.util.Secret;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
-import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -107,17 +102,12 @@ public class BourneShellPatternMaskerProviderTest {
     public void credentialsAreMaskedInLogs(String credentials) throws Exception {
         assumeThat(credentials, not(startsWith("****")));
 
-        registerCredentials(credentials);
+        CredentialsTestUtil.setStringCredentials(j.jenkins, credentialsId, credentials);
         WorkflowRun run = runProject();
 
         j.assertLogContains(": ****", run);
         j.assertLogContains("< **** >", run);
         j.assertLogNotContains(credentials, run);
-    }
-
-    private void registerCredentials(String password) throws IOException {
-        StringCredentials credentials = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, null, Secret.fromString(password));
-        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), credentials);
     }
 
     private WorkflowRun runProject() throws Exception {

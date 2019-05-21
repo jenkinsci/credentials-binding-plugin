@@ -57,6 +57,7 @@ public class BashPatternMaskerProviderTest {
 
     public static final @DataPoint String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
     public static final @DataPoint String ANOTHER_SAMPLE_PASSWORD = "a'b\"c\\d(e)#";
+    public static final @DataPoint String ONE_MORE = "'\"'(foo)'\"'";
 
     @DataPoints
     public static List<String> generatePasswords() {

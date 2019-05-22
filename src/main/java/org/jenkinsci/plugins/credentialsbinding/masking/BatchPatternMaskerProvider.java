@@ -40,7 +40,7 @@ public class BatchPatternMaskerProvider implements PatternMaskerProvider {
 
     @Override
     public @Nonnull Collection<String> getAlternativeForms(@Nonnull String input) {
-        return input.contains("^") ? Collections.singleton(QUOTED_CHARS.matcher(input).replaceAll("$2"))
+        return input.contains("^") ? Collections.singleton(Pattern.quote(QUOTED_CHARS.matcher(input).replaceAll("$2")))
                 : Collections.emptySet();
     }
 }

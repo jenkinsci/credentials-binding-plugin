@@ -65,7 +65,6 @@ public class BashSecretPatternFactory implements SecretPatternFactory {
         Collection<Pattern> patterns = new HashSet<>();
         String quotedForm = getQuotedForm(input);
         patterns.add(SecretPatternFactory.quotedCompile(quotedForm));
-        patterns.add(SecretPatternFactory.quotedCompile(quotedForm));
         patterns.add(SecretPatternFactory.quotedCompile(surroundWithQuotes(quotedForm)));
         patterns.add(SecretPatternFactory.quotedCompile(getUnquotedForm(input)));
         return patterns;

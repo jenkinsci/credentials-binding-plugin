@@ -24,52 +24,22 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
-import hudson.ExtensionList;
-import hudson.ExtensionPoint;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-/**
- * Quotes strings according to quotation rules of various programs.
- * Sometimes confused with escaping, quoting is done
- * to pass literal strings in a shell or other interpreter.
- *
- */
-public interface PatternMaskerProvider extends ExtensionPoint {
+@Restricted(NoExternalUse.class)
+public class SecretPatterns {
 
-    /**
-     * Returns a collection of alternative forms as regular expressions the given input may show up as in logs. These
-     * patterns should be appropriately {@linkplain Pattern#quote(String) quoted} for matching literal patterns as
-     * the resulting strings are formed into a regular expression.
-     */
-    @Nonnull Collection<String> getAlternativeForms(@Nonnull String input);
-
-    /**
-     * Returns all PatternMaskerProvider extensions known at runtime.
-     */
-    static @Nonnull ExtensionList<PatternMaskerProvider> all() {
-        return ExtensionList.lookup(PatternMaskerProvider.class);
-    }
-
-    /**
-     * Returns a collection of all alternative form regular expressions for the given input using all PatternMaskerProvider
-     * extensions.
-     */
-    @Restricted(NoExternalUse.class)
-    static @Nonnull Collection<String> getAllAlternateForms(@Nonnull String input) {
-        Collection<String> alternateForms = new HashSet<>();
-        for (PatternMaskerProvider provider : all()) {
-            alternateForms.addAll(provider.getAlternativeForms(input));
-        }
-        return alternateForms;
-    }
+    private static final Comparator<Pattern> EXTRACT_PATTERN = Comparator.comparing(Pattern::pattern);
+    private static final Comparator<Pattern> BY_LENGTH_DESCENDING = Comparator.comparing(Pattern::pattern,
+            Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo));
 
     /**
      * Constructs a regular expression to match against all known forms that the given collection of input strings may
@@ -80,16 +50,21 @@ public interface PatternMaskerProvider extends ExtensionPoint {
      * For example, {@code bash -x} will only quote arguments echoed when necessary. To avoid leaking the presence or
      * absence of quoting, the longer form is masked.
      */
-    @Restricted(NoExternalUse.class)
-    static @Nonnull Pattern getMaskingPattern(@Nonnull Collection<String> inputs) {
-        Collection<String> patterns = new TreeSet<>(Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo));
+    public static @Nonnull Pattern getAggregateSecretPattern(@Nonnull Collection<String> inputs) {
+        Collection<Pattern> patterns = new TreeSet<>(EXTRACT_PATTERN);
         for (String input : inputs) {
             if (input.isEmpty()) {
                 continue;
             }
-            patterns.add(Pattern.quote(input));
-            patterns.addAll(getAllAlternateForms(input));
+            patterns.add(SecretPatternFactory.quotedCompile(input));
+            for (SecretPatternFactory provider : SecretPatternFactory.all()) {
+                patterns.addAll(provider.getSecretPatterns(input));
+            }
         }
-        return Pattern.compile(String.join("|", patterns));
+        String pattern = patterns.stream()
+                .sorted(BY_LENGTH_DESCENDING)
+                .map(Pattern::pattern)
+                .collect(Collectors.joining("|"));
+        return Pattern.compile(pattern);
     }
 }

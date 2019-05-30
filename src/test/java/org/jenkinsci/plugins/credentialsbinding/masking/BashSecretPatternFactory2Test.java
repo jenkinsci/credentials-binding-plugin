@@ -40,8 +40,8 @@ import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
 import static org.junit.Assume.assumeThat;
 
-@For(BashPatternMaskerProvider.class)
-public class BashPatternMaskerProvider2Test {
+@For(BashSecretPatternFactory.class)
+public class BashSecretPatternFactory2Test {
 
     public @Rule JenkinsRule j = new JenkinsRule();
 

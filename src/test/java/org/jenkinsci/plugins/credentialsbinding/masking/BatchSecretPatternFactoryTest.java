@@ -41,7 +41,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
-public class BatchPatternMaskerProviderTest {
+public class BatchSecretPatternFactoryTest {
 
     private static final String SIMPLE = "abcABC123";
     private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";

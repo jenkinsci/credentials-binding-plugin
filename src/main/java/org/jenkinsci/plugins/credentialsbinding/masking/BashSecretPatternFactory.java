@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 
 @Extension
 @Restricted(NoExternalUse.class)
-public class BashPatternMaskerProvider implements PatternMaskerProvider {
+public class BashSecretPatternFactory implements SecretPatternFactory {
 
     private static final Pattern QUOTED_CHARS = Pattern.compile("(\\\\)(\\\\?)");
 
@@ -61,12 +61,13 @@ public class BashPatternMaskerProvider implements PatternMaskerProvider {
     }
 
     @Override
-    public @Nonnull Collection<String> getAlternativeForms(@Nonnull String input) {
-        Collection<String> patterns = new HashSet<>();
+    public @Nonnull Collection<Pattern> getSecretPatterns(@Nonnull String input) {
+        Collection<Pattern> patterns = new HashSet<>();
         String quotedForm = getQuotedForm(input);
-        patterns.add(Pattern.quote(quotedForm));
-        patterns.add(Pattern.quote(surroundWithQuotes(quotedForm)));
-        patterns.add(Pattern.quote(getUnquotedForm(input)));
+        patterns.add(SecretPatternFactory.quotedCompile(quotedForm));
+        patterns.add(SecretPatternFactory.quotedCompile(quotedForm));
+        patterns.add(SecretPatternFactory.quotedCompile(surroundWithQuotes(quotedForm)));
+        patterns.add(SecretPatternFactory.quotedCompile(getUnquotedForm(input)));
         return patterns;
     }
 }

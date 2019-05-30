@@ -51,7 +51,7 @@ import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executab
 import static org.junit.Assume.assumeThat;
 
 @RunWith(Theories.class)
-public class BourneShellPatternMaskerProviderTest {
+public class BourneShellSecretPatternFactoryTest {
 
     public static final @DataPoint String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
     public static final @DataPoint String ANOTHER_SAMPLE_PASSWORD = "a'b\"c\\d(e)#";

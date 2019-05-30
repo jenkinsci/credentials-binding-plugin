@@ -33,14 +33,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.regex.Pattern;
 
+/**
+ * Trivial secret pattern factory that matches the literal value of the secret.
+ */
 @Extension
 @Restricted(NoExternalUse.class)
-public class BatchPatternMaskerProvider implements PatternMaskerProvider {
-    private static final Pattern QUOTED_CHARS = Pattern.compile("(\\^)(\\^?)");
-
+public class LiteralSecretPatternFactory implements SecretPatternFactory {
+    @Nonnull
     @Override
-    public @Nonnull Collection<String> getAlternativeForms(@Nonnull String input) {
-        return input.contains("^") ? Collections.singleton(Pattern.quote(QUOTED_CHARS.matcher(input).replaceAll("$2")))
-                : Collections.emptySet();
+    public Collection<Pattern> getSecretPatterns(@Nonnull String input) {
+        return Collections.singleton(SecretPatternFactory.quotedCompile(input));
     }
 }

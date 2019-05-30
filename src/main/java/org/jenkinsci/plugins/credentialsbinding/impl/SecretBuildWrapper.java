@@ -35,7 +35,7 @@ import hudson.model.Run;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
-import org.jenkinsci.plugins.credentialsbinding.masking.PatternMaskerProvider;
+import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.CheckForNull;
@@ -61,7 +61,7 @@ public class SecretBuildWrapper extends BuildWrapper {
      */
     public static @CheckForNull Pattern getPatternForBuild(@Nonnull AbstractBuild<?, ?> build) {
         if (secretsForBuild.containsKey(build)) {
-            return PatternMaskerProvider.getMaskingPattern(secretsForBuild.get(build));
+            return SecretPatterns.getAggregateSecretPattern(secretsForBuild.get(build));
         } else {
             return null;
         }

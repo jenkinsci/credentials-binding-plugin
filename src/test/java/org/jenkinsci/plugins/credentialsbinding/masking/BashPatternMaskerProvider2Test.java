@@ -33,6 +33,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.Matchers.is;

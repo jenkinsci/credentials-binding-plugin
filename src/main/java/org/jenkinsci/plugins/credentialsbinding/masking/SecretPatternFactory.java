@@ -26,6 +26,8 @@ package org.jenkinsci.plugins.credentialsbinding.masking;
 
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -36,6 +38,7 @@ import java.util.regex.Pattern;
  * These are typically implemented to handle various shell quoting algorithms (sometimes confused with escaping) to
  * pass literal string values to an interpreter.
  */
+@Restricted(NoExternalUse.class)
 public interface SecretPatternFactory extends ExtensionPoint {
 
     /**

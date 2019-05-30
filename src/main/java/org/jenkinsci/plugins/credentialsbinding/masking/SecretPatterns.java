@@ -30,16 +30,14 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Restricted(NoExternalUse.class)
 public class SecretPatterns {
 
-    private static final Comparator<Pattern> EXTRACT_PATTERN = Comparator.comparing(Pattern::pattern);
-    private static final Comparator<Pattern> BY_LENGTH_DESCENDING = Comparator.comparing(Pattern::pattern,
-            Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo));
+    private static final Comparator<String> BY_LENGTH_DESCENDING =
+            Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo);
 
     /**
      * Constructs a regular expression to match against all known forms that the given collection of input strings may
@@ -51,18 +49,14 @@ public class SecretPatterns {
      * absence of quoting, the longer form is masked.
      */
     public static @Nonnull Pattern getAggregateSecretPattern(@Nonnull Collection<String> inputs) {
-        Collection<Pattern> patterns = new TreeSet<>(EXTRACT_PATTERN);
-        for (String input : inputs) {
-            if (input.isEmpty()) {
-                continue;
-            }
-            for (SecretPatternFactory provider : SecretPatternFactory.all()) {
-                patterns.addAll(provider.getSecretPatterns(input));
-            }
-        }
-        String pattern = patterns.stream()
+        String pattern = inputs.stream()
+                .filter(input -> !input.isEmpty())
+                .flatMap(input ->
+                        SecretPatternFactory.all().stream().flatMap(factory ->
+                                factory.getEncodedForms(input).stream()))
                 .sorted(BY_LENGTH_DESCENDING)
-                .map(Pattern::pattern)
+                .distinct()
+                .map(Pattern::quote)
                 .collect(Collectors.joining("|"));
         return Pattern.compile(pattern);
     }

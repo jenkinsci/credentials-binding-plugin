@@ -39,9 +39,9 @@ public class BatchSecretPatternFactory implements SecretPatternFactory {
     private static final Pattern QUOTED_CHARS = Pattern.compile("(\\^)(\\^?)");
 
     @Override
-    public @Nonnull Collection<Pattern> getSecretPatterns(@Nonnull String input) {
+    public @Nonnull Collection<String> getEncodedForms(@Nonnull String input) {
         return input.contains("^")
-                ? Collections.singleton(SecretPatternFactory.quotedCompile(QUOTED_CHARS.matcher(input).replaceAll("$2")))
+                ? Collections.singleton(QUOTED_CHARS.matcher(input).replaceAll("$2"))
                 : Collections.emptySet();
     }
 }

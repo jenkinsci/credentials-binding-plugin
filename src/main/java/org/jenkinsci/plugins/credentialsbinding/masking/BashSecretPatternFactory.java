@@ -61,12 +61,12 @@ public class BashSecretPatternFactory implements SecretPatternFactory {
     }
 
     @Override
-    public @Nonnull Collection<Pattern> getSecretPatterns(@Nonnull String input) {
-        Collection<Pattern> patterns = new HashSet<>();
+    public @Nonnull Collection<String> getEncodedForms(@Nonnull String input) {
+        Collection<String> patterns = new HashSet<>();
         String quotedForm = getQuotedForm(input);
-        patterns.add(SecretPatternFactory.quotedCompile(quotedForm));
-        patterns.add(SecretPatternFactory.quotedCompile(surroundWithQuotes(quotedForm)));
-        patterns.add(SecretPatternFactory.quotedCompile(getUnquotedForm(input)));
+        patterns.add(quotedForm);
+        patterns.add(surroundWithQuotes(quotedForm));
+        patterns.add(getUnquotedForm(input));
         return patterns;
     }
 }

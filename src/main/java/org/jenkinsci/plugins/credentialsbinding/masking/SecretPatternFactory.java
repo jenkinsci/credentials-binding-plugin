@@ -31,10 +31,9 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
-import java.util.regex.Pattern;
 
 /**
- * Creates regular expressions to match encoded forms of secrets in logs.
+ * Provides encoded forms to an input for use in masking those forms in logs.
  * These are typically implemented to handle various shell quoting algorithms (sometimes confused with escaping) to
  * pass literal string values to an interpreter.
  */
@@ -42,23 +41,15 @@ import java.util.regex.Pattern;
 public interface SecretPatternFactory extends ExtensionPoint {
 
     /**
-     * Returns a collection of alternative forms the given input may show up as in logs.
-     * Note that these patterns must embed their flags in the pattern rather than as parameters to Pattern.
+     * Returns a collection of alternative forms the given input may be encoded as in logs.
      */
-    @Nonnull Collection<Pattern> getSecretPatterns(@Nonnull String input);
+    @Nonnull Collection<String> getEncodedForms(@Nonnull String input);
 
     /**
      * Returns all SecretPatternFactory extensions known at runtime.
      */
     static @Nonnull ExtensionList<SecretPatternFactory> all() {
         return ExtensionList.lookup(SecretPatternFactory.class);
-    }
-
-    /**
-     * Composes {@link Pattern#compile(String)} and {@link Pattern#quote(String)} for convenience.
-     */
-    static @Nonnull Pattern quotedCompile(@Nonnull String input) {
-        return Pattern.compile(Pattern.quote(input));
     }
 
 }

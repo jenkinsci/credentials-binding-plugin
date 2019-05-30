@@ -31,7 +31,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.regex.Pattern;
 
 /**
  * Trivial secret pattern factory that matches the literal value of the secret.
@@ -41,7 +40,7 @@ import java.util.regex.Pattern;
 public class LiteralSecretPatternFactory implements SecretPatternFactory {
     @Nonnull
     @Override
-    public Collection<Pattern> getSecretPatterns(@Nonnull String input) {
-        return Collections.singleton(SecretPatternFactory.quotedCompile(input));
+    public Collection<String> getEncodedForms(@Nonnull String input) {
+        return Collections.singleton(input);
     }
 }

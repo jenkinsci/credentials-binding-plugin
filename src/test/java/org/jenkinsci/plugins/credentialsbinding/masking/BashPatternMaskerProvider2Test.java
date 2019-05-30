@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
 import static org.junit.Assume.assumeThat;
 
+@For(BashPatternMaskerProvider.class)
 public class BashPatternMaskerProvider2Test {
 
     public @Rule JenkinsRule j = new JenkinsRule();
@@ -60,9 +61,9 @@ public class BashPatternMaskerProvider2Test {
         String credentialsId = CredentialsTestUtil.registerStringCredentials(j.jenkins, password);
         project.setDefinition(new CpsFlowDefinition(
                 "node {\n" +
-                        "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'CREDENTIALS')]) {\n" +
+                "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'CREDENTIALS')]) {\n" +
                         "    sh ': $CREDENTIALS'\n" + // forgot quotes
-                        "    sh \": $CREDENTIALS\"\n" + // using groovy variable and forgot quotes
+                        "    sh(/: $CREDENTIALS/)\n" + // using Groovy variable and forgot quotes
                         "  }\n" +
                         "}", true));
 

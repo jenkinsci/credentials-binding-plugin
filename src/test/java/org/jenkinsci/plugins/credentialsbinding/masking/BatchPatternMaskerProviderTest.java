@@ -270,7 +270,7 @@ public class BatchPatternMaskerProviderTest {
         setupProject("node {\n" +
                 "  withCredentials([string(credentialsId: '" + credentialId + "', variable: 'CREDENTIALS')]) {\n" +
                 "    bat \"\"\"\n" +
-                "      echo before1 $CREDENTIALS after1\n" + // DO NOT DO THIS IN PRODUCTION; IT IS USING THE WRONG VARIABLE SYNTAX
+                "      echo before1 $CREDENTIALS after1\n" + // DO NOT DO THIS IN PRODUCTION; IT IS USING GROOVY INTERPOLATION
                 "    \"\"\"\n" +
                 "    bat '''\n" +
                 "      echo before2 %CREDENTIALS% after2\n" + // DO NOT DO THIS IN PRODUCTION; IT IS QUOTED WRONG

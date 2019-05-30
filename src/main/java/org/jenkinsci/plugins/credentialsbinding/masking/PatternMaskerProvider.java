@@ -40,7 +40,6 @@ import java.util.regex.Pattern;
  * Quotes strings according to quotation rules of various programs. Sometimes confused with escaping, quoting is done
  * to pass literal strings in a shell or other interpreter.
  *
- * @since TODO
  */
 public interface PatternMaskerProvider extends ExtensionPoint {
 

@@ -138,7 +138,7 @@ public final class BindingStep extends Step {
             }
             if (!overrides.isEmpty()) {
                 boolean unix = launcher != null ? launcher.isUnix() : true;
-                listener.getLogger().println("Masking only exact matches of " + overrides.keySet().stream().map(
+                listener.getLogger().println("Masking supported pattern matches of " + overrides.keySet().stream().map(
                     v -> unix ? "$" + v : "%" + v + "%"
                 ).collect(Collectors.joining(" or ")));
             }

@@ -37,7 +37,8 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 /**
- * Quotes strings according to quotation rules of various programs. Sometimes confused with escaping, quoting is done
+ * Quotes strings according to quotation rules of various programs.
+ * Sometimes confused with escaping, quoting is done
  * to pass literal strings in a shell or other interpreter.
  *
  */

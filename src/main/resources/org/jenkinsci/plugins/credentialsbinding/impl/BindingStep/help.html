@@ -80,6 +80,10 @@ foo'bar
 <pre><code>+ echo 'foo'\''bar'
 ****</code></pre>
 <p>
+    This particular issue can be more safely prevented by turning off echo with <code>set +x</code> or avoiding the use
+    of shell metacharacters in secrets.
+</p>
+<p>
     For bindings which store a secret file, beware that
 </p>
 <pre><code>node {

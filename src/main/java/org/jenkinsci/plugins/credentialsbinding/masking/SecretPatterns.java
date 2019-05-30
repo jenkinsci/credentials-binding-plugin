@@ -56,7 +56,6 @@ public class SecretPatterns {
             if (input.isEmpty()) {
                 continue;
             }
-            patterns.add(SecretPatternFactory.quotedCompile(input));
             for (SecretPatternFactory provider : SecretPatternFactory.all()) {
                 patterns.addAll(provider.getSecretPatterns(input));
             }

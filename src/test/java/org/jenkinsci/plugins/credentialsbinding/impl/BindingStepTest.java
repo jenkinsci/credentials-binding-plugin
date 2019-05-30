@@ -24,38 +24,28 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SecretBytes;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-
-import hudson.model.Fingerprint;
-import hudson.model.User;
-import jenkins.security.QueueItemAuthenticatorConfiguration;
-
 import hudson.FilePath;
 import hudson.Functions;
+import hudson.model.Fingerprint;
 import hudson.model.Node;
 import hudson.model.Result;
+import hudson.model.User;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import hudson.slaves.WorkspaceList;
 import hudson.util.Secret;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
-import javax.inject.Inject;
-
+import jenkins.security.QueueItemAuthenticatorConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
 import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;
@@ -74,23 +64,37 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
 import org.junit.ClassRule;
-
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import javax.inject.Inject;
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
+
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class BindingStepTest {
 
@@ -351,17 +355,10 @@ public class BindingStepTest {
         story.addStep(new Statement() {
             @SuppressWarnings("deprecation") // using TestExtension would be better, as would calling ScriptApproval.preapprove
             @Override public void evaluate() throws Throwable {
-                // configure security
-                story.j.jenkins.setSecurityRealm(story.j.createDummySecurityRealm());
-                story.j.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
+                enableAuthorizeProject(story.j);
                 // create the user.
                 User.get("dummy", true);
                 
-                // enable the run as user strategy for the AuthorizeProject plugin
-                Map<String, Boolean> strategies = new HashMap<String, Boolean>();
-                strategies.put(story.j.jenkins.getDescriptor(SpecificUsersAuthorizationStrategy.class).getId(), true);
-                QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new ProjectQueueItemAuthenticator(strategies));
-
                 // blanket whitelist all methods (easier than whitelisting Jenkins.getAuthentication)
                 story.j.jenkins.getExtensionList(Whitelist.class).add(new BlanketWhitelist());
 
@@ -441,6 +438,80 @@ public class BindingStepTest {
                 story.j.assertLogContains("normal output", story.j.buildAndAssertSuccess(p));
             }
         });
+    }
+
+    @Test
+    public void userScopeCredentialsViaAuthorizeProject() {
+        story.addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                enableAuthorizeProject(story.j);
+                User user = User.getOrCreateByIdOrFullName("aleph");
+                String credentialsId = UUID.randomUUID().toString();
+                String secret = "long passwords are great";
+                registerUserCredentials(user, new StringCredentialsImpl(CredentialsScope.USER, credentialsId,
+                        "User-scoped credential data from Aleph Null", Secret.fromString(secret)));
+
+                WorkflowJob p = story.j.createProject(WorkflowJob.class);
+                // run pipeline as aleph user
+                p.addProperty(new AuthorizeProjectProperty(new SpecificUsersAuthorizationStrategy("aleph", true)));
+                p.setDefinition(new CpsFlowDefinition(
+                        "node {\n" +
+                                "  withCredentials([string(variable: 'SECRET', credentialsId: '" + credentialsId + "')]) {\n" +
+                                "    writeFile file: 'secret.txt', text: env.SECRET\n" +
+                                "    def contents = readFile file: 'secret.txt'\n" +
+                                "    if (contents != '" + secret + "') error 'Could not access user-scoped credential'\n" +
+                                "  }\n" +
+                                "}",
+                        true));
+
+                story.j.buildAndAssertSuccess(p);
+            }
+        });
+    }
+
+    @Test
+    @Ignore("TODO: not implemented yet")
+    public void userScopeCredentialsViaBuildParameter() {
+        story.addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                story.j.jenkins.setSecurityRealm(story.j.createDummySecurityRealm());
+                story.j.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
+                User user = User.getOrCreateByIdOrFullName("beth");
+                String credentialsId = UUID.randomUUID().toString();
+                String secret = "correct horse battery staple";
+                registerUserCredentials(user, new StringCredentialsImpl(CredentialsScope.USER, credentialsId,
+                        "User-scoped credential data from Beth Unit", Secret.fromString(secret)));
+
+                WorkflowJob p = story.j.createProject(WorkflowJob.class);
+                p.setDefinition(new CpsFlowDefinition(
+                        "node {\n" +
+                                "  error 'TODO: use a build parameter to prompt for credentials and use the above credentials'\n" +
+                                "}",
+                        true));
+
+                story.j.buildAndAssertSuccess(p);
+            }
+        });
+    }
+
+    /**
+     * Performs boilerplate setup of using authorize project and a dummy security realm for testing.
+     */
+    private static void enableAuthorizeProject(JenkinsRule j) {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        j.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
+        String specificUsersAuthorizationStrategy = j.jenkins.getDescriptorByType(SpecificUsersAuthorizationStrategy.DescriptorImpl.class).getId();
+        Map<String, Boolean> strategies = new HashMap<>();
+        strategies.put(specificUsersAuthorizationStrategy, true);
+        QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new ProjectQueueItemAuthenticator(strategies));
+    }
+
+    private static void registerUserCredentials(User user, Credentials credentials) throws IOException {
+        try (ACLContext ignored = ACL.as(user)) {
+            CredentialsProvider.lookupStores(user).iterator().next().addCredentials(Domain.global(), credentials);
+        }
     }
 
     private static Set<String> grep(File dir, String text) throws IOException {

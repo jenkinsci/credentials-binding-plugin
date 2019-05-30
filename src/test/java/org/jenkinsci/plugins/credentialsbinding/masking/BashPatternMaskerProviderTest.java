@@ -32,7 +32,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -67,7 +67,9 @@ public class BashPatternMaskerProviderTest {
             int length = random.nextInt(24) + 8;
             StringBuilder sb = new StringBuilder(length);
             for (int j = 0; j < length; j++) {
-                char next = (char) (' ' + random.nextInt('\u007f' - ' ')); // 0x7f is DEL, 0x7e is ~, and space is the first printable ASCII character
+                // choose a (printable) character in the closed range [' ', '~']
+                // 0x7f is DEL, 0x7e is ~, and space is the first printable ASCII character
+                char next = (char) (' ' + random.nextInt('\u007f' - ' '));
                 sb.append(next);
             }
             passwords.add(sb.toString());
@@ -75,7 +77,7 @@ public class BashPatternMaskerProviderTest {
         return passwords;
     }
 
-    @Rule public JenkinsRule j = new JenkinsRule();
+    @ClassRule public static JenkinsRule j = new JenkinsRule();
 
     private WorkflowJob project;
     private String credentialsId;
@@ -97,7 +99,7 @@ public class BashPatternMaskerProviderTest {
                 "node {\n" +
                         "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'CREDENTIALS')]) {\n" +
                         "    sh ': \"$CREDENTIALS\"'\n" + // : will expand its parameters and do nothing with them
-                        "    sh ': \"< $CREDENTIALS >\"'\n" +
+                        "    sh ': \"< $CREDENTIALS >\"'\n" + // surround credentials with identifiable text for partial quoting
                         "  }\n" +
                         "}", true));
     }

@@ -54,6 +54,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
+import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
@@ -137,7 +138,7 @@ public final class BindingStep extends Step {
             }
             if (!overrides.isEmpty()) {
                 boolean unix = launcher != null ? launcher.isUnix() : true;
-                listener.getLogger().println("Masking only exact matches of " + overrides.keySet().stream().map(
+                listener.getLogger().println("Masking supported pattern matches of " + overrides.keySet().stream().map(
                     v -> unix ? "$" + v : "%" + v + "%"
                 ).collect(Collectors.joining(" or ")));
             }
@@ -195,7 +196,7 @@ public final class BindingStep extends Step {
         private String charsetName;
         
         Filter(Collection<String> secrets, String charsetName) {
-            pattern = Secret.fromString(MultiBinding.getPatternStringForSecrets(secrets));
+            pattern = Secret.fromString(SecretPatterns.getAggregateSecretPattern(secrets).pattern());
             this.charsetName = charsetName;
         }
         

@@ -73,13 +73,15 @@ $ bash -xc 'echo $PASS'
 foo'bar
 </code></pre>
 <p>
-    Mangled secrets are not detected by Jenkins and will appear in plain text in the log file, in this case as:
+    Mangled secrets can only be detected on a best-effort basis. By default, Jenkins will attempt to mask mangled
+    secrets as they would appear in output of Bash and Windows batch. Without these strategies in place, mangled secrets
+    would appear in plain text in log files. In the example above, this would result in:
 </p>
 <pre><code>+ echo 'foo'\''bar'
 ****</code></pre>
 <p>
-    This particular issue can be worked around by turning off echo with <code>set +x</code>,
-    or simply avoiding possible shell metacharacters in secrets.
+    This particular issue can be more safely prevented by turning off echo with <code>set +x</code> or avoiding the use
+    of shell metacharacters in secrets.
 </p>
 <p>
     For bindings which store a secret file, beware that

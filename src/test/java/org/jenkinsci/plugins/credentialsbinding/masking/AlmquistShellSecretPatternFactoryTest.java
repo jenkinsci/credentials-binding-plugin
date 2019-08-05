@@ -56,17 +56,20 @@ import static org.junit.Assume.assumeThat;
 public class AlmquistShellSecretPatternFactoryTest {
 
     // ' is escaped as '"'"', '' as '"''"', ''' as '"'''"'
-    public static final @DataPoint String MULTIPLE_QUOTES = "ab'cd''ef'''gh"; //2
+    public static final @DataPoint String MULTIPLE_QUOTES = "ab'cd''ef'''gh";
     // "starting" and "ending" single quotes are escaped as "middle" single quotes
-    public static final @DataPoint String SURROUNDED_BY_QUOTES = "'abc'"; //3
-    public static final @DataPoint String SURROUNDED_BY_QUOTES_AND_MIDDLE = "'ab'cd'"; //4
-    public static final @DataPoint String OTHER_SIMPLE1 = "abc"; //5
-    public static final @DataPoint String OTHER_SIMPLE2 = "ab'cd"; //6
-    public static final @DataPoint String OTHER_SIMPLE3 = "ab''cd"; //7
-    public static final @DataPoint String OTHER_SIMPLE4 = "ab'c'd"; //8
+    public static final @DataPoint String SURROUNDED_BY_QUOTES = "'abc'";
+    public static final @DataPoint String SURROUNDED_BY_QUOTES_AND_MIDDLE = "'ab'cd'";
+    public static final @DataPoint String SIMPLE_CASE_1 = "abc";
+    public static final @DataPoint String SIMPLE_CASE_2 = "ab'cd";
+    public static final @DataPoint String SIMPLE_CASE_3 = "ab''cd";
+    public static final @DataPoint String SIMPLE_CASE_4 = "ab'c'd";
+    public static final @DataPoint String LEADING_QUOTE = "'a\"b\"c d";
+    public static final @DataPoint String TRAILING_QUOTE = "a\"b\"c d'";
     public static final @DataPoint String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
     public static final @DataPoint String ANOTHER_SAMPLE_PASSWORD = "a'b\"c\\d(e)#";
     public static final @DataPoint String ONE_MORE = "'\"'(foo)'\"'";
+    public static final @DataPoint String FULL_ASCII = "!\"#$%&'()*+,-./ 0123456789:;<=>? @ABCDEFGHIJKLMNO PQRSTUVWXYZ[\\]^_ `abcdefghijklmno pqrstuvwxyz{|}~";
 
     @DataPoints
     public static List<String> generatePasswords() {
@@ -111,6 +114,7 @@ public class AlmquistShellSecretPatternFactoryTest {
                         "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'CREDENTIALS')]) {\n" +
                         "    sh '''\n" +
                         "       echo begin0 $CREDENTIALS end0\n" +
+                        // begin2 => 2 for double quotes
                         "       echo \"begin2 $CREDENTIALS end2\"\n" +
                         "    '''\n" +
                         "  }\n" +

@@ -74,7 +74,7 @@ foo'bar
 </code></pre>
 <p>
     Mangled secrets can only be detected on a best-effort basis. By default, Jenkins will attempt to mask mangled
-    secrets as they would appear in output of Bash and Windows batch. Without these strategies in place, mangled secrets
+    secrets as they would appear in output of Bourne shell, Bash, Almquist shell and Windows batch. Without these strategies in place, mangled secrets
     would appear in plain text in log files. In the example above, this would result in:
 </p>
 <pre><code>+ echo 'foo'\''bar'

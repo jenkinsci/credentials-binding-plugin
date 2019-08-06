@@ -383,7 +383,9 @@ public class BindingStepTest {
                         + "  }\n"
                         + "}", true));
                 // run the job as a specific user
-                p.addProperty(new AuthorizeProjectProperty(new SpecificUsersAuthorizationStrategy("dummy", true)));
+                SpecificUsersAuthorizationStrategy strategy = new SpecificUsersAuthorizationStrategy("dummy");
+                strategy.setDontRestrictJobConfiguration(true);
+                p.addProperty(new AuthorizeProjectProperty(strategy));
 
                 // the build will fail if we can not locate the credentials
                 WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());

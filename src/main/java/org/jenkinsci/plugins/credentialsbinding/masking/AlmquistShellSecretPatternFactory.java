@@ -33,7 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * Almquist shell, aka ash, is the default shell in Alpine distribution
+ * Almquist shell, aka ash, is the default shell in Alpine distribution.
  */
 @Extension
 @Restricted(NoExternalUse.class)

@@ -134,7 +134,7 @@ public class AlmquistShellSecretPatternFactoryTest {
     }
 
     private WorkflowRun runProject() throws Exception {
-        return j.assertBuildStatusSuccess(project.scheduleBuild2(0));
+        return j.buildAndAssertSuccess(project);
     }
 
 }

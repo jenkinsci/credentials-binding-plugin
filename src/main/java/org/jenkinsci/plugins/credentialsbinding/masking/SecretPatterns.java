@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 @Restricted(NoExternalUse.class)
 public class SecretPatterns {
 
-    private static final int MINIMUM_PASSWORD_MASKING_LENGTH = 3;
+    private static final int MINIMUM_SECRET_MASKING_LENGTH = 3;
 
     private static final Comparator<String> BY_LENGTH_DESCENDING =
             Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo);
@@ -53,7 +53,7 @@ public class SecretPatterns {
     public static @Nonnull Pattern getAggregateSecretPattern(@Nonnull Collection<String> inputs) {
         String pattern = inputs.stream()
                 .filter(input -> !input.isEmpty())
-                .filter(input -> input.length() > MINIMUM_PASSWORD_MASKING_LENGTH)
+                .filter(input -> input.length() > MINIMUM_SECRET_MASKING_LENGTH)
                 .flatMap(input ->
                         SecretPatternFactory.all().stream().flatMap(factory ->
                                 factory.getEncodedForms(input).stream()))

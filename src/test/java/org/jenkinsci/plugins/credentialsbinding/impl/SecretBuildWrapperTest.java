@@ -109,4 +109,26 @@ public class SecretBuildWrapperTest {
         r.assertLogContains("PASSES", r.buildAndAssertSuccess(p));
     }
 
+    @Test
+    public void minimalSecretIsNotMasked() throws Exception {
+        String credentialsId = "credId";
+        String password = "cr";
+        StringCredentialsImpl firstCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(password));
+
+        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), firstCreds);
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(Arrays.asList(new StringBinding("PASS", credentialsId)));
+
+        FreeStyleProject f = r.createFreeStyleProject();
+
+        f.setConcurrentBuild(true);
+        f.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo %PASS%") : new Shell("echo \"$PASS\""));
+        f.getBuildWrappersList().add(wrapper);
+
+        r.configRoundtrip((Item)f);
+
+        FreeStyleBuild b = r.buildAndAssertSuccess(f);
+        r.assertLogContains("echo " + password, b);
+        r.assertLogNotContains("****", b);
+    }
+
 }

@@ -52,7 +52,6 @@ public class SecretPatterns {
      */
     public static @Nonnull Pattern getAggregateSecretPattern(@Nonnull Collection<String> inputs) {
         String pattern = inputs.stream()
-                .filter(input -> !input.isEmpty())
                 .filter(input -> input.length() > MINIMUM_SECRET_MASKING_LENGTH)
                 .flatMap(input ->
                         SecretPatternFactory.all().stream().flatMap(factory ->

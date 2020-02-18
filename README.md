@@ -43,21 +43,7 @@ withCredentials([usernamePassword(credentialsId: 'amazon', usernameVariable: 'US
 }
 ```
 
-## Development
-Start the local Jenkins instance: `mvn hpi:run`
+## Changelog
 
-## How to install
-Run `mvn clean package` to create the plugin .hpi file.
-
-To install:
-1. copy the resulting ./target/credentials-binding.hpi file to the $JENKINS_HOME/plugins directory. Don't forget to restart Jenkins afterwards.
-1. or use the plugin management console (http://example.com:8080/pluginManager/advanced) to upload the hpi file. You have to restart Jenkins in order to find the pluing in the installed plugins list.
-
-
-## Plugin releases
-`mvn release:prepare release:perform -B`
-
-***
-[Changelog](CHANGELOG.md)
-
-License: [MIT](LICENSE)
+See [GitHub Releases](https://github.com/jenkinsci/credentials-binding-plugin/releases) for new releases,
+or the [old changelog](old-changelog.md) for history.

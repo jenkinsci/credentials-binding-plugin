@@ -16,7 +16,7 @@
   <name>Credentials Binding Plugin</name>
   <description>Allows credentials to be bound to environment variables for use from miscellaneous build steps.
   </description>
-  <url>https://wiki.jenkins.io/display/JENKINS/Credentials+Binding+Plugin</url>
+  <url>https://github.com/jenkinsci/credentials-binding-plugin</url>
   <properties>
     <revision>1.21</revision>
     <changelist>-SNAPSHOT</changelist>

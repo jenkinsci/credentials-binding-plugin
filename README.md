@@ -2,12 +2,6 @@
 Allows credentials to be bound to environment variables for use from
 miscellaneous build steps.
 
-Older versions of this plugin may not be safe to use. Please review the
-following warnings before using an older version:
-
--   [Improper masking of secrets in rare
-    circumstances](https://jenkins.io/security/advisory/2018-02-05/)
-
 You may have a keystore for jarsigner, a list of passwords, or other
 confidential files or strings which you want to be used by a job but
 which should not be kept in its SCM, or even visible from its
@@ -65,5 +59,5 @@ To install:
 
 ***
 [Changelog](CHANGELOG.md)
- 
+
 License: [MIT](LICENSE)

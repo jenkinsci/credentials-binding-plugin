@@ -28,10 +28,16 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import hudson.Functions;
+import hudson.Launcher;
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.tasks.BatchFile;
+import hudson.tasks.BuildStepMonitor;
+import hudson.tasks.Publisher;
+import hudson.tasks.Recorder;
 import hudson.tasks.Shell;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
@@ -107,6 +113,48 @@ public class SecretBuildWrapperTest {
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.singletonList(new StringBinding("SECRET", "creds"))));
         p.getBuildersList().add(Functions.isWindows() ? new BatchFile("echo PASSES") : new Shell("echo PASSES"));
         r.assertLogContains("PASSES", r.buildAndAssertSuccess(p));
+    }
+
+    @Issue("SECURITY-1374")
+    @Test public void maskingPostBuild() throws Exception {
+        String credentialsId = "creds_1";
+        String password = "p4$$";
+        StringCredentialsImpl firstCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample1", Secret.fromString(password));
+
+        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), firstCreds);
+
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(Collections.singletonList(new StringBinding("PASS_1", credentialsId)));
+
+        FreeStyleProject f = r.createFreeStyleProject();
+
+        f.setConcurrentBuild(true);
+        f.getBuildWrappersList().add(wrapper);
+        Publisher publisher = new PasswordPublisher(password);
+        f.getPublishersList().add(publisher);
+
+        FreeStyleBuild b = r.buildAndAssertSuccess(f);
+        r.assertLogNotContains(password, b);
+        r.assertLogContains("****", b);
+    }
+
+    static class PasswordPublisher extends Recorder {
+
+        private String password;
+
+        public PasswordPublisher(String password) {
+            this.password = password;
+        }
+
+        public @Override
+        boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
+            listener.getLogger().println("Sneak it in during the postbuild: " + password + " :done.");
+            return true;
+        }
+
+        public BuildStepMonitor getRequiredMonitorService() {
+            return BuildStepMonitor.NONE;
+        }
+
     }
 
 }

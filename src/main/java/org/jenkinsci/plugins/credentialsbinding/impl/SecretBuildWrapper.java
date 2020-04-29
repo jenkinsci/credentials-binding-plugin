@@ -107,7 +107,6 @@ public class SecretBuildWrapper extends BuildWrapper {
                 for (MultiBinding.MultiEnvironment e : m) {
                     e.getUnbinder().unbind(build, build.getWorkspace(), launcher, listener);
                 }
-                secretsForBuild.remove(build);
                 return true;
             }
         };
@@ -165,6 +164,7 @@ public class SecretBuildWrapper extends BuildWrapper {
                 @Override public void close() throws IOException {
                     super.close();
                     logger.close();
+                    secretsForBuild.remove(build);
                 }
             };
         }

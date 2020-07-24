@@ -181,7 +181,9 @@ public final class BindingStep extends Step {
 
         @Override public void expand(EnvVars env) throws IOException, InterruptedException {
             for (Map.Entry<String,Secret> override : overrides.entrySet()) {
-                env.override(override.getKey(), override.getValue().getPlainText());
+                String keyOverride = override.getKey();
+                env.override(keyOverride, override.getValue().getPlainText());
+                env.setWatchedVar(keyOverride);
             }
         }
 

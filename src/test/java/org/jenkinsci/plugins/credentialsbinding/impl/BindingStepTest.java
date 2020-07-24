@@ -124,6 +124,31 @@ public class BindingStepTest {
         }
     }
 
+    @Test public void leak() throws Exception {
+        final String credentialsId = "creds";
+        final String username = "bob";
+        final String password = "s$$cr3t";
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", username, password);
+                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(""
+                        + "node {\n"
+                        + "withCredentials([usernamePassword(credentialsId: 'creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {\n"
+//                + "  sh 'echo $PASSWORD'\n"
+                        + "  // this is bad!\n"
+                        + "  sh \"echo $PASSWORD\"\n"
+                        + "  echo USERNAME\n"
+                        + "  echo \"username is $USERNAME\"\n"
+                        + "}\n"
+                        + "}", true));
+                story.j.assertLogNotContains("cr3t", story.j.assertBuildStatusSuccess(p.scheduleBuild2(0)));
+            }
+        });
+    }
+
+
     @Test public void basics() throws Exception {
         final String credentialsId = "creds";
         final String username = "bob";

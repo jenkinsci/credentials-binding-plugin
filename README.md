@@ -7,7 +7,7 @@ confidential files or strings which you want to be used by a job but
 which should not be kept in its SCM, or even visible from its
 config.xml. Saving these files on the server and referring to them by
 absolute path requires you to have a server login, and does not work on
-slaves. This plugin gives you an easy way to package up all a job’s
+agents. This plugin gives you an easy way to package up all a job’s
 secret files and passwords and access them using a single environment
 variable during the build.
 

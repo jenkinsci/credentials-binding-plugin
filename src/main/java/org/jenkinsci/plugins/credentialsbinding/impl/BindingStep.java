@@ -37,6 +37,7 @@ import hudson.util.Secret;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,6 +68,7 @@ import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
@@ -172,6 +174,7 @@ public final class BindingStep extends Step {
         private static final long serialVersionUID = 1;
 
         private final Map<String,Secret> overrides = new HashMap<String,Secret>();
+        private final Set<String> foundVars = new HashSet<>();
 
         Overrider(Map<String,String> overrides) {
             for (Map.Entry<String,String> override : overrides.entrySet()) {
@@ -183,10 +186,26 @@ public final class BindingStep extends Step {
             for (Map.Entry<String,Secret> override : overrides.entrySet()) {
                 String keyOverride = override.getKey();
                 env.override(keyOverride, override.getValue().getPlainText());
-                env.setWatchedVar(keyOverride);
+                this.watch(keyOverride, override.getValue().getPlainText());
             }
         }
 
+        @CheckForNull
+        @Override
+        public List<String> findWatchedVars(String text) {
+            List<String> hits = super.findWatchedVars(text);
+            if (hits != null) {
+                foundVars.addAll(hits);
+            }
+            return hits;
+        }
+
+        @Override public void callback(PrintStream stream) {
+            if (!foundVars.isEmpty()) {
+                stream.println("The following Groovy string may be insecure. Use single quotes to prevent leaking secrets via Groovy interpolation. Affected variables: "  + foundVars.toString());
+                foundVars.clear();
+            }
+        }
     }
 
     /** Similar to {@code MaskPasswordsOutputStream}. */

@@ -142,9 +142,14 @@ public final class BindingStep extends Step {
                     v -> unix ? "$" + v : "%" + v + "%"
                 ).collect(Collectors.joining(" or ")));
             }
+            ConsoleLogFilter updatedLogFilter = new Filter(overrides.values(), run.getCharset().name());
+            ConsoleLogFilter previousLogFilter = getContext().get(ConsoleLogFilter.class);
+            if (previousLogFilter != null) {
+                updatedLogFilter = BodyInvoker.mergeConsoleLogFilters(updatedLogFilter, previousLogFilter);
+            }
             getContext().newBodyInvoker().
                     withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
-                    withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(overrides.values(), run.getCharset().name()))).
+                    withContext(updatedLogFilter).
                     withCallback(new Callback2(unbinders)).
                     start();
         }

@@ -30,7 +30,7 @@ import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -66,8 +66,8 @@ public class BatchSecretPatternFactoryTest {
     private String credentialPlainText;
     private String credentialId;
 
-    @Before
-    public void assumeWindowsForBatch() throws Exception {
+    @BeforeClass
+    public static void assumeWindowsForBatch() throws Exception {
         assumeTrue(Functions.isWindows());
     }
 

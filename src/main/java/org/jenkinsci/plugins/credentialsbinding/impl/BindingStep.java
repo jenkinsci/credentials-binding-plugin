@@ -35,12 +35,13 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.Secret;
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.net.UnknownServiceException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,12 +53,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
+import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
-import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.GeneralNonBlockingStepExecution;
 import org.jenkinsci.plugins.workflow.steps.MissingContextVariableException;
@@ -67,6 +67,7 @@ import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
@@ -136,20 +137,20 @@ public final class BindingStep extends Step {
                 unbinders.add(environment.getUnbinder());
                 overrides.putAll(environment.getValues());
             }
+            TaskListenerDecorator taskListenerDecorator = getContext().get(TaskListenerDecorator.class);
             if (!overrides.isEmpty()) {
                 boolean unix = launcher != null ? launcher.isUnix() : true;
                 listener.getLogger().println("Masking supported pattern matches of " + overrides.keySet().stream().map(
                     v -> unix ? "$" + v : "%" + v + "%"
                 ).collect(Collectors.joining(" or ")));
-            }
-            ConsoleLogFilter updatedLogFilter = new Filter(overrides.values(), run.getCharset().name());
-            ConsoleLogFilter previousLogFilter = getContext().get(ConsoleLogFilter.class);
-            if (previousLogFilter != null) {
-                updatedLogFilter = BodyInvoker.mergeConsoleLogFilters(updatedLogFilter, previousLogFilter);
+                Pattern secretPattern = SecretPatterns.getAggregateSecretPattern(overrides.values());
+                if (!secretPattern.pattern().isEmpty()) {
+                    taskListenerDecorator = MaskingDecorator.createFrom(secretPattern, run.getCharset().name(), taskListenerDecorator);
+                }
             }
             getContext().newBodyInvoker().
                     withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
-                    withContext(updatedLogFilter).
+                    withContext(taskListenerDecorator).
                     withCallback(new Callback2(unbinders)).
                     start();
         }
@@ -192,52 +193,94 @@ public final class BindingStep extends Step {
 
     }
 
-    /** Similar to {@code MaskPasswordsOutputStream}. */
-    private static final class Filter extends ConsoleLogFilter implements Serializable {
+    private static class SecretPattern implements Serializable {
+        private static final long serialVersionUID = 1;
+
+        private transient final Pattern pattern;
+
+        private SecretPattern(Pattern pattern) {
+            this.pattern = pattern;
+        }
+
+        Matcher matcher(CharSequence input) {
+            return pattern.matcher(input);
+        }
+
+        private Object writeReplace() {
+            return new SerializationProxy(Secret.fromString(pattern.pattern()));
+        }
+
+        private Object readResolve() throws ObjectStreamException {
+            throw new InvalidObjectException("Must use proxy");
+        }
+
+        private static class SerializationProxy implements Serializable {
+            private static final long serialVersionUID = 1;
+            private final Secret secret;
+
+            private SerializationProxy(Secret secret) {
+                this.secret = secret;
+            }
+
+            private Object readResolve() {
+                return new SecretPattern(Pattern.compile(secret.getPlainText()));
+            }
+        }
+    }
+
+    private static class MaskingDecorator extends TaskListenerDecorator {
+        @Nonnull
+        static TaskListenerDecorator createFrom(@Nonnull Pattern pattern, @Nonnull String charsetName, @CheckForNull TaskListenerDecorator original) {
+            return TaskListenerDecorator.merge(new MaskingDecorator(new SecretPattern(pattern), charsetName), original);
+        }
 
         private static final long serialVersionUID = 1;
 
-        private final Secret pattern;
-        private String charsetName;
-        
-        Filter(Collection<String> secrets, String charsetName) {
-            pattern = Secret.fromString(SecretPatterns.getAggregateSecretPattern(secrets).pattern());
+        private final SecretPattern pattern;
+        private final String charsetName;
+
+        private MaskingDecorator(SecretPattern pattern, String charsetName) {
+            this.pattern = pattern;
             this.charsetName = charsetName;
         }
-        
-        // To avoid de-serialization issues with newly added field (charsetName)
-        private Object readResolve() throws ObjectStreamException {
-            if (this.charsetName == null) {
-                this.charsetName = Charsets.UTF_8.name();
-            }
-            return this;
-        }
 
-        @Override public OutputStream decorateLogger(AbstractBuild _ignore, final OutputStream logger) throws IOException, InterruptedException {
-            final Pattern p = Pattern.compile(pattern.getPlainText());
+        @Nonnull
+        @Override
+        public OutputStream decorate(@Nonnull OutputStream logger) throws IOException, InterruptedException {
             return new LineTransformationOutputStream() {
-                @Override protected void eol(byte[] b, int len) throws IOException {
-                    if (!p.toString().isEmpty()) {
-                        Matcher m = p.matcher(new String(b, 0, len, charsetName));
-                        if (m.find()) {
-                            logger.write(m.replaceAll("****").getBytes(charsetName));
-                        } else {
-                            // Avoid byte → char → byte conversion unless we are actually doing something.
-                            logger.write(b, 0, len);
-                        }
+                @Override
+                protected void eol(byte[] b, int len) throws IOException {
+                    Matcher m = pattern.matcher(new String(b, 0, len, charsetName));
+                    if (m.find()) {
+                        logger.write(m.replaceAll("****").getBytes(charsetName));
                     } else {
                         // Avoid byte → char → byte conversion unless we are actually doing something.
                         logger.write(b, 0, len);
                     }
                 }
-                @Override public void flush() throws IOException {
+
+                @Override
+                public void flush() throws IOException {
                     logger.flush();
                 }
-                @Override public void close() throws IOException {
+
+                @Override
+                public void close() throws IOException {
                     super.close();
                     logger.close();
                 }
             };
+        }
+    }
+
+    /** @deprecated Use {@link MaskingDecorator} */
+    @Deprecated
+    private static final class Filter extends ConsoleLogFilter implements Serializable {
+
+        private static final long serialVersionUID = 1;
+
+        @Override public OutputStream decorateLogger(AbstractBuild _ignore, final OutputStream logger) throws IOException, InterruptedException {
+            throw new UnknownServiceException();
         }
 
     }

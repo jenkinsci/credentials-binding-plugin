@@ -168,7 +168,6 @@ public final class BindingStep extends Step {
     }
 
     private static final class Overrider extends EnvironmentExpander {
-        private Set<String> sensitiveVariables = new HashSet<>();
 
         private static final long serialVersionUID = 1;
 
@@ -182,9 +181,7 @@ public final class BindingStep extends Step {
 
         @Override public void expand(EnvVars env) throws IOException, InterruptedException {
             for (Map.Entry<String,Secret> override : overrides.entrySet()) {
-                String keyOverride = override.getKey();
-                env.override(keyOverride, override.getValue().getPlainText());
-                sensitiveVariables.add(keyOverride);
+                env.override(override.getKey(), override.getValue().getPlainText());
             }
         }
 

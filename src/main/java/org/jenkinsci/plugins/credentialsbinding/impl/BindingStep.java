@@ -185,6 +185,9 @@ public final class BindingStep extends Step {
             }
         }
 
+        @Override public Set<String> getSensitiveVariables() {
+            return Collections.unmodifiableSet(overrides.keySet());
+        }
     }
 
     /** Similar to {@code MaskPasswordsOutputStream}. */

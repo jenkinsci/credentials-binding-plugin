@@ -20,8 +20,9 @@
   <properties>
     <revision>1.24</revision>
     <changelist>-SNAPSHOT</changelist>
-    <jenkins.version>2.164.3</jenkins.version>
+    <jenkins.version>2.176.4</jenkins.version>
     <java.level>8</java.level>
+    <workflow-step-api.version>2.23</workflow-step-api.version> <!-- TODO: Delete when in BOM -->
   </properties>
   <licenses>
     <license>
@@ -54,8 +55,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.164.x</artifactId>
-        <version>10</version>
+        <artifactId>bom-2.176.x</artifactId>
+        <version>13</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -73,6 +74,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
+      <version>${workflow-step-api.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -111,6 +113,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
+      <version>${workflow-step-api.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>

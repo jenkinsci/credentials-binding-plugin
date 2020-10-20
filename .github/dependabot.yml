@@ -7,12 +7,3 @@ updates:
   open-pull-requests-limit: 10
   reviewers:
   - jglick
-  ignore:
-  - dependency-name: io.jenkins.tools.bom:bom
-    versions:
-    - ">= 2.164.a"
-    - "< 2.165"
-  - dependency-name: io.jenkins.tools.bom:bom
-    versions:
-    - ">= 2.176.a"
-    - "< 2.177"

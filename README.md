@@ -19,9 +19,7 @@ from shell script build steps and so on. (You probably want to start any
 shell script with `set +x`, or batch script with `@echo off`.
 [JENKINS-14731](https://issues.jenkins-ci.org/browse/JENKINS-14731)).
 
-For more details of how this works, check the [Injecting Secrets into
-Jenkins Build
-Jobs](https://cloudbees.zendesk.com/hc/en-us/articles/203802500-Injecting-Secrets-into-Jenkins-Build-Jobs)
+For more details of how this works, check the [Injecting secrets into builds](https://docs.cloudbees.com/docs/cloudbees-ci/latest/cloud-secure-guide/injecting-secrets)
 article at CloudBees.
 
 From a Pipeline job, define your credentials, then check *Snippet

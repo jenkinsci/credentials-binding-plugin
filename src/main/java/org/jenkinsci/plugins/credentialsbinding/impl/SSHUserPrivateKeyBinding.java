@@ -46,6 +46,7 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
     public final String keyFileVariable;
     public String usernameVariable;
     public String passphraseVariable;
+    // TODO JENKINS-44860 consider adding a showUsername field
 
     @DataBoundConstructor public SSHUserPrivateKeyBinding(@Nonnull String keyFileVariable, String credentialsId) {
         super(credentialsId);

@@ -31,8 +31,9 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import org.jenkinsci.Symbol;
 
@@ -42,11 +43,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.kohsuke.stapler.DataBoundSetter;
 
 public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernamePasswordCredentials> {
 
     private final String usernameVariable;
     private final String passwordVariable;
+    private boolean showUsername;
 
     @DataBoundConstructor public UsernamePasswordMultiBinding(String usernameVariable, String passwordVariable, String credentialsId) {
         super(credentialsId);
@@ -62,6 +65,14 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return passwordVariable;
     }
 
+    public boolean isShowUsername() {
+        return showUsername;
+    }
+
+    @DataBoundSetter public void setShowUsername(boolean showUsername) {
+        this.showUsername = showUsername;
+    }
+
     @Override protected Class<StandardUsernamePasswordCredentials> type() {
         return StandardUsernamePasswordCredentials.class;
     }
@@ -71,12 +82,20 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
                                            @Nullable Launcher launcher,
                                            @Nonnull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        return new MultiEnvironment(Collections.singletonMap(passwordVariable, credentials.getPassword().getPlainText()),
-                Collections.singletonMap(usernameVariable, credentials.getUsername()));
+        Map<String, String> secretValues = new LinkedHashMap<>();
+        secretValues.put(passwordVariable, credentials.getPassword().getPlainText());
+        Map<String, String> publicValues = new LinkedHashMap<>();
+        (showUsername ? publicValues : secretValues).put(usernameVariable, credentials.getUsername());
+        return new MultiEnvironment(secretValues, publicValues);
     }
 
     @Override public Set<String> variables() {
-        return new HashSet<>(Collections.singletonList(passwordVariable));
+        Set<String> vars = new LinkedHashSet<>();
+        vars.add(passwordVariable);
+        if (!showUsername) {
+            vars.add(usernameVariable);
+        }
+        return vars;
     }
 
     @Symbol("usernamePassword")

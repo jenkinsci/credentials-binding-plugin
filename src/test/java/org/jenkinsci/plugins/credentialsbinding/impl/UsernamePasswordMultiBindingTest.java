@@ -44,13 +44,16 @@ import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
+import org.junit.ClassRule;
 
 import org.junit.Rule;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class UsernamePasswordMultiBindingTest {
 
     @Rule public JenkinsRule r = new JenkinsRule();
+    @ClassRule public static BuildWatcher bw = new BuildWatcher();
 
     @Test public void basics() throws Exception {
         String username = "bob";
@@ -74,11 +77,24 @@ public class UsernamePasswordMultiBindingTest {
         assertEquals(UsernamePasswordMultiBinding.class, binding.getClass());
         assertEquals("userid", ((UsernamePasswordMultiBinding) binding).getUsernameVariable());
         assertEquals("pass", ((UsernamePasswordMultiBinding) binding).getPasswordVariable());
+        assertFalse(((UsernamePasswordMultiBinding) binding).isShowUsername());
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
+        r.assertLogNotContains(password, b);
+        r.assertLogNotContains(username, b);
+        assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
+        assertEquals("[pass, userid]", new TreeSet<>(b.getSensitiveBuildVariables()).toString());
+        // showUsername: true
+        ((UsernamePasswordMultiBinding) binding).setShowUsername(true);
+        r.configRoundtrip((Item)p);
+        bindings = wrapper.getBindings();
+        assertEquals(1, bindings.size());
+        binding = bindings.get(0);
+        assertTrue(((UsernamePasswordMultiBinding) binding).isShowUsername());
+        b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
         r.assertLogContains(username, b);
         assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
-        assertEquals("[pass]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
+        assertEquals("[pass]", new TreeSet<>(b.getSensitiveBuildVariables()).toString());
     }
 
 }

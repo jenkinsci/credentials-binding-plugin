@@ -57,6 +57,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 	}
 
 	private String aliasVariable;
+	// TODO JENKINS-44860 consider adding a showAlias field
 
 	@DataBoundConstructor
 	@CheckForNull

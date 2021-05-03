@@ -45,6 +45,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import jenkins.model.Jenkins;
+import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -96,6 +97,9 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
             this.values = null;
             this.secretValues = new LinkedHashMap<>(secretValues);
             this.publicValues = new LinkedHashMap<>(publicValues);
+            if (!CollectionUtils.intersection(secretValues.keySet(), publicValues.keySet()).isEmpty()) {
+                throw new IllegalArgumentException("Cannot use the same key in both secretValues and publicValues");
+            }
             this.unbinder = unbinder;
         }
 

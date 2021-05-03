@@ -46,14 +46,14 @@ withCredentials([usernamePassword(credentialsId: 'amazon', usernameVariable: 'US
 You should use a single quote (`'`) instead of a double quote (`"`) whenever you can. 
 This is particularly important in Pipelines where a statement may be interpreted by both the Pipeline engine and an external interpreter, such as a Unix shell (`sh`) or Windows Command (`bat`) or Powershell (`ps`). 
 This reduces complications with password masking and command processing. 
-The first step in the above example properly demonstrates this. 
-The next two steps use the basic Pipeline `echo` step. 
-The first one references the Groovy variable and needs no quotes. 
-The second one needs to use double quotes, so that the interpolation is performed in Groovy.
+The first step in the above example properly demonstrates this.
+It references an environment variable, so the single-quoted string passes its value unprocessed to the `sh` step, and the shell interprets `$PASSWORD`.
+The next two steps use the basic Pipeline `echo` step.
+The last one needs to use double quotes, so that the [string interpolation](https://en.wikipedia.org/wiki/String_interpolation) is performed by the Pipeline DSL.
 
 For more information, see the Pipeline step reference for [Credentials Binding Plugin](https://www.jenkins.io/doc/pipeline/steps/credentials-binding/).
 
 ## Changelog
 
-See [GitHub Releases](https://github.com/jenkinsci/credentials-binding-plugin/releases) for new releases,
-or the [old changelog](old-changelog.md) for history.
+See [GitHub Releases](https://github.com/jenkinsci/credentials-binding-plugin/releases) for new releases (version 1.20 and newer),
+or the [old changelog](old-changelog.md) for history (version 1.19 and earlier).

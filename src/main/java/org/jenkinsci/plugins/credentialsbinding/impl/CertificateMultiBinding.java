@@ -5,7 +5,6 @@ import java.io.OutputStream;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +26,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import java.util.LinkedHashMap;
 
 public class CertificateMultiBinding extends MultiBinding<StandardCertificateCredentials> {
 
@@ -75,7 +75,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 			FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
 		StandardCertificateCredentials credentials = getCredentials(build);
 		final String storePassword = credentials.getPassword().getPlainText();
-		Map<String, String> m = new HashMap<String, String>();
+		Map<String, String> m = new LinkedHashMap<>();
 		if(aliasVariable!=null && !aliasVariable.isEmpty())
 			m.put(aliasVariable, credentials.getDescription());
 		if(passwordVariable!=null && !passwordVariable.isEmpty())

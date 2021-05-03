@@ -1,60 +1,59 @@
-Jenkins Credentials Binding Plugin
-=====================
+# Jenkins Credentials Binding Plugin
+Allows credentials to be bound to environment variables for use from
+miscellaneous build steps.
 
-Read more: [https://wiki.jenkins-ci.org/display/JENKINS/Credentials+Binding+Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Credentials+Binding+Plugin)
+You may have a keystore for jarsigner, a list of passwords, or other
+confidential files or strings which you want to be used by a job but
+which should not be kept in its SCM, or even visible from its
+config.xml. Saving these files on the server and referring to them by
+absolute path requires you to have a server login, and does not work on
+agents. This plugin gives you an easy way to package up all a job’s
+secret files and passwords and access them using a single environment
+variable during the build.
 
-Development
-===========
+To use, first go to the Credentials link and add items of type *Secret
+file* and/or *Secret text*. Now in a freestyle job, check the box *Use
+secret text(s) or file(s)* and add some variable bindings which will use
+your credentials. The resulting environment variables can be accessed
+from shell script build steps and so on. (You probably want to start any
+shell script with `set +x`, or batch script with `@echo off`.
+[JENKINS-14731](https://issues.jenkins-ci.org/browse/JENKINS-14731)).
 
-Start the local Jenkins instance:
+For more details of how this works, check the [Injecting secrets into builds](https://docs.cloudbees.com/docs/cloudbees-ci/latest/cloud-secure-guide/injecting-secrets)
+article at CloudBees.
 
-    mvn hpi:run
+From a Pipeline job, define your credentials, then check *Snippet
+Generator* for a syntax example of the `withCredentials` step. Any
+secrets in the build log will be masked automatically.
 
+A typical example of a username password type credential (example from
+here) would look like: 
 
-How to install
---------------
+```groovy
+withCredentials([usernamePassword(credentialsId: 'amazon', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+  // available as an env variable, but will be masked if you try to print it out any which way
+  // note: single quotes prevent Groovy interpolation; expansion is by Bourne Shell, which is what you want
+  sh 'echo $PASSWORD'
+  // also available as a Groovy variable
+  echo USERNAME
+  // or inside double quotes for string interpolation
+  echo "username is $USERNAME"
+}
+```
 
-Run
+#### Note
 
-	mvn clean package
+You should use a single quote (`'`) instead of a double quote (`"`) whenever you can. 
+This is particularly important in Pipelines where a statement may be interpreted by both the Pipeline engine and an external interpreter, such as a Unix shell (`sh`) or Windows Command (`bat`) or Powershell (`ps`). 
+This reduces complications with password masking and command processing. 
+The first step in the above example properly demonstrates this.
+It references an environment variable, so the single-quoted string passes its value unprocessed to the `sh` step, and the shell interprets `$PASSWORD`.
+The next two steps use the basic Pipeline `echo` step.
+The last one needs to use double quotes, so that the [string interpolation](https://en.wikipedia.org/wiki/String_interpolation) is performed by the Pipeline DSL.
 
-to create the plugin .hpi file.
+For more information, see the Pipeline step reference for [Credentials Binding Plugin](https://www.jenkins.io/doc/pipeline/steps/credentials-binding/).
 
+## Changelog
 
-To install:
-
-1. copy the resulting ./target/credentials-binding.hpi file to the $JENKINS_HOME/plugins directory. Don't forget to restart Jenkins afterwards.
-
-2. or use the plugin management console (http://example.com:8080/pluginManager/advanced) to upload the hpi file. You have to restart Jenkins in order to find the pluing in the installed plugins list.
-
-
-Plugin releases
----------------
-
-	mvn release:prepare release:perform -B
-
-
-License
--------
-
-	The MIT License (MIT)
-
-    Copyright (c) 2014 <copyright holders>
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    THE SOFTWARE.
+See [GitHub Releases](https://github.com/jenkinsci/credentials-binding-plugin/releases) for new releases (version 1.20 and newer),
+or the [old changelog](old-changelog.md) for history (version 1.19 and earlier).

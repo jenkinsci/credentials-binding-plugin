@@ -44,18 +44,22 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
+import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
+import org.jenkinsci.plugins.workflow.steps.GeneralNonBlockingStepExecution;
 import org.jenkinsci.plugins.workflow.steps.MissingContextVariableException;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -83,21 +87,38 @@ public final class BindingStep extends Step {
 
     @Override
     public StepExecution start(StepContext context) throws Exception {
-        return new Execution(this, context);
+        return new Execution2(this, context);
     }
 
-    static final class Execution extends AbstractStepExecutionImpl {
+    /** @deprecated Only here for serial compatibility. */
+    @Deprecated
+    private static final class Execution extends AbstractStepExecutionImpl {
+
+        private static final long serialVersionUID = 1;
+
+        @Override public boolean start() throws Exception {
+            throw new AssertionError();
+        }
+
+    }
+
+    private static final class Execution2 extends GeneralNonBlockingStepExecution {
 
         private static final long serialVersionUID = 1;
 
         private transient BindingStep step;
 
-        Execution(@Nonnull BindingStep step, StepContext context) {
+        Execution2(@Nonnull BindingStep step, StepContext context) {
             super(context);
             this.step = step;
         }
 
         @Override public boolean start() throws Exception {
+            run(this::doStart);
+            return false;
+        }
+        
+        private void doStart() throws Exception {
             Run<?,?> run = getContext().get(Run.class);
             TaskListener listener = getContext().get(TaskListener.class);
 
@@ -105,7 +126,7 @@ public final class BindingStep extends Step {
             Launcher launcher = getContext().get(Launcher.class);
 
             Collection<String> secrets = new HashSet<>();
-            Map<String,String> overrides = new HashMap<>();
+            Map<String,String> overrides = new LinkedHashMap<>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<MultiBinding.Unbinder>();
             for (MultiBinding<?> binding : step.bindings) {
                 if (binding.getDescriptor().requiresWorkspace() &&
@@ -118,18 +139,35 @@ public final class BindingStep extends Step {
                 overrides.putAll(environment.getSecretValues());
                 overrides.putAll(environment.getPublicValues());
             }
+            if (!overrides.isEmpty()) {
+                boolean unix = launcher != null ? launcher.isUnix() : true;
+                listener.getLogger().println("Masking supported pattern matches of " + overrides.keySet().stream().map(
+                    v -> unix ? "$" + v : "%" + v + "%"
+                ).collect(Collectors.joining(" or ")));
+            }
             getContext().newBodyInvoker().
                     withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class),
                             new Overrider(overrides))).
                     withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class),
                             new Filter(secrets, run.getCharset().name()))).
-                    withCallback(new Callback(unbinders)).
+                    withCallback(new Callback2(unbinders)).
                     start();
-            return false;
         }
 
-        @Override public void stop(Throwable cause) throws Exception {
-            // should be no need to do anything special (but verify in JENKINS-26148)
+        private final class Callback2 extends TailCall {
+
+            private static final long serialVersionUID = 1;
+
+            private final List<MultiBinding.Unbinder> unbinders;
+
+            Callback2(List<MultiBinding.Unbinder> unbinders) {
+                this.unbinders = unbinders;
+            }
+
+            @Override protected void finished(StepContext context) throws Exception {
+                new Callback(unbinders).finished(context);
+            }
+
         }
 
     }
@@ -152,6 +190,9 @@ public final class BindingStep extends Step {
             }
         }
 
+        @Override public Set<String> getSensitiveVariables() {
+            return Collections.unmodifiableSet(overrides.keySet());
+        }
     }
 
     /** Similar to {@code MaskPasswordsOutputStream}. */
@@ -163,7 +204,7 @@ public final class BindingStep extends Step {
         private String charsetName;
         
         Filter(Collection<String> secrets, String charsetName) {
-            pattern = Secret.fromString(MultiBinding.getPatternStringForSecrets(secrets));
+            pattern = Secret.fromString(SecretPatterns.getAggregateSecretPattern(secrets).pattern());
             this.charsetName = charsetName;
         }
         
@@ -191,6 +232,13 @@ public final class BindingStep extends Step {
                         // Avoid byte → char → byte conversion unless we are actually doing something.
                         logger.write(b, 0, len);
                     }
+                }
+                @Override public void flush() throws IOException {
+                    logger.flush();
+                }
+                @Override public void close() throws IOException {
+                    super.close();
+                    logger.close();
                 }
             };
         }

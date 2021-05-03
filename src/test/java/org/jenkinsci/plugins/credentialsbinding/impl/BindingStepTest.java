@@ -36,6 +36,7 @@ import hudson.model.User;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 
 import hudson.FilePath;
+import hudson.Functions;
 import hudson.model.Node;
 import hudson.model.Result;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
@@ -145,6 +146,7 @@ public class BindingStepTest {
                         + "}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 SemaphoreStep.waitForStart("basics/1", b);
+                story.j.assertLogContains(Functions.isWindows() ? "Masking supported pattern matches of %USERNAME% or %PASSWORD%" : "Masking supported pattern matches of $USERNAME or $PASSWORD", b);
             }
         });
         story.addStep(new Statement() {
@@ -217,8 +219,7 @@ public class BindingStepTest {
                         + "withCredentials([file(variable: 'targetFile', credentialsId: '" + credentialsId + "')]) {\n"
                         + "  echo 'We should fail before getting here'\n"
                         + "}", true));
-                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-                story.j.assertBuildStatus(Result.FAILURE, story.j.waitForCompletion(b));
+                WorkflowRun b = story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0));
                 story.j.assertLogNotContains("We should fail before getting here", b);
                 story.j.assertLogContains("Required context class hudson.FilePath is missing", b);
                 story.j.assertLogContains("Perhaps you forgot to surround the code with a step that provides this, such as: node", b);
@@ -244,9 +245,9 @@ public class BindingStepTest {
 
                 // make sure error message contains information about the actual type and the expected type
                 story.j.assertLogNotContains("s3cr3t", r);
-                story.j.assertLogContains(CredentialNotFoundException.class.getName(), r);
-                story.j.assertLogContains(StandardUsernamePasswordCredentials.class.getName(), r);
+                story.j.assertLogContains(StandardUsernamePasswordCredentials.class.getName(), r); // no descriptor for the interface type
                 story.j.assertLogContains(stringCredentialsDescriptor.getDisplayName(), r);
+                story.j.assertLogNotContains("\tat ", r);
             }
         });
     }
@@ -382,7 +383,9 @@ public class BindingStepTest {
                         + "  }\n"
                         + "}", true));
                 // run the job as a specific user
-                p.addProperty(new AuthorizeProjectProperty(new SpecificUsersAuthorizationStrategy("dummy", true)));
+                SpecificUsersAuthorizationStrategy strategy = new SpecificUsersAuthorizationStrategy("dummy");
+                strategy.setDontRestrictJobConfiguration(true);
+                p.addProperty(new AuthorizeProjectProperty(strategy));
 
                 // the build will fail if we can not locate the credentials
                 WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());

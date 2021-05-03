@@ -101,7 +101,7 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         keyFile.write(contents.toString(), "UTF-8");
         keyFile.chmod(0400);
 
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new LinkedHashMap<>();
         map.put(keyFileVariable, keyFile.getRemote());
         if (passphraseVariable != null) {
             Secret passphrase = sshKey.getPassphrase();

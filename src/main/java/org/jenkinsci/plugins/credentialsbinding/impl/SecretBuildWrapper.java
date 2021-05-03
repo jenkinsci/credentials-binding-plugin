@@ -35,6 +35,7 @@ import hudson.model.Run;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
+import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.CheckForNull;
@@ -60,7 +61,7 @@ public class SecretBuildWrapper extends BuildWrapper {
      */
     public static @CheckForNull Pattern getPatternForBuild(@Nonnull AbstractBuild<?, ?> build) {
         if (secretsForBuild.containsKey(build)) {
-            return Pattern.compile(MultiBinding.getPatternStringForSecrets(secretsForBuild.get(build)));
+            return SecretPatterns.getAggregateSecretPattern(secretsForBuild.get(build));
         } else {
             return null;
         }
@@ -109,7 +110,6 @@ public class SecretBuildWrapper extends BuildWrapper {
                 for (MultiBinding.MultiEnvironment e : m) {
                     e.getUnbinder().unbind(build, build.getWorkspace(), launcher, listener);
                 }
-                secretsForBuild.remove(build);
                 return true;
             }
         };
@@ -160,9 +160,14 @@ public class SecretBuildWrapper extends BuildWrapper {
                     }
                 }
 
+                @Override public void flush() throws IOException {
+                    logger.flush();
+                }
+
                 @Override public void close() throws IOException {
                     super.close();
                     logger.close();
+                    secretsForBuild.remove(build);
                 }
             };
         }

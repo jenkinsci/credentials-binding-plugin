@@ -109,7 +109,7 @@ public class CertificateMultiBindingTest {
 		if (Functions.isWindows()) {
 			p.getBuildersList().add(new BatchFile(
 					  "echo | set /p=\"%alias%/%password%/\" > secrets.txt\r\n"
-					+ "IF EXIST %keystore% (\r\n"
+					+ "IF EXIST \"%keystore%\" (\r\n"
 					+ "echo | set /p=\"exists\" >> secrets.txt\r\n"
 					+ ") ELSE (\r\n"
 					+ "echo | set /p=\"missing\" >> secrets.txt\r\n"

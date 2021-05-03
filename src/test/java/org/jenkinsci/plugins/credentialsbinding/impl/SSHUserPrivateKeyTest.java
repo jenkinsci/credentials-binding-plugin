@@ -145,7 +145,7 @@ public class SSHUserPrivateKeyTest {
                     script =
                         "    sh '''\n"
                         + "      echo $THEUSER:$THEPASS > out.txt\n"
-                        + "      cat $THEKEY > key.txt"
+                        + "      cat \"$THEKEY\" > key.txt"
                         + "    '''\n";
                 }
                 p.setDefinition(new CpsFlowDefinition(""
@@ -197,7 +197,7 @@ public class SSHUserPrivateKeyTest {
                 } else {
                     script =
                         "    sh '''\n"
-                        + "      cat $THEKEY > key.txt"
+                        + "      cat \"$THEKEY\" > key.txt"
                         + "    '''\n";
                 }
                 p.setDefinition(new CpsFlowDefinition(""

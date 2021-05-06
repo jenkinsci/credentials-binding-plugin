@@ -65,7 +65,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
-      <version>2.4-rc955.ba505d7bdaa3</version> <!-- TODO https://github.com/jenkinsci/credentials-plugin/pull/205 -->
+      <version>2.4-rc956.3fce07b09187</version> <!-- TODO https://github.com/jenkinsci/credentials-plugin/pull/205 -->
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>

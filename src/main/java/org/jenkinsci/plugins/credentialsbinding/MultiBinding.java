@@ -35,7 +35,6 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
@@ -190,7 +189,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
      * Looks up the actual credentials.
      * @param build the build.
      * @return the credentials
-     * @throws FileNotFoundException if the credentials could not be found (for convenience, rather than returning null)
+     * @throws CredentialNotFoundException if the credentials could not be found (for convenience, rather than returning null)
      */
     protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws CredentialNotFoundException {
         IdCredentials cred = CredentialsProvider.findCredentialById(credentialsId, IdCredentials.class, build);

@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -126,6 +127,7 @@ public final class BindingStep extends Step {
             Launcher launcher = getContext().get(Launcher.class);
 
             Collection<String> secrets = new HashSet<>();
+            Collection<String> secretKeys = new LinkedHashSet<>();
             Map<String,String> overrides = new LinkedHashMap<>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<>();
             for (MultiBinding<?> binding : step.bindings) {
@@ -135,13 +137,15 @@ public final class BindingStep extends Step {
                 }
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());
-                secrets.addAll(environment.getSecretValues().values());
-                overrides.putAll(environment.getSecretValues());
+                Map<String, String> secretValues = environment.getSecretValues();
+                secrets.addAll(secretValues.values());
+                secretKeys.addAll(secretValues.keySet());
+                overrides.putAll(secretValues);
                 overrides.putAll(environment.getPublicValues());
             }
             if (!overrides.isEmpty()) {
                 boolean unix = launcher != null ? launcher.isUnix() : true;
-                listener.getLogger().println("Masking supported pattern matches of " + overrides.keySet().stream().map(
+                listener.getLogger().println("Masking supported pattern matches of " + secretKeys.stream().map(
                     v -> unix ? "$" + v : "%" + v + "%"
                 ).collect(Collectors.joining(" or ")));
             }

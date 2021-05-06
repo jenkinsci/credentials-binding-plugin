@@ -117,7 +117,11 @@ public class SecretBuildWrapper extends BuildWrapper {
 
     @Override public void makeSensitiveBuildVariables(AbstractBuild build, Set<String> sensitiveVariables) {
         for (MultiBinding binding : bindings) {
-            sensitiveVariables.addAll(binding.variables());
+            try {
+                sensitiveVariables.addAll(binding.variables(build));
+            } catch (CredentialNotFoundException x) {
+                // ignore here (will throw an error later anyway)
+            }
         }
     }
 

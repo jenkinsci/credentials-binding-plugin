@@ -59,6 +59,7 @@ public class UsernamePasswordMultiBindingTest {
         String username = "bob";
         String password = "s3cr3t";
         UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, "sample", username, password);
+        c.setUsernameSecret(true);
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("userid", "pass", c.getId()))));
@@ -77,19 +78,12 @@ public class UsernamePasswordMultiBindingTest {
         assertEquals(UsernamePasswordMultiBinding.class, binding.getClass());
         assertEquals("userid", ((UsernamePasswordMultiBinding) binding).getUsernameVariable());
         assertEquals("pass", ((UsernamePasswordMultiBinding) binding).getPasswordVariable());
-        assertFalse(((UsernamePasswordMultiBinding) binding).isShowUsername());
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
         r.assertLogNotContains(username, b);
         assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
         assertEquals("[pass, userid]", new TreeSet<>(b.getSensitiveBuildVariables()).toString());
-        // showUsername: true
-        ((UsernamePasswordMultiBinding) binding).setShowUsername(true);
-        r.configRoundtrip((Item)p);
-        bindings = wrapper.getBindings();
-        assertEquals(1, bindings.size());
-        binding = bindings.get(0);
-        assertTrue(((UsernamePasswordMultiBinding) binding).isShowUsername());
+        c.setUsernameSecret(false);
         b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
         r.assertLogContains(username, b);

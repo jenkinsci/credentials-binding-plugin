@@ -30,6 +30,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Run;
@@ -169,8 +170,21 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
                                           @Nullable Launcher launcher,
                                           @Nonnull TaskListener listener) throws IOException, InterruptedException;
 
+    /**
+     * @deprecated override {@link #variables(Run)}
+     */
+    public Set<String> variables() {
+        return Collections.emptySet();
+    }
+
     /** Defines keys expected to be set in {@link MultiEnvironment#getSecretValues()}, particularly any that might be sensitive. */
-    public abstract Set<String> variables();
+    public /*abstract*/ Set<String> variables(@Nonnull Run<?,?> build) throws CredentialNotFoundException {
+        if (Util.isOverridden(MultiBinding.class, getClass(), "variables")) {
+            return variables();
+        } else {
+            throw new AbstractMethodError("Implement variables");
+        }
+    }
 
     /**
      * Looks up the actual credentials.
@@ -178,7 +192,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
      * @return the credentials
      * @throws FileNotFoundException if the credentials could not be found (for convenience, rather than returning null)
      */
-    protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws IOException {
+    protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws CredentialNotFoundException {
         IdCredentials cred = CredentialsProvider.findCredentialById(credentialsId, IdCredentials.class, build);
         if (cred==null)
             throw new CredentialNotFoundException("Could not find credentials entry with ID '" + credentialsId + "'");

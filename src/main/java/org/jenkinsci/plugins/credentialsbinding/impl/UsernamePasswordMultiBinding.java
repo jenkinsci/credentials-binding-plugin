@@ -43,13 +43,11 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.kohsuke.stapler.DataBoundSetter;
 
 public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernamePasswordCredentials> {
 
     private final String usernameVariable;
     private final String passwordVariable;
-    private boolean showUsername;
 
     @DataBoundConstructor public UsernamePasswordMultiBinding(String usernameVariable, String passwordVariable, String credentialsId) {
         super(credentialsId);
@@ -65,14 +63,6 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return passwordVariable;
     }
 
-    public boolean isShowUsername() {
-        return showUsername;
-    }
-
-    @DataBoundSetter public void setShowUsername(boolean showUsername) {
-        this.showUsername = showUsername;
-    }
-
     @Override protected Class<StandardUsernamePasswordCredentials> type() {
         return StandardUsernamePasswordCredentials.class;
     }
@@ -84,14 +74,15 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         Map<String, String> secretValues = new LinkedHashMap<>();
         Map<String, String> publicValues = new LinkedHashMap<>();
-        (showUsername ? publicValues : secretValues).put(usernameVariable, credentials.getUsername());
+        (credentials.isUsernameSecret() ? secretValues : publicValues).put(usernameVariable, credentials.getUsername());
         secretValues.put(passwordVariable, credentials.getPassword().getPlainText());
         return new MultiEnvironment(secretValues, publicValues);
     }
 
-    @Override public Set<String> variables() {
+    @Override public Set<String> variables(Run<?, ?> build) throws CredentialNotFoundException {
+        StandardUsernamePasswordCredentials credentials = getCredentials(build);
         Set<String> vars = new LinkedHashSet<>();
-        if (!showUsername) {
+        if (credentials.isUsernameSecret()) {
             vars.add(usernameVariable);
         }
         vars.add(passwordVariable);

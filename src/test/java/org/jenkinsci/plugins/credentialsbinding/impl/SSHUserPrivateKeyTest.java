@@ -30,6 +30,7 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import hudson.Functions;
+import hudson.security.ACL;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -47,16 +48,20 @@ import java.io.Serializable;
 import java.util.*;
 
 import static org.junit.Assert.*;
+import org.junit.ClassRule;
+import org.jvnet.hudson.test.BuildWatcher;
 
 public class SSHUserPrivateKeyTest {
 
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
+    @ClassRule public static BuildWatcher bw = new BuildWatcher();
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
     private static class DummyPrivateKey extends BaseCredentials implements SSHUserPrivateKey, Serializable {
 
         private final String id;
         private final String user;
+        boolean usernameSecret = true;
         private final Secret passphrase;
         private final String keyContent;
 
@@ -94,6 +99,11 @@ public class SSHUserPrivateKeyTest {
         @Override
         public String getUsername() {
             return user;
+        }
+
+        @Override
+        public boolean isUsernameSecret() {
+            return usernameSecret;
         }
 
         @NonNull
@@ -168,6 +178,7 @@ public class SSHUserPrivateKeyTest {
                 SemaphoreStep.success("basics/1", null);
                 story.j.waitForCompletion(b);
                 story.j.assertBuildStatusSuccess(b);
+                story.j.assertLogNotContains(username, b);
                 story.j.assertLogNotContains(passphrase, b);
                 FilePath out = story.j.jenkins.getWorkspaceFor(p).child("out.txt");
                 assertTrue(out.exists());
@@ -176,6 +187,12 @@ public class SSHUserPrivateKeyTest {
                 FilePath key = story.j.jenkins.getWorkspaceFor(p).child("key.txt");
                 assertTrue(key.exists());
                 assertEquals(keyContent, key.readToString().trim());
+
+                ((DummyPrivateKey) CredentialsProvider.lookupCredentials(SSHUserPrivateKey.class, story.j.jenkins, ACL.SYSTEM, Collections.emptyList()).get(0)).usernameSecret = false;
+                SemaphoreStep.success("basics/2", null);
+                b = story.j.buildAndAssertSuccess(p);
+                story.j.assertLogContains(username, b);
+                story.j.assertLogNotContains(passphrase, b);
             }
         });
     }

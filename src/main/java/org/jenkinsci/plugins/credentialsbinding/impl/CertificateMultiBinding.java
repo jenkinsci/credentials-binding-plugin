@@ -57,7 +57,6 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 	}
 
 	private String aliasVariable;
-	// TODO JENKINS-44860 consider adding a showAlias field
 
 	@DataBoundConstructor
 	@CheckForNull
@@ -106,7 +105,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 	}
 
 	@Override
-	public Set<String> variables() {
+	public Set<String> variables(Run<?, ?> build) {
 		Set<String> set = new HashSet<>();
 		set.add(keystoreVariable);
 		if (aliasVariable != null && !aliasVariable.isEmpty()) {

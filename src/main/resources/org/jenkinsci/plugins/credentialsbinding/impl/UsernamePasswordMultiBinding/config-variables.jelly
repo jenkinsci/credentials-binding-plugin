@@ -30,7 +30,4 @@ THE SOFTWARE.
     <f:entry title="${%Password Variable}" field="passwordVariable">
         <f:textbox/>
     </f:entry>
-    <f:entry field="showUsername">
-        <f:checkbox title="${%Show username in log}"/>
-    </f:entry>
 </j:jelly>

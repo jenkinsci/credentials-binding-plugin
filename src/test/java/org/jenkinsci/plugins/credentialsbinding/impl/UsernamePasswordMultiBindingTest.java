@@ -44,25 +44,29 @@ import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
+import org.junit.ClassRule;
 
 import org.junit.Rule;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class UsernamePasswordMultiBindingTest {
 
     @Rule public JenkinsRule r = new JenkinsRule();
+    @ClassRule public static BuildWatcher bw = new BuildWatcher();
 
     @Test public void basics() throws Exception {
         String username = "bob";
         String password = "s3cr3t";
         UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, "sample", username, password);
+        c.setUsernameSecret(true);
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<MultiBinding<?>>singletonList(new UsernamePasswordMultiBinding("userid", "pass", c.getId()))));
         if (Functions.isWindows()) {
-            p.getBuildersList().add(new BatchFile("@echo off\necho %userid%/%pass% > auth.txt"));
+            p.getBuildersList().add(new BatchFile("echo %userid%/%pass% > auth.txt"));
         } else {
-            p.getBuildersList().add(new Shell("set +x\necho $userid/$pass > auth.txt"));
+            p.getBuildersList().add(new Shell("echo $userid/$pass > auth.txt"));
         }
         r.configRoundtrip((Item)p);
         SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
@@ -76,8 +80,15 @@ public class UsernamePasswordMultiBindingTest {
         assertEquals("pass", ((UsernamePasswordMultiBinding) binding).getPasswordVariable());
         FreeStyleBuild b = r.buildAndAssertSuccess(p);
         r.assertLogNotContains(password, b);
+        r.assertLogNotContains(username, b);
         assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
-        assertEquals("[pass, userid]", new TreeSet<String>(b.getSensitiveBuildVariables()).toString());
+        assertEquals("[pass, userid]", new TreeSet<>(b.getSensitiveBuildVariables()).toString());
+        c.setUsernameSecret(false);
+        b = r.buildAndAssertSuccess(p);
+        r.assertLogNotContains(password, b);
+        r.assertLogContains(username, b);
+        assertEquals(username + '/' + password, b.getWorkspace().child("auth.txt").readToString().trim());
+        assertEquals("[pass]", new TreeSet<>(b.getSensitiveBuildVariables()).toString());
     }
 
 }

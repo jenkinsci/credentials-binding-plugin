@@ -30,11 +30,11 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
@@ -45,6 +45,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import jenkins.model.Jenkins;
+import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -72,20 +73,57 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     /** Result of {@link #bind}. */
     public static final class MultiEnvironment implements Serializable {
 
-        private final Map<String,String> values;
+        private static final long serialVersionUID = 1;
+
+        @Deprecated
+        private transient Map<String,String> values;
+        private Map<String,String> secretValues;
+        private Map<String,String> publicValues;
         private final Unbinder unbinder;
 
-        public MultiEnvironment(Map<String,String> values) {
-            this(values, new NullUnbinder());
+        public MultiEnvironment(Map<String,String> secretValues) {
+            this(secretValues, Collections.<String, String>emptyMap());
         }
 
-        public MultiEnvironment(Map<String,String> values, Unbinder unbinder) {
-            this.values = new LinkedHashMap<>(values);
+        public MultiEnvironment(Map<String,String> secretValues, Map<String,String> publicValues) {
+            this(secretValues, publicValues, new NullUnbinder());
+        }
+
+        public MultiEnvironment(Map<String,String> secretValues, Unbinder unbinder) {
+            this(secretValues, Collections.<String, String>emptyMap(), unbinder);
+        }
+
+        public MultiEnvironment(Map<String,String> secretValues, Map<String,String> publicValues, Unbinder unbinder) {
+            this.values = null;
+            this.secretValues = new LinkedHashMap<>(secretValues);
+            this.publicValues = new LinkedHashMap<>(publicValues);
+            if (!CollectionUtils.intersection(secretValues.keySet(), publicValues.keySet()).isEmpty()) {
+                throw new IllegalArgumentException("Cannot use the same key in both secretValues and publicValues");
+            }
             this.unbinder = unbinder;
         }
 
+        // To avoid de-serialization issues with newly added field (secretValues, publicValues)
+        private Object readResolve() {
+            if (values != null) {
+                secretValues = values;
+                publicValues = Collections.emptyMap();
+                values = null;
+            }
+            return this;
+        }
+
+        @Deprecated
         public Map<String,String> getValues() {
-            return Collections.unmodifiableMap(values);
+            return Collections.unmodifiableMap(secretValues);
+        }
+
+        public Map<String,String> getSecretValues() {
+            return Collections.unmodifiableMap(secretValues);
+        }
+
+        public Map<String,String> getPublicValues() {
+            return Collections.unmodifiableMap(publicValues);
         }
 
         public Unbinder getUnbinder() {
@@ -131,16 +169,29 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
                                           @Nullable Launcher launcher,
                                           @Nonnull TaskListener listener) throws IOException, InterruptedException;
 
-    /** Defines keys expected to be set in {@link MultiEnvironment#getValues}, particularly any that might be sensitive. */
-    public abstract Set<String> variables();
+    /**
+     * @deprecated override {@link #variables(Run)}
+     */
+    public Set<String> variables() {
+        return Collections.emptySet();
+    }
+
+    /** Defines keys expected to be set in {@link MultiEnvironment#getSecretValues()}, particularly any that might be sensitive. */
+    public /*abstract*/ Set<String> variables(@Nonnull Run<?,?> build) throws CredentialNotFoundException {
+        if (Util.isOverridden(MultiBinding.class, getClass(), "variables")) {
+            return variables();
+        } else {
+            throw new AbstractMethodError("Implement variables");
+        }
+    }
 
     /**
      * Looks up the actual credentials.
      * @param build the build.
      * @return the credentials
-     * @throws FileNotFoundException if the credentials could not be found (for convenience, rather than returning null)
+     * @throws CredentialNotFoundException if the credentials could not be found (for convenience, rather than returning null)
      */
-    protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws IOException {
+    protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws CredentialNotFoundException {
         IdCredentials cred = CredentialsProvider.findCredentialById(credentialsId, IdCredentials.class, build);
         if (cred==null)
             throw new CredentialNotFoundException("Could not find credentials entry with ID '" + credentialsId + "'");

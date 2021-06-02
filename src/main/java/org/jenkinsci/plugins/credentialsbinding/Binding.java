@@ -151,7 +151,7 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
         return new MultiEnvironment(Collections.singletonMap(variable, single.value), single.unbinder);
     }
 
-    @Override public final Set<String> variables() {
+    @Override public final Set<String> variables(Run<?, ?> build) {
         return Collections.singleton(variable);
     }
 

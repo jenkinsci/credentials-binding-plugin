@@ -31,9 +31,8 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import org.jenkinsci.Symbol;
@@ -73,14 +72,21 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
                                            @Nullable Launcher launcher,
                                            @Nonnull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
-        Map<String,String> m = new LinkedHashMap<>();
-        m.put(usernameVariable, credentials.getUsername());
-        m.put(passwordVariable, credentials.getPassword().getPlainText());
-        return new MultiEnvironment(m);
+        Map<String, String> secretValues = new LinkedHashMap<>();
+        Map<String, String> publicValues = new LinkedHashMap<>();
+        (credentials.isUsernameSecret() ? secretValues : publicValues).put(usernameVariable, credentials.getUsername());
+        secretValues.put(passwordVariable, credentials.getPassword().getPlainText());
+        return new MultiEnvironment(secretValues, publicValues);
     }
 
-    @Override public Set<String> variables() {
-        return new HashSet<String>(Arrays.asList(usernameVariable, passwordVariable));
+    @Override public Set<String> variables(Run<?, ?> build) throws CredentialNotFoundException {
+        StandardUsernamePasswordCredentials credentials = getCredentials(build);
+        Set<String> vars = new LinkedHashSet<>();
+        if (credentials.isUsernameSecret()) {
+            vars.add(usernameVariable);
+        }
+        vars.add(passwordVariable);
+        return vars;
     }
 
     @Symbol("usernamePassword")

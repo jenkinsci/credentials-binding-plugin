@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>credentials-binding</artifactId>
-  <version>1.25</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>Credentials Binding Plugin</name>
@@ -18,7 +18,7 @@
   </description>
   <url>https://github.com/jenkinsci/credentials-binding-plugin</url>
   <properties>
-    <revision>1.25</revision>
+    <revision>1.26</revision>
     <changelist>-SNAPSHOT</changelist>
     <jenkins.version>2.235.5</jenkins.version>
     <java.level>8</java.level>
@@ -34,7 +34,7 @@
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-    <tag>credentials-binding-1.25</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <repositories>

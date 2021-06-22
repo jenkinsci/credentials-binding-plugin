@@ -9,3 +9,4 @@ if not defined KEYSTORE_ALIAS exit /B 1
 REM keep location of the keystore file for the next step
 echo %MY_KEYSTORE% > keystore-path
 
+exit /B 0

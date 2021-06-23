@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.console.ConsoleLogFilter;
-import hudson.console.LineTransformationOutputStream;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -43,7 +42,6 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @SuppressWarnings({"rawtypes", "unchecked"}) // inherited from BuildWrapper
@@ -142,28 +140,7 @@ public class SecretBuildWrapper extends BuildWrapper {
         }
 
         @Override public OutputStream decorateLogger(final AbstractBuild build, final OutputStream logger) throws IOException, InterruptedException {
-            return new LineTransformationOutputStream.Delegating(logger) {
-                Pattern p;
-
-                @Override protected void eol(byte[] b, int len) throws IOException {
-                    if (p == null) {
-                        p = getPatternForBuild(build);
-                    }
-
-                    if (p != null && !p.toString().isEmpty()) {
-                        Matcher m = p.matcher(new String(b, 0, len, charsetName));
-                        if (m.find()) {
-                            out.write(m.replaceAll("****").getBytes(charsetName));
-                        } else {
-                            // Avoid byte → char → byte conversion unless we are actually doing something.
-                            out.write(b, 0, len);
-                        }
-                    } else {
-                        // Avoid byte → char → byte conversion unless we are actually doing something.
-                        out.write(b, 0, len);
-                    }
-                }
-
+            return new SecretPatterns.MaskingOutputStream(logger, getPatternForBuild(build), charsetName) {
                 @Override public void close() throws IOException {
                     super.close();
                     secretsForBuild.remove(build);

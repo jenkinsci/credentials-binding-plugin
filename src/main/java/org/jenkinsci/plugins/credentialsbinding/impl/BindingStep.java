@@ -29,7 +29,6 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.console.ConsoleLogFilter;
-import hudson.console.LineTransformationOutputStream;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -49,7 +48,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -219,23 +217,7 @@ public final class BindingStep extends Step {
         }
 
         @Override public OutputStream decorateLogger(AbstractBuild _ignore, final OutputStream logger) throws IOException, InterruptedException {
-            final Pattern p = Pattern.compile(pattern.getPlainText());
-            return new LineTransformationOutputStream.Delegating(logger) {
-                @Override protected void eol(byte[] b, int len) throws IOException {
-                    if (!p.toString().isEmpty()) {
-                        Matcher m = p.matcher(new String(b, 0, len, charsetName));
-                        if (m.find()) {
-                            out.write(m.replaceAll("****").getBytes(charsetName));
-                        } else {
-                            // Avoid byte → char → byte conversion unless we are actually doing something.
-                            out.write(b, 0, len);
-                        }
-                    } else {
-                        // Avoid byte → char → byte conversion unless we are actually doing something.
-                        out.write(b, 0, len);
-                    }
-                }
-            };
+            return new SecretPatterns.MaskingOutputStream(logger, Pattern.compile(pattern.getPlainText()), charsetName);
         }
 
     }

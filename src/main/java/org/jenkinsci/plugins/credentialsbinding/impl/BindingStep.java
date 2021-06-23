@@ -216,8 +216,8 @@ public final class BindingStep extends Step {
             return this;
         }
 
-        @Override public OutputStream decorateLogger(AbstractBuild _ignore, final OutputStream logger) throws IOException, InterruptedException {
-            return new SecretPatterns.MaskingOutputStream(logger, Pattern.compile(pattern.getPlainText()), charsetName);
+        @Override public OutputStream decorateLogger(AbstractBuild _ignore, OutputStream logger) throws IOException, InterruptedException {
+            return new SecretPatterns.MaskingOutputStream(logger, () -> Pattern.compile(pattern.getPlainText()), charsetName);
         }
 
     }

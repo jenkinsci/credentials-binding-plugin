@@ -139,8 +139,8 @@ public class SecretBuildWrapper extends BuildWrapper {
             this.charsetName = charsetName;
         }
 
-        @Override public OutputStream decorateLogger(final AbstractBuild build, final OutputStream logger) throws IOException, InterruptedException {
-            return new SecretPatterns.MaskingOutputStream(logger, getPatternForBuild(build), charsetName) {
+        @Override public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws IOException, InterruptedException {
+            return new SecretPatterns.MaskingOutputStream(logger, () -> getPatternForBuild(build), charsetName) {
                 @Override public void close() throws IOException {
                     super.close();
                     secretsForBuild.remove(build);

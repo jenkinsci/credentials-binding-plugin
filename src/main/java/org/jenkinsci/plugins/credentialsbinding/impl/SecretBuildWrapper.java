@@ -142,7 +142,7 @@ public class SecretBuildWrapper extends BuildWrapper {
         }
 
         @Override public OutputStream decorateLogger(final AbstractBuild build, final OutputStream logger) throws IOException, InterruptedException {
-            return new LineTransformationOutputStream() {
+            return new LineTransformationOutputStream.Delegating(logger) {
                 Pattern p;
 
                 @Override protected void eol(byte[] b, int len) throws IOException {
@@ -153,24 +153,19 @@ public class SecretBuildWrapper extends BuildWrapper {
                     if (p != null && !p.toString().isEmpty()) {
                         Matcher m = p.matcher(new String(b, 0, len, charsetName));
                         if (m.find()) {
-                            logger.write(m.replaceAll("****").getBytes(charsetName));
+                            out.write(m.replaceAll("****").getBytes(charsetName));
                         } else {
                             // Avoid byte → char → byte conversion unless we are actually doing something.
-                            logger.write(b, 0, len);
+                            out.write(b, 0, len);
                         }
                     } else {
                         // Avoid byte → char → byte conversion unless we are actually doing something.
-                        logger.write(b, 0, len);
+                        out.write(b, 0, len);
                     }
-                }
-
-                @Override public void flush() throws IOException {
-                    logger.flush();
                 }
 
                 @Override public void close() throws IOException {
                     super.close();
-                    logger.close();
                     secretsForBuild.remove(build);
                 }
             };

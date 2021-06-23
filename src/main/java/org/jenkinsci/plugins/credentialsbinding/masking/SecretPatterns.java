@@ -34,10 +34,7 @@ import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-@Restricted(NoExternalUse.class)
 public class SecretPatterns {
 
     private static final Comparator<String> BY_LENGTH_DESCENDING =
@@ -100,5 +97,7 @@ public class SecretPatterns {
         }
 
     }
+
+    private SecretPatterns() {}
 
 }

@@ -220,27 +220,20 @@ public final class BindingStep extends Step {
 
         @Override public OutputStream decorateLogger(AbstractBuild _ignore, final OutputStream logger) throws IOException, InterruptedException {
             final Pattern p = Pattern.compile(pattern.getPlainText());
-            return new LineTransformationOutputStream() {
+            return new LineTransformationOutputStream.Delegating(logger) {
                 @Override protected void eol(byte[] b, int len) throws IOException {
                     if (!p.toString().isEmpty()) {
                         Matcher m = p.matcher(new String(b, 0, len, charsetName));
                         if (m.find()) {
-                            logger.write(m.replaceAll("****").getBytes(charsetName));
+                            out.write(m.replaceAll("****").getBytes(charsetName));
                         } else {
                             // Avoid byte → char → byte conversion unless we are actually doing something.
-                            logger.write(b, 0, len);
+                            out.write(b, 0, len);
                         }
                     } else {
                         // Avoid byte → char → byte conversion unless we are actually doing something.
-                        logger.write(b, 0, len);
+                        out.write(b, 0, len);
                     }
-                }
-                @Override public void flush() throws IOException {
-                    logger.flush();
-                }
-                @Override public void close() throws IOException {
-                    super.close();
-                    logger.close();
                 }
             };
         }

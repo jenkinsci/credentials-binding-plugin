@@ -24,16 +24,18 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.console.LineTransformationOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@Restricted(NoExternalUse.class)
 public class SecretPatterns {
 
     private static final Comparator<String> BY_LENGTH_DESCENDING =
@@ -48,7 +50,7 @@ public class SecretPatterns {
      * For example, {@code bash -x} will only quote arguments echoed when necessary. To avoid leaking the presence or
      * absence of quoting, the longer form is masked.
      */
-    public static @Nonnull Pattern getAggregateSecretPattern(@Nonnull Collection<String> inputs) {
+    public static @NonNull Pattern getAggregateSecretPattern(@NonNull Collection<String> inputs) {
         String pattern = inputs.stream()
                 .filter(input -> !input.isEmpty())
                 .flatMap(input ->
@@ -60,4 +62,47 @@ public class SecretPatterns {
                 .collect(Collectors.joining("|"));
         return Pattern.compile(pattern);
     }
+
+    /**
+     * Delegating output stream that masks occurrences of a set of secrets.
+     */
+    public static class MaskingOutputStream extends LineTransformationOutputStream.Delegating {
+
+        private final @NonNull Supplier<Pattern> secretPattern;
+        private final @NonNull String charsetName;
+        private @CheckForNull Pattern p;
+
+        /**
+         * @param out the base output stream which will not be sent secrets
+         * @param secretPattern a lazy computation of either the result of {@link #getAggregateSecretPattern}, or null to just skip masking
+         * @param charsetName the character set to detect strings
+         */
+        public MaskingOutputStream(@NonNull OutputStream out, @NonNull Supplier<Pattern> secretPattern, @NonNull String charsetName) {
+            super(out);
+            this.secretPattern = secretPattern;
+            this.charsetName = charsetName;
+        }
+
+        @Override protected void eol(byte[] b, int len) throws IOException {
+            if (p == null) {
+                p = secretPattern.get();
+            }
+            if (p == null || p.toString().isEmpty()) {
+                // Avoid byte → char → byte conversion unless we are actually doing something.
+                out.write(b, 0, len);
+            } else {
+                Matcher m = p.matcher(new String(b, 0, len, charsetName));
+                if (m.find()) {
+                    out.write(m.replaceAll("****").getBytes(charsetName));
+                } else {
+                    // As above.
+                    out.write(b, 0, len);
+                }
+            }
+        }
+
+    }
+
+    private SecretPatterns() {}
+
 }

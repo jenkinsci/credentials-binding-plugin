@@ -183,7 +183,7 @@ public final class BindingStep extends Step {
             for (Map.Entry<String,String> override : overrides.entrySet()) {
                 this.overrides.put(override.getKey(), Secret.fromString(override.getValue()));
             }
-            this.secretKeys = new HashSet<String>(secretKeys);
+            this.secretKeys = new HashSet<>(secretKeys);
         }
 
         @Override public void expand(EnvVars env) throws IOException, InterruptedException {
@@ -198,7 +198,7 @@ public final class BindingStep extends Step {
 
         private Object readResolve() {
             if (secretKeys == null) {
-                secretKeys = overrides.keySet();
+                secretKeys = new HashSet<>(overrides.keySet());
             }
             return this;
         }

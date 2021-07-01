@@ -148,7 +148,7 @@ public final class BindingStep extends Step {
                 ).collect(Collectors.joining(" or ")));
             }
             getContext().newBodyInvoker().
-                    withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
+                    withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides, secretKeys))).
                     withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(secrets, run.getCharset().name()))).
                     withCallback(new Callback2(unbinders)).
                     start();
@@ -177,11 +177,13 @@ public final class BindingStep extends Step {
         private static final long serialVersionUID = 1;
 
         private final Map<String,Secret> overrides = new HashMap<String,Secret>();
+        private Set<String> secretKeys;
 
-        Overrider(Map<String,String> overrides) {
+        Overrider(Map<String,String> overrides, Collection<String> secretKeys) {
             for (Map.Entry<String,String> override : overrides.entrySet()) {
                 this.overrides.put(override.getKey(), Secret.fromString(override.getValue()));
             }
+            this.secretKeys = new HashSet<String>(secretKeys);
         }
 
         @Override public void expand(EnvVars env) throws IOException, InterruptedException {
@@ -191,7 +193,14 @@ public final class BindingStep extends Step {
         }
 
         @Override public Set<String> getSensitiveVariables() {
-            return Collections.unmodifiableSet(overrides.keySet());
+            return Collections.unmodifiableSet(secretKeys);
+        }
+
+        private Object readResolve() {
+            if (secretKeys == null) {
+                secretKeys = overrides.keySet();
+            }
+            return this;
         }
     }
 

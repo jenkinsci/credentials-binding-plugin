@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.Secret;
@@ -53,8 +54,8 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
     }
 
     @DataBoundSetter
-    public void setUsernameVariable(@Nonnull final String usernameVariable) {
-        this.usernameVariable = usernameVariable;
+    public void setUsernameVariable(@CheckForNull String usernameVariable) {
+        this.usernameVariable = Util.fixEmptyAndTrim(usernameVariable);
     }
 
     @CheckForNull
@@ -63,8 +64,8 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
     }
 
     @DataBoundSetter
-    public void setPassphraseVariable(@Nonnull final String passphraseVariable) {
-        this.passphraseVariable = passphraseVariable;
+    public void setPassphraseVariable(@CheckForNull String passphraseVariable) {
+        this.passphraseVariable = Util.fixEmptyAndTrim(passphraseVariable);
     }
 
     @CheckForNull

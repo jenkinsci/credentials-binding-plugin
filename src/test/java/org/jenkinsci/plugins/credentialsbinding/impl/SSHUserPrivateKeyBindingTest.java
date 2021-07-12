@@ -51,7 +51,7 @@ import static org.junit.Assert.*;
 import org.junit.ClassRule;
 import org.jvnet.hudson.test.BuildWatcher;
 
-public class SSHUserPrivateKeyTest {
+public class SSHUserPrivateKeyBindingTest {
 
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @ClassRule public static BuildWatcher bw = new BuildWatcher();

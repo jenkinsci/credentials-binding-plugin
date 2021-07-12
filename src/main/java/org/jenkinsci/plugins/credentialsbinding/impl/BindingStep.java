@@ -44,7 +44,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -124,9 +123,8 @@ public final class BindingStep extends Step {
             FilePath workspace = getContext().get(FilePath.class);
             Launcher launcher = getContext().get(Launcher.class);
 
-            Collection<String> secrets = new HashSet<>();
-            Collection<String> secretKeys = new LinkedHashSet<>();
-            Map<String,String> overrides = new LinkedHashMap<>();
+            Map<String,String> secretOverrides = new LinkedHashMap<>();
+            Map<String,String> publicOverrides = new LinkedHashMap<>();
             List<MultiBinding.Unbinder> unbinders = new ArrayList<>();
             for (MultiBinding<?> binding : step.bindings) {
                 if (binding.getDescriptor().requiresWorkspace() &&
@@ -135,21 +133,18 @@ public final class BindingStep extends Step {
                 }
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());
-                Map<String, String> secretValues = environment.getSecretValues();
-                secrets.addAll(secretValues.values());
-                secretKeys.addAll(secretValues.keySet());
-                overrides.putAll(secretValues);
-                overrides.putAll(environment.getPublicValues());
+                secretOverrides.putAll(environment.getSecretValues());
+                publicOverrides.putAll(environment.getPublicValues());
             }
-            if (!overrides.isEmpty()) {
+            if (!secretOverrides.isEmpty()) {
                 boolean unix = launcher != null ? launcher.isUnix() : true;
-                listener.getLogger().println("Masking supported pattern matches of " + secretKeys.stream().map(
+                listener.getLogger().println("Masking supported pattern matches of " + secretOverrides.keySet().stream().map(
                     v -> unix ? "$" + v : "%" + v + "%"
                 ).collect(Collectors.joining(" or ")));
             }
             getContext().newBodyInvoker().
-                    withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(overrides))).
-                    withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(secrets, run.getCharset().name()))).
+                    withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(secretOverrides, publicOverrides))).
+                    withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(secretOverrides.values(), run.getCharset().name()))).
                     withCallback(new Callback2(unbinders)).
                     start();
         }
@@ -177,21 +172,33 @@ public final class BindingStep extends Step {
         private static final long serialVersionUID = 1;
 
         private final Map<String,Secret> overrides = new HashMap<String,Secret>();
+        private Map<String, String> publicOverrides;
 
-        Overrider(Map<String,String> overrides) {
+        Overrider(Map<String,String> overrides, Map<String, String> publicOverrides) {
             for (Map.Entry<String,String> override : overrides.entrySet()) {
                 this.overrides.put(override.getKey(), Secret.fromString(override.getValue()));
             }
+            this.publicOverrides = publicOverrides;
         }
 
         @Override public void expand(EnvVars env) throws IOException, InterruptedException {
             for (Map.Entry<String,Secret> override : overrides.entrySet()) {
                 env.override(override.getKey(), override.getValue().getPlainText());
             }
+            for (Map.Entry<String, String> override : publicOverrides.entrySet()) {
+                env.override(override.getKey(), override.getValue());
+            }
         }
 
         @Override public Set<String> getSensitiveVariables() {
             return Collections.unmodifiableSet(overrides.keySet());
+        }
+
+        private Object readResolve() {
+            if (publicOverrides == null) {
+                publicOverrides = new HashMap<>();
+            }
+            return this;
         }
     }
 

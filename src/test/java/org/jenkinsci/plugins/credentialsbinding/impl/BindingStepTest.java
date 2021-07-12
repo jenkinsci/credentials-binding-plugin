@@ -65,8 +65,13 @@ import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.BlanketWhitelist;
+import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
+import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
+import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
@@ -75,10 +80,12 @@ import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
 
@@ -442,6 +449,29 @@ public class BindingStepTest {
                 p.setDefinition(new CpsFlowDefinition("node {withCredentials([string(variable: 'SECRET', credentialsId: 'creds')]) {echo 'normal output'}}", true));
                 story.j.assertLogContains("normal output", story.j.buildAndAssertSuccess(p));
             }
+        });
+    }
+
+    @Issue("JENKINS-64631")
+    @Test
+    public void usernameUnmaskedInStepArguments() {
+        story.then(r -> {
+            String credentialsId = "my-credentials";
+            String username = "alice";
+            // UsernamePasswordCredentialsImpl.isUsernameSecret defaults to false for new credentials.
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(),
+                    new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, null, username, "s3cr3t"));
+            WorkflowJob p = r.createProject(WorkflowJob.class);
+            p.setDefinition(new CpsFlowDefinition(
+                    "node {\n" +
+                    "  withCredentials([usernamePassword(credentialsId: '" + credentialsId + "', usernameVariable: 'username', passwordVariable: 'password')]) {\n" +
+                    "    echo(/Username is ${username}/)\n" +
+                    "  }\n" +
+                    "}", true));
+            WorkflowRun b = r.buildAndAssertSuccess(p);
+            FlowExecution exec = b.asFlowExecutionOwner().get();
+            FlowNode echoNode = new DepthFirstScanner().findFirstMatch(exec, new NodeStepTypePredicate("echo"));
+            assertThat(ArgumentsAction.getArguments(echoNode).get("message"), equalTo("Username is " + username));
         });
     }
 

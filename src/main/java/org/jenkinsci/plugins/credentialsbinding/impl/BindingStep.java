@@ -172,7 +172,7 @@ public final class BindingStep extends Step {
         private static final long serialVersionUID = 1;
 
         private final Map<String,Secret> overrides = new HashMap<String,Secret>();
-        private Map<String, String> publicOverrides = new HashMap<>();
+        private Map<String, String> publicOverrides;
 
         Overrider(Map<String,String> overrides, Map<String, String> publicOverrides) {
             for (Map.Entry<String,String> override : overrides.entrySet()) {

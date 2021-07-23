@@ -30,6 +30,7 @@ import hudson.Launcher;
 import hudson.Util;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.Computer;
 import hudson.util.Secret;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
@@ -40,6 +41,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
@@ -100,7 +102,22 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
             contents.append(key);
             contents.append('\n');
         }
-        keyFile.write(contents.toString(), "UTF-8");
+        
+        Computer computer = keyFile.toComputer(); 
+        String charset = null;
+        if (computer != null){
+            String encodingProperty = SSHUserPrivateKeyBinding.class.getName() + ".user.sshkey.file.encoding";
+            Object propValue = computer.getSystemProperties().get(encodingProperty);
+            if(propValue != null ){
+                charset = Charset.forName(propValue.toString()).toString();
+            }
+        }
+        
+        if (charset != null) {
+    	    keyFile.write(contents.toString(), charset);
+        } else { 
+            keyFile.write(contents.toString(), "UTF-8");
+        }
         keyFile.chmod(0400);
 
         Map<String, String> secretValues = new LinkedHashMap<>();

@@ -50,7 +50,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.commons.codec.Charsets;
+import java.nio.charset.StandardCharsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -218,7 +218,7 @@ public final class BindingStep extends Step {
         // To avoid de-serialization issues with newly added field (charsetName)
         private Object readResolve() throws ObjectStreamException {
             if (this.charsetName == null) {
-                this.charsetName = Charsets.UTF_8.name();
+                this.charsetName = StandardCharsets.UTF_8.name();
             }
             return this;
         }

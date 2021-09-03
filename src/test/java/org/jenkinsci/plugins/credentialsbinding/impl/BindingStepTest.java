@@ -41,7 +41,6 @@ import hudson.model.Node;
 import hudson.model.Result;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
-import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import hudson.slaves.WorkspaceList;
 import hudson.util.Secret;
@@ -60,7 +59,6 @@ import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
 import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;
 import org.jenkinsci.plugins.authorizeproject.strategy.SpecificUsersAuthorizationStrategy;
-import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
@@ -105,7 +103,7 @@ public class BindingStepTest {
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
-    @Test public void configRoundTrip() throws Exception {
+    @Test public void configRoundTrip() {
         story.addStep(new Statement() {
             @SuppressWarnings("rawtypes")
             @Override public void evaluate() throws Throwable {
@@ -127,11 +125,11 @@ public class BindingStepTest {
             @Override public String getFunctionName() {return "zip";}
         }
         public static class Execution extends AbstractSynchronousStepExecution<Void> {
-            @Override protected Void run() throws Exception {return null;}
+            @Override protected Void run() {return null;}
         }
     }
 
-    @Test public void basics() throws Exception {
+    @Test public void basics() {
         final String credentialsId = "creds";
         final String username = "bob";
         final String password = "s$$cr3t";
@@ -177,7 +175,7 @@ public class BindingStepTest {
 
     @Issue("JENKINS-42999")
     @Test
-    public void limitedRequiredContext() throws Exception {
+    public void limitedRequiredContext() {
         final String credentialsId = "creds";
         final String username = "bob";
         final String password = "s3cr3t";
@@ -213,7 +211,7 @@ public class BindingStepTest {
 
     @Issue("JENKINS-42999")
     @Test
-    public void widerRequiredContext() throws Exception {
+    public void widerRequiredContext() {
         final String credentialsId = "creds";
         final String credsFile = "credsFile";
         final String credsContent = "s3cr3t";
@@ -237,7 +235,7 @@ public class BindingStepTest {
     @Inject
     StringCredentialsImpl.DescriptorImpl stringCredentialsDescriptor;
 
-    @Test public void incorrectType() throws Exception {
+    @Test public void incorrectType() {
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
                 StringCredentialsImpl c = new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t"));
@@ -259,7 +257,7 @@ public class BindingStepTest {
         });
     }
 
-    @Test public void cleanupAfterRestart() throws Exception {
+    @Test public void cleanupAfterRestart() {
         final String secret = "s3cr3t";
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {

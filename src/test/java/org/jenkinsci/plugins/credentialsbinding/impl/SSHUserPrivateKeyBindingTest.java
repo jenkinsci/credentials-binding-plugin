@@ -32,7 +32,6 @@ import hudson.FilePath;
 import hudson.Functions;
 import hudson.security.ACL;
 import hudson.util.Secret;
-import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -119,7 +118,7 @@ public class SSHUserPrivateKeyBindingTest {
         }
     }
 
-    @Test public void configRoundTrip() throws Exception {
+    @Test public void configRoundTrip() {
         story.then(r -> {
             SnippetizerTester st = new SnippetizerTester(r);
             SSHUserPrivateKey c = new DummyPrivateKey("creds", "bob", "secret", "the-key");
@@ -136,7 +135,7 @@ public class SSHUserPrivateKeyBindingTest {
         });
     }
 
-    @Test public void basics() throws Exception {
+    @Test public void basics() {
         final String credentialsId = "creds";
         final String username = "bob";
         final String passphrase = "s3cr3t";
@@ -199,7 +198,7 @@ public class SSHUserPrivateKeyBindingTest {
         });
     }
 
-    @Test public void noUsernameOrPassphrase() throws Exception {
+    @Test public void noUsernameOrPassphrase() {
         final String credentialsId = "creds";
         final String keyContent = "the-key";
         story.addStep(new Statement() {

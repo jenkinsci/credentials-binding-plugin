@@ -56,7 +56,7 @@ public class PowerShellMaskerProviderTest {
     private String credentialId;
 
     @Before
-    public void assumeWindowsForBatch() throws Exception {
+    public void assumeWindowsForBatch() {
         // TODO: pwsh is also a valid executable name
         // https://github.com/jenkinsci/durable-task-plugin/pull/88
         assumeThat("powershell", is(executable()));

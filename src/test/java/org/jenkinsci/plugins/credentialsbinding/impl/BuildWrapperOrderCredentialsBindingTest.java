@@ -47,11 +47,8 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class BuildWrapperOrderCredentialsBindingTest {
 
@@ -113,7 +110,7 @@ public class BuildWrapperOrderCredentialsBindingTest {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
+            public BuildWrapper newInstance(StaplerRequest req, @Nonnull JSONObject formData) {
                 return new BuildWrapperOrder();
             }
 

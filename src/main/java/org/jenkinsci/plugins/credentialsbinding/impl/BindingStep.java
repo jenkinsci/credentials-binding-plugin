@@ -33,7 +33,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.Secret;
-import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -84,7 +83,7 @@ public final class BindingStep extends Step {
     }
 
     @Override
-    public StepExecution start(StepContext context) throws Exception {
+    public StepExecution start(StepContext context) {
         return new Execution2(this, context);
     }
 
@@ -94,7 +93,7 @@ public final class BindingStep extends Step {
 
         private static final long serialVersionUID = 1;
 
-        @Override public boolean start() throws Exception {
+        @Override public boolean start() {
             throw new AssertionError();
         }
 
@@ -111,7 +110,7 @@ public final class BindingStep extends Step {
             this.step = step;
         }
 
-        @Override public boolean start() throws Exception {
+        @Override public boolean start() {
             run(this::doStart);
             return false;
         }
@@ -181,7 +180,7 @@ public final class BindingStep extends Step {
             this.publicOverrides = publicOverrides;
         }
 
-        @Override public void expand(EnvVars env) throws IOException, InterruptedException {
+        @Override public void expand(EnvVars env) {
             for (Map.Entry<String,Secret> override : overrides.entrySet()) {
                 env.override(override.getKey(), override.getValue().getPlainText());
             }
@@ -223,7 +222,7 @@ public final class BindingStep extends Step {
             return this;
         }
 
-        @Override public OutputStream decorateLogger(AbstractBuild _ignore, OutputStream logger) throws IOException, InterruptedException {
+        @Override public OutputStream decorateLogger(AbstractBuild _ignore, OutputStream logger) {
             return new SecretPatterns.MaskingOutputStream(logger, () -> Pattern.compile(pattern.getPlainText()), charsetName);
         }
 

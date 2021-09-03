@@ -74,7 +74,7 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
     @Override
-    public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws IOException, InterruptedException, Run.RunnerAbortedException {
+    public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws Run.RunnerAbortedException {
         return new Filter(build.getCharset().name()).decorateLogger(build, logger);
     }
 
@@ -139,7 +139,7 @@ public class SecretBuildWrapper extends BuildWrapper {
             this.charsetName = charsetName;
         }
 
-        @Override public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws IOException, InterruptedException {
+        @Override public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) {
             return new SecretPatterns.MaskingOutputStream(logger, () -> getPatternForBuild(build), charsetName) {
                 @Override public void close() throws IOException {
                     super.close();

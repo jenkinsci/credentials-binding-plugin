@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 
 import hudson.Extension;
 import hudson.FilePath;

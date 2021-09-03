@@ -31,7 +31,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.regex.Pattern;
 
 @Extension
 @Restricted(NoExternalUse.class)

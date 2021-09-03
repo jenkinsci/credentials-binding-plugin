@@ -67,7 +67,7 @@ public class BatchSecretPatternFactoryTest {
     private String credentialId;
 
     @Before
-    public void assumeWindowsForBatch() throws Exception {
+    public void assumeWindowsForBatch() {
         assumeTrue(Functions.isWindows());
     }
 

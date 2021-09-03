@@ -74,7 +74,7 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
         public void unbind(@Nonnull Run<?, ?> build,
                            FilePath workspace,
                            Launcher launcher,
-                           @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                           @Nonnull TaskListener listener) {
             // replaced by the UnbindableDir.UnbinderImpl implementation
         }
     }

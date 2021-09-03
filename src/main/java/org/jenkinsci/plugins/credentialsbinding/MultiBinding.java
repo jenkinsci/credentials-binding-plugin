@@ -153,7 +153,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         @Override public void unbind(@Nonnull Run<?, ?> build,
                                      @Nullable FilePath workspace,
                                      @Nullable Launcher launcher,
-                                     @Nonnull TaskListener listener) throws IOException, InterruptedException {}
+                                     @Nonnull TaskListener listener) {}
     }
 
     /**

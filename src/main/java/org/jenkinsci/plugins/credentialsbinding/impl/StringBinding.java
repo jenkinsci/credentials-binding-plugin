@@ -30,10 +30,6 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.jenkinsci.Symbol;
 
@@ -58,7 +54,7 @@ public class StringBinding extends Binding<StringCredentials> {
     @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
                                                   @Nullable FilePath workspace,
                                                   @Nullable Launcher launcher,
-                                                  @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                                                  @Nonnull TaskListener listener) throws IOException {
         return new SingleEnvironment(getCredentials(build).getSecret().getPlainText());
     }
 

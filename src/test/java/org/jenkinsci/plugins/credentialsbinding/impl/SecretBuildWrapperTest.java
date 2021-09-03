@@ -92,7 +92,7 @@ public class SecretBuildWrapperTest {
 
     @Issue("JENKINS-24805")
     @Test public void emptySecretsList() throws Exception {
-        SecretBuildWrapper wrapper = new SecretBuildWrapper(new ArrayList<MultiBinding<?>>());
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(new ArrayList<>());
 
         FreeStyleProject f = r.createFreeStyleProject();
 

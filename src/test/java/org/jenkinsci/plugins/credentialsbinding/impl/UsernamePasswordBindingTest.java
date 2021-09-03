@@ -88,7 +88,7 @@ public class UsernamePasswordBindingTest {
     @Test
     public void theSecretBuildWrapperTracksUsage() throws Exception {
         SystemCredentialsProvider.getInstance().setDomainCredentialsMap(
-        Collections.singletonMap(Domain.global(), Collections.<Credentials>emptyList()));
+        Collections.singletonMap(Domain.global(), Collections.emptyList()));
         for (CredentialsStore s : CredentialsProvider.lookupStores(Jenkins.getInstance())) {
             if (s.getProvider() instanceof SystemCredentialsProvider.ProviderImpl) {
                 store = s;

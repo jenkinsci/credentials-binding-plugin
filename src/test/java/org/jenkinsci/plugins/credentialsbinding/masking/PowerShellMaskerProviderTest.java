@@ -95,13 +95,12 @@ public class PowerShellMaskerProviderTest {
     private void assertStringPresentInOrder(WorkflowRun run, String... values) throws Exception {
         String fullLog = run.getLog();
         int currentIndex = 0;
-        for (int i = 0; i < values.length; i++) {
-            String currentValue = values[i];
+        for (String currentValue : values) {
             int nextIndex = fullLog.indexOf(currentValue, currentIndex);
-            if(nextIndex == -1){
+            if (nextIndex == -1) {
                 // use assertThat to have better output
                 assertThat(fullLog.substring(currentIndex), containsString(currentValue));
-            }else{
+            } else {
                 currentIndex = nextIndex + currentValue.length();
             }
         }

@@ -49,7 +49,7 @@ public class SecretBuildWrapper extends BuildWrapper {
 
     private /*almost final*/ List<? extends MultiBinding<?>> bindings;
 
-    private final static Map<AbstractBuild<?, ?>, Collection<String>> secretsForBuild = new WeakHashMap<AbstractBuild<?, ?>, Collection<String>>();
+    private final static Map<AbstractBuild<?, ?>, Collection<String>> secretsForBuild = new WeakHashMap<>();
 
     /**
      * Gets the {@link Pattern} for the secret values for a given build, if that build has secrets defined. If not, return
@@ -66,7 +66,7 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
     @DataBoundConstructor public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings) {
-        this.bindings = bindings == null ? Collections.<MultiBinding<?>>emptyList() : bindings;
+        this.bindings = bindings == null ? Collections.emptyList() : bindings;
     }
 
     public List<? extends MultiBinding<?>> getBindings() {
@@ -79,9 +79,9 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
     @Override public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        final List<MultiBinding.MultiEnvironment> m = new ArrayList<MultiBinding.MultiEnvironment>();
+        final List<MultiBinding.MultiEnvironment> m = new ArrayList<>();
 
-        Set<String> secrets = new HashSet<String>();
+        Set<String> secrets = new HashSet<>();
 
         for (MultiBinding binding : bindings) {
             MultiBinding.MultiEnvironment e = binding.bind(build, build.getWorkspace(), launcher, listener);

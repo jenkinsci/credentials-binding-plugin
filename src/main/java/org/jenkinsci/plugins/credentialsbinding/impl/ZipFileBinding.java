@@ -73,7 +73,7 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
         }
 
         public FormValidation doCheckCredentialsId(@AncestorInPath Item owner, @QueryParameter String value) {
-            for (FileCredentials c : CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, Collections.<DomainRequirement>emptyList())) {
+            for (FileCredentials c : CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, Collections.emptyList())) {
                 if (c.getId().equals(value)) {
                     InputStream is = null;
                     try {

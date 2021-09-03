@@ -48,6 +48,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -66,7 +67,7 @@ public class BuildWrapperOrderCredentialsBindingTest {
 
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), firstCreds);
 
-        SecretBuildWrapper wrapper = new SecretBuildWrapper(Arrays.asList(new StringBinding(bindingKey, credentialsId)));
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(Collections.singletonList(new StringBinding(bindingKey, credentialsId)));
 
         FreeStyleProject f = r.createFreeStyleProject("buildWrapperOrder");
 

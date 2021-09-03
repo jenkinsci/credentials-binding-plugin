@@ -87,11 +87,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 			OutputStream out = secret.write();
 			try {
 				credentials.getKeyStore().store(out, storePassword.toCharArray());
-			} catch (KeyStoreException e) {
-				throw new IOException(e);
-			} catch (NoSuchAlgorithmException e) {
-				throw new IOException(e);
-			} catch (CertificateException e) {
+			} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException e) {
 				throw new IOException(e);
 			} finally {
 				org.apache.commons.io.IOUtils.closeQuietly(out);

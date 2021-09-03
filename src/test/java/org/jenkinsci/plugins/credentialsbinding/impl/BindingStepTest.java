@@ -111,11 +111,11 @@ public class BindingStepTest {
             @Override public void evaluate() throws Throwable {
                 UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "bob", "s3cr3t");
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
-                BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(new UsernamePasswordBinding("userpass", "creds"))));
+                BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.singletonList(new UsernamePasswordBinding("userpass", "creds"))));
                 story.j.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(new UsernamePasswordBinding("userpass", "creds")));
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new FileCredentialsImpl(CredentialsScope.GLOBAL, "secrets", "sample", "secrets.zip",
                     SecretBytes.fromBytes(new byte[] {0x50,0x4B,0x05,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}))); // https://en.wikipedia.org/wiki/Zip_(file_format)#Limits
-                new SnippetizerTester(story.j).assertRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(new ZipFileBinding("file", "secrets"))),
+                new SnippetizerTester(story.j).assertRoundTrip(new BindingStep(Collections.singletonList(new ZipFileBinding("file", "secrets"))),
                     "withCredentials([[$class: 'ZipFileBinding', credentialsId: 'secrets', variable: 'file']]) {\n    // some block\n}");
             }
         });
@@ -266,7 +266,7 @@ public class BindingStepTest {
                 FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "secret.txt", SecretBytes.fromBytes(secret.getBytes()));
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 // TODO JENKINS-26398: story.j.createSlave("myslave", null, null) does not work since the slave root is deleted after restart.
-                story.j.jenkins.addNode(new DumbSlave("myslave", "", tmp.newFolder().getAbsolutePath(), "1", Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP, Collections.<NodeProperty<?>>emptyList()));
+                story.j.jenkins.addNode(new DumbSlave("myslave", "", tmp.newFolder().getAbsolutePath(), "1", Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP, Collections.emptyList()));
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node('myslave') {"
@@ -365,7 +365,7 @@ public class BindingStepTest {
                 User.get("dummy", true);
                 
                 // enable the run as user strategy for the AuthorizeProject plugin
-                Map<String, Boolean> strategies = new HashMap<String, Boolean>();
+                Map<String, Boolean> strategies = new HashMap<>();
                 strategies.put(story.j.jenkins.getDescriptor(SpecificUsersAuthorizationStrategy.class).getId(), true);
                 QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new ProjectQueueItemAuthenticator(strategies));
 
@@ -476,7 +476,7 @@ public class BindingStepTest {
     }
 
     private static Set<String> grep(File dir, String text) throws IOException {
-        Set<String> matches = new TreeSet<String>();
+        Set<String> matches = new TreeSet<>();
         grep(dir, text, "", matches);
         return matches;
     }

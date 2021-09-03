@@ -82,7 +82,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         private final Unbinder unbinder;
 
         public MultiEnvironment(Map<String,String> secretValues) {
-            this(secretValues, Collections.<String, String>emptyMap());
+            this(secretValues, Collections.emptyMap());
         }
 
         public MultiEnvironment(Map<String,String> secretValues, Map<String,String> publicValues) {
@@ -90,7 +90,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
         }
 
         public MultiEnvironment(Map<String,String> secretValues, Unbinder unbinder) {
-            this(secretValues, Collections.<String, String>emptyMap(), unbinder);
+            this(secretValues, Collections.emptyMap(), unbinder);
         }
 
         public MultiEnvironment(Map<String,String> secretValues, Map<String,String> publicValues, Unbinder unbinder) {

@@ -24,19 +24,20 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
 
 @Extension
 @Restricted(NoExternalUse.class)
 public class DollarSecretPatternFactory implements SecretPatternFactory {
+    @NonNull
     @Override
-    public @Nonnull Collection<String> getEncodedForms(@Nonnull String input) {
+    public Collection<String> getEncodedForms(@NonNull String input) {
         return input.contains("$")
                 ? Collections.singleton(input.replace("$", "$$"))
                 : Collections.emptySet();

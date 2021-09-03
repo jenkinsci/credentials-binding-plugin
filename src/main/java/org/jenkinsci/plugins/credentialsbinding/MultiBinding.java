@@ -27,6 +27,8 @@ package org.jenkinsci.plugins.credentialsbinding;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -41,8 +43,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import jenkins.model.Jenkins;
 import org.apache.commons.collections.CollectionUtils;
@@ -141,19 +141,19 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
          * @param launcher The launcher - can be null if {@link BindingDescriptor#requiresWorkspace()} is false.
          * @param listener The task listener. Cannot be null.
          */
-        void unbind(@Nonnull Run<?,?> build,
+        void unbind(@NonNull Run<?,?> build,
                     @Nullable FilePath workspace,
                     @Nullable Launcher launcher,
-                    @Nonnull TaskListener listener) throws IOException, InterruptedException;
+                    @NonNull TaskListener listener) throws IOException, InterruptedException;
     }
 
     /** No-op callback. */
     protected static final class NullUnbinder implements Unbinder {
         private static final long serialVersionUID = 1;
-        @Override public void unbind(@Nonnull Run<?, ?> build,
+        @Override public void unbind(@NonNull Run<?, ?> build,
                                      @Nullable FilePath workspace,
                                      @Nullable Launcher launcher,
-                                     @Nonnull TaskListener listener) {}
+                                     @NonNull TaskListener listener) {}
     }
 
     /**
@@ -164,10 +164,10 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
      * @param listener The task listener. Cannot be null.
      * @return The configured {@link MultiEnvironment}
      */
-    public abstract MultiEnvironment bind(@Nonnull Run<?,?> build,
+    public abstract MultiEnvironment bind(@NonNull Run<?,?> build,
                                           @Nullable FilePath workspace,
                                           @Nullable Launcher launcher,
-                                          @Nonnull TaskListener listener) throws IOException, InterruptedException;
+                                          @NonNull TaskListener listener) throws IOException, InterruptedException;
 
     /**
      * @deprecated override {@link #variables(Run)}
@@ -177,7 +177,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
     }
 
     /** Defines keys expected to be set in {@link MultiEnvironment#getSecretValues()}, particularly any that might be sensitive. */
-    public /*abstract*/ Set<String> variables(@Nonnull Run<?,?> build) throws CredentialNotFoundException {
+    public /*abstract*/ Set<String> variables(@NonNull Run<?,?> build) throws CredentialNotFoundException {
         if (Util.isOverridden(MultiBinding.class, getClass(), "variables")) {
             return variables();
         } else {
@@ -191,7 +191,7 @@ public abstract class MultiBinding<C extends StandardCredentials> extends Abstra
      * @return the credentials
      * @throws CredentialNotFoundException if the credentials could not be found (for convenience, rather than returning null)
      */
-    protected final @Nonnull C getCredentials(@Nonnull Run<?,?> build) throws CredentialNotFoundException {
+    protected final @NonNull C getCredentials(@NonNull Run<?,?> build) throws CredentialNotFoundException {
         IdCredentials cred = CredentialsProvider.findCredentialById(credentialsId, IdCredentials.class, build);
         if (cred==null)
             throw new CredentialNotFoundException("Could not find credentials entry with ID '" + credentialsId + "'");

@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.Functions;
 import hudson.Launcher;
@@ -45,7 +46,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.StaplerRequest;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -110,7 +110,7 @@ public class BuildWrapperOrderCredentialsBindingTest {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, @Nonnull JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest req, @NonNull JSONObject formData) {
                 return new BuildWrapperOrder();
             }
 

@@ -24,11 +24,11 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -43,7 +43,7 @@ public class AlmquistShellSecretPatternFactory implements SecretPatternFactory {
     private static final String START_FRAGMENT = "'\"";
     private static final String END_FRAGMENT = "\"'";
 
-    private @Nonnull String getQuotedForm(@Nonnull String input) {
+    private @NonNull String getQuotedForm(@NonNull String input) {
         StringBuilder sb = new StringBuilder(input.length());
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
@@ -66,8 +66,9 @@ public class AlmquistShellSecretPatternFactory implements SecretPatternFactory {
         return sb.toString();
     }
 
+    @NonNull
     @Override
-    public @Nonnull Collection<String> getEncodedForms(@Nonnull String input) {
+    public Collection<String> getEncodedForms(@NonNull String input) {
         return Collections.singleton(getQuotedForm(input));
     }
 }

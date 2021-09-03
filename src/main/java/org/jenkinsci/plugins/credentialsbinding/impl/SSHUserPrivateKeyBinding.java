@@ -24,6 +24,8 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -37,8 +39,6 @@ import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.*;
 
@@ -48,7 +48,7 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
     public String usernameVariable;
     public String passphraseVariable;
 
-    @DataBoundConstructor public SSHUserPrivateKeyBinding(@Nonnull String keyFileVariable, String credentialsId) {
+    @DataBoundConstructor public SSHUserPrivateKeyBinding(@NonNull String keyFileVariable, String credentialsId) {
         super(credentialsId);
         this.keyFileVariable = keyFileVariable;
     }
@@ -77,7 +77,7 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         return SSHUserPrivateKey.class;
     }
 
-    @Override public Set<String> variables(Run<?, ?> build) throws CredentialNotFoundException {
+    @Override public Set<String> variables(@NonNull Run<?, ?> build) throws CredentialNotFoundException {
         SSHUserPrivateKey sshKey = getCredentials(build);
         Set<String> set = new HashSet<>();
         set.add(keyFileVariable);
@@ -90,7 +90,10 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         return ImmutableSet.copyOf(set);
     }
 
-    @Override public MultiEnvironment bind(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    @Override public MultiEnvironment bind(@NonNull Run<?,?> build,
+                                           FilePath workspace,
+                                           Launcher launcher,
+                                           @NonNull TaskListener listener) throws IOException, InterruptedException {
         SSHUserPrivateKey sshKey = getCredentials(build);
         UnbindableDir keyDir = UnbindableDir.create(workspace);
         FilePath keyFile =  keyDir.getDirPath().child("ssh-key-" + keyFileVariable);
@@ -128,7 +131,9 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
             return SSHUserPrivateKey.class;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.SSHUserPrivateKeyBinding_ssh_user_private_key();
         }
 

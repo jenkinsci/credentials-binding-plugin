@@ -24,6 +24,8 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.console.ConsoleLogFilter;
@@ -37,8 +39,6 @@ import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -57,7 +57,7 @@ public class SecretBuildWrapper extends BuildWrapper {
      * @param build A non-null build.
      * @return A compiled {@link Pattern} from the build's secret values, if the build has any.
      */
-    public static @CheckForNull Pattern getPatternForBuild(@Nonnull AbstractBuild<?, ?> build) {
+    public static @CheckForNull Pattern getPatternForBuild(@NonNull AbstractBuild<?, ?> build) {
         if (secretsForBuild.containsKey(build)) {
             return SecretPatterns.getAggregateSecretPattern(secretsForBuild.get(build));
         } else {
@@ -156,7 +156,9 @@ public class SecretBuildWrapper extends BuildWrapper {
             return true;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.SecretBuildWrapper_use_secret_text_s_or_file_s_();
         }
 

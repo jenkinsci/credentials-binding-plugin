@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -64,8 +65,6 @@ import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.Nonnull;
-
 /**
  * Workflow step to bind credentials.
  */
@@ -105,7 +104,7 @@ public final class BindingStep extends Step {
 
         private transient BindingStep step;
 
-        Execution2(@Nonnull BindingStep step, StepContext context) {
+        Execution2(@NonNull BindingStep step, StepContext context) {
             super(context);
             this.step = step;
         }
@@ -180,7 +179,7 @@ public final class BindingStep extends Step {
             this.publicOverrides = publicOverrides;
         }
 
-        @Override public void expand(EnvVars env) {
+        @Override public void expand(@NonNull EnvVars env) {
             for (Map.Entry<String,Secret> override : overrides.entrySet()) {
                 env.override(override.getKey(), override.getValue().getPlainText());
             }
@@ -189,7 +188,9 @@ public final class BindingStep extends Step {
             }
         }
 
-        @Override public Set<String> getSensitiveVariables() {
+        @NonNull
+        @Override
+        public Set<String> getSensitiveVariables() {
             return Collections.unmodifiableSet(overrides.keySet());
         }
 
@@ -265,7 +266,9 @@ public final class BindingStep extends Step {
             return "withCredentials";
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return "Bind credentials to variables";
         }
 

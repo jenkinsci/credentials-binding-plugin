@@ -28,6 +28,7 @@ import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.security.ACL;
@@ -64,7 +65,9 @@ public abstract class BindingDescriptor<C extends StandardCredentials> extends D
 
     private final class Model extends AbstractIdCredentialsListBoxModel<Model,C> {
 
-        @Override protected String describe(C c) {
+        @NonNull
+        @Override
+        protected String describe(@NonNull C c) {
             return CredentialsNameProvider.name(c);
         }
 

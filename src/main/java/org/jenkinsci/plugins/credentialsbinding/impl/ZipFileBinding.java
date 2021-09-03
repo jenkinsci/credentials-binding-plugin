@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Item;
@@ -67,7 +68,9 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
             return FileCredentials.class;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.ZipFileBinding_secret_zip_file();
         }
 

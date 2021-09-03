@@ -24,13 +24,13 @@
 
 package org.jenkinsci.plugins.credentialsbinding.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Functions;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -38,7 +38,8 @@ import java.util.List;
 public class Executables {
     private static final String LOCATOR = Functions.isWindows() ? "where.exe" : "which";
 
-    public static @CheckForNull String getPathToExecutable(@Nonnull String executable) {
+    public static @CheckForNull
+    String getPathToExecutable(@NonNull String executable) {
         try {
             Process process = new ProcessBuilder(LOCATOR, executable).start();
             List<String> output = IOUtils.readLines(process.getInputStream(), StandardCharsets.UTF_8);

@@ -47,6 +47,7 @@ import hudson.util.Secret;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -72,10 +73,12 @@ import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
+import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.SynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -118,14 +121,32 @@ public class BindingStepTest {
             }
         });
     }
-    public static class ZipStep extends AbstractStepImpl {
-        @DataBoundConstructor public ZipStep() {}
-        @TestExtension("configRoundTrip") public static class DescriptorImpl extends AbstractStepDescriptorImpl {
-            public DescriptorImpl() {super(Execution.class);}
-            @Override public String getFunctionName() {return "zip";}
+    public static class ZipStep extends Step {
+        @DataBoundConstructor
+        public ZipStep() {
         }
-        public static class Execution extends AbstractSynchronousStepExecution<Void> {
-            @Override protected Void run() {return null;}
+
+        @Override
+        public StepExecution start(StepContext context) {
+            return new SynchronousStepExecution<Void>(context){
+                @Override
+                protected Void run() {
+                    return null;
+                }
+            };
+        }
+
+        @TestExtension("configRoundTrip")
+        public static class DescriptorImpl extends StepDescriptor {
+            @Override
+            public Set<? extends Class<?>> getRequiredContext() {
+                return Collections.singleton(FilePath.class);
+            }
+
+            @Override
+            public String getFunctionName() {
+                return "zip";
+            }
         }
     }
 
@@ -487,7 +508,7 @@ public class BindingStepTest {
             String qualifiedName = prefix + kid.getName();
             if (kid.isDirectory()) {
                 grep(kid, text, qualifiedName + "/", matches);
-            } else if (kid.isFile() && FileUtils.readFileToString(kid).contains(text)) {
+            } else if (kid.isFile() && FileUtils.readFileToString(kid, StandardCharsets.UTF_8).contains(text)) {
                 matches.add(qualifiedName);
             }
         }

@@ -32,6 +32,7 @@ import org.hamcrest.Matcher;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class Executables {
@@ -40,7 +41,7 @@ public class Executables {
     public static @CheckForNull String getPathToExecutable(@Nonnull String executable) {
         try {
             Process process = new ProcessBuilder(LOCATOR, executable).start();
-            List<String> output = IOUtils.readLines(process.getInputStream());
+            List<String> output = IOUtils.readLines(process.getInputStream(), StandardCharsets.UTF_8);
             if (process.waitFor() != 0) {
                 return null;
             }

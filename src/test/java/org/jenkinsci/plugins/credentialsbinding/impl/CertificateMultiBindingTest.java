@@ -27,14 +27,15 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
@@ -82,14 +83,10 @@ public class CertificateMultiBindingTest {
 	@Before
 	public void setUp() throws IOException {
 		/* do the dance to get a simple zip file into jenkins */
-		InputStream stream = this.getClass().getResourceAsStream("certificate.p12");
-		try {
+		try (InputStream stream = this.getClass().getResourceAsStream("certificate.p12")) {
 			assertThat(stream, is(not(nullValue())));
 			certificate = tmp.newFile("a.certificate");
 			FileUtils.copyInputStreamToFile(stream, certificate);
-		} finally {
-			IOUtils.closeQuietly(stream);
-			stream = null;
 		}
 	}
 
@@ -154,7 +151,7 @@ public class CertificateMultiBindingTest {
 		CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
 		// create the Pipeline job
 		WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-		String pipelineScript = IOUtils.toString(getTestResourceInputStream("basicsPipeline-Jenkinsfile"));
+		String pipelineScript = IOUtils.toString(getTestResourceInputStream("basicsPipeline-Jenkinsfile"), StandardCharsets.UTF_8);
 		p.setDefinition(new CpsFlowDefinition(pipelineScript, true));
 		// copy resources into workspace
 		FilePath workspace = r.jenkins.getWorkspaceFor(p);

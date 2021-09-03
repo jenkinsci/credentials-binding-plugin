@@ -43,12 +43,14 @@ import java.util.TreeSet;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
 import org.junit.ClassRule;
 
 import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class UsernamePasswordMultiBindingTest {
 

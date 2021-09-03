@@ -45,11 +45,15 @@ import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
-import static org.junit.Assert.*;
 import org.junit.ClassRule;
 import org.jvnet.hudson.test.BuildWatcher;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class SSHUserPrivateKeyBindingTest {
 

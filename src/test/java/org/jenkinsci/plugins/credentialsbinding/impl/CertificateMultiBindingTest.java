@@ -35,6 +35,7 @@ import static org.junit.Assert.assertNotNull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -83,11 +84,10 @@ public class CertificateMultiBindingTest {
 	@Before
 	public void setUp() throws IOException {
 		/* do the dance to get a simple zip file into jenkins */
-		try (InputStream stream = this.getClass().getResourceAsStream("certificate.p12")) {
-			assertThat(stream, is(not(nullValue())));
-			certificate = tmp.newFile("a.certificate");
-			FileUtils.copyInputStreamToFile(stream, certificate);
-		}
+		certificate = tmp.newFile("a.certificate");
+		final URL resource = this.getClass().getResource("certificate.p12");
+		assertThat(resource, is(not(nullValue())));
+		FileUtils.copyURLToFile(resource, certificate);
 	}
 
     // TODO configRoundtrip to test form, null hygiene on @DataBoundSetter

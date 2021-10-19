@@ -293,17 +293,12 @@ public class BindingStepTest {
                 FilePath key = ws.child("key");
                 assertTrue(key.exists());
                 assertEquals(secret, key.readToString());
-                FilePath secretFiles = tempDir(ws).child("secretFiles");
+                FilePath secretFiles = WorkspaceList.tempDir(ws).child("secretFiles");
                 assertTrue(secretFiles.isDirectory());
                 assertEquals(Collections.emptyList(), secretFiles.list());
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
             }
         });
-    }
-
-    // TODO 1.652 use WorkspaceList.tempDir
-    private static FilePath tempDir(FilePath ws) {
-        return ws.sibling(ws.getName() + System.getProperty(WorkspaceList.class.getName(), "@") + "tmp");
     }
 
     @Issue("JENKINS-27389")

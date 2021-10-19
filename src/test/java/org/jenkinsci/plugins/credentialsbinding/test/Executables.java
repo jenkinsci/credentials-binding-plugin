@@ -32,7 +32,7 @@ import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.List;
 
 public class Executables {
@@ -42,7 +42,7 @@ public class Executables {
     String getPathToExecutable(@NonNull String executable) {
         try {
             Process process = new ProcessBuilder(LOCATOR, executable).start();
-            List<String> output = IOUtils.readLines(process.getInputStream(), StandardCharsets.UTF_8);
+            List<String> output = IOUtils.readLines(process.getInputStream(), Charset.defaultCharset());
             if (process.waitFor() != 0) {
                 return null;
             }

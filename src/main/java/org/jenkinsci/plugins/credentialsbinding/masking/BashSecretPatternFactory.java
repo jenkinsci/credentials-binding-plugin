@@ -24,11 +24,11 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.regex.Pattern;
@@ -39,7 +39,7 @@ public class BashSecretPatternFactory implements SecretPatternFactory {
 
     private static final Pattern QUOTED_CHARS = Pattern.compile("(\\\\)(\\\\?)");
 
-    private @Nonnull String getQuotedForm(@Nonnull String input) {
+    private @NonNull String getQuotedForm(@NonNull String input) {
         StringBuilder sb = new StringBuilder(input.length());
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
@@ -52,16 +52,17 @@ public class BashSecretPatternFactory implements SecretPatternFactory {
         return sb.toString();
     }
 
-    private @Nonnull String surroundWithQuotes(@Nonnull String input) {
+    private @NonNull String surroundWithQuotes(@NonNull String input) {
         return "'" + input + "'";
     }
 
-    private @Nonnull String getUnquotedForm(@Nonnull String input) {
+    private @NonNull String getUnquotedForm(@NonNull String input) {
         return QUOTED_CHARS.matcher(input).replaceAll("$2");
     }
 
+    @NonNull
     @Override
-    public @Nonnull Collection<String> getEncodedForms(@Nonnull String input) {
+    public Collection<String> getEncodedForms(@NonNull String input) {
         Collection<String> patterns = new HashSet<>();
         String quotedForm = getQuotedForm(input);
         patterns.add(quotedForm);

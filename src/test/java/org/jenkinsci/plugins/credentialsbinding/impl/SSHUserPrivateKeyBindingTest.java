@@ -32,7 +32,6 @@ import hudson.FilePath;
 import hudson.Functions;
 import hudson.security.ACL;
 import hudson.util.Secret;
-import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -46,11 +45,15 @@ import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
-import static org.junit.Assert.*;
 import org.junit.ClassRule;
 import org.jvnet.hudson.test.BuildWatcher;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class SSHUserPrivateKeyBindingTest {
 
@@ -93,7 +96,7 @@ public class SSHUserPrivateKeyBindingTest {
         @NonNull
         @Override
         public List<String> getPrivateKeys() {
-            return Arrays.asList(keyContent);
+            return Collections.singletonList(keyContent);
         }
 
         @NonNull
@@ -119,24 +122,24 @@ public class SSHUserPrivateKeyBindingTest {
         }
     }
 
-    @Test public void configRoundTrip() throws Exception {
+    @Test public void configRoundTrip() {
         story.then(r -> {
             SnippetizerTester st = new SnippetizerTester(r);
             SSHUserPrivateKey c = new DummyPrivateKey("creds", "bob", "secret", "the-key");
             CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
             SSHUserPrivateKeyBinding binding = new SSHUserPrivateKeyBinding("keyFile", "creds");
-            BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(binding)));
+            BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.singletonList(binding)));
             st.assertRoundTrip(s, "withCredentials([sshUserPrivateKey(credentialsId: 'creds', keyFileVariable: 'keyFile')]) {\n    // some block\n}");
             r.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(binding));
             binding.setPassphraseVariable("passphrase");
             binding.setUsernameVariable("user");
-            s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(binding)));
+            s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.singletonList(binding)));
             st.assertRoundTrip(s, "withCredentials([sshUserPrivateKey(credentialsId: 'creds', keyFileVariable: 'keyFile', passphraseVariable: 'passphrase', usernameVariable: 'user')]) {\n    // some block\n}");
             r.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(binding));
         });
     }
 
-    @Test public void basics() throws Exception {
+    @Test public void basics() {
         final String credentialsId = "creds";
         final String username = "bob";
         final String passphrase = "s3cr3t";
@@ -199,7 +202,7 @@ public class SSHUserPrivateKeyBindingTest {
         });
     }
 
-    @Test public void noUsernameOrPassphrase() throws Exception {
+    @Test public void noUsernameOrPassphrase() {
         final String credentialsId = "creds";
         final String keyContent = "the-key";
         story.addStep(new Statement() {

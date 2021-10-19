@@ -24,11 +24,11 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -38,9 +38,9 @@ import java.util.Collections;
 @Extension
 @Restricted(NoExternalUse.class)
 public class LiteralSecretPatternFactory implements SecretPatternFactory {
-    @Nonnull
+    @NonNull
     @Override
-    public Collection<String> getEncodedForms(@Nonnull String input) {
+    public Collection<String> getEncodedForms(@NonNull String input) {
         return Collections.singleton(input);
     }
 }

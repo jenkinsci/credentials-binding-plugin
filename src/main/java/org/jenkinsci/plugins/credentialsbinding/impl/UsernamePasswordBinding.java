@@ -25,25 +25,20 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.jenkinsci.Symbol;
 
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCredentials> {
 
@@ -55,10 +50,10 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
         return StandardUsernamePasswordCredentials.class;
     }
 
-    @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
+    @Override public SingleEnvironment bindSingle(@NonNull Run<?,?> build,
                                                   @Nullable FilePath workspace,
                                                   @Nullable Launcher launcher,
-                                                  @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                                                  @NonNull TaskListener listener) throws IOException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         return new SingleEnvironment(credentials.getUsername() + ':' + credentials.getPassword().getPlainText());
     }
@@ -70,7 +65,9 @@ public class UsernamePasswordBinding extends Binding<StandardUsernamePasswordCre
             return StandardUsernamePasswordCredentials.class;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.UsernamePasswordBinding_username_and_password();
         }
 

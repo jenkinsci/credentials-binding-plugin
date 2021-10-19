@@ -26,6 +26,8 @@ package org.jenkinsci.plugins.credentialsbinding;
 
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -33,9 +35,6 @@ import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import java.io.IOException;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -93,7 +92,7 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
 
     @Deprecated
     @SuppressWarnings("rawtypes")
-    public Environment bind(@Nonnull final AbstractBuild build, final Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
+    public Environment bind(@NonNull final AbstractBuild build, final Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
         final SingleEnvironment e = bindSingle(build, build.getWorkspace(), launcher, listener);
         return new Environment() {
             @Override public String value() {
@@ -113,10 +112,10 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
      * @param listener The task listener. Cannot be null.
      * @return The configured {@link SingleEnvironment}
      */
-    public /* abstract */SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
+    public /* abstract */SingleEnvironment bindSingle(@NonNull Run<?,?> build,
                                                       @Nullable FilePath workspace,
                                                       @Nullable Launcher launcher,
-                                                      @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                                                      @NonNull TaskListener listener) throws IOException, InterruptedException {
         if (Util.isOverridden(Binding.class, getClass(), "bind", AbstractBuild.class, Launcher.class, BuildListener.class) && build instanceof AbstractBuild && listener instanceof BuildListener) {
             Environment e = bind((AbstractBuild) build, launcher, (BuildListener) listener);
             return new SingleEnvironment(e.value(), new UnbinderWrapper(e));
@@ -134,29 +133,29 @@ public abstract class Binding<C extends StandardCredentials> extends MultiBindin
         UnbinderWrapper(Environment e) {
             this.e = e;
         }
-        @Override public void unbind(@Nonnull Run<?, ?> build,
+        @Override public void unbind(@NonNull Run<?, ?> build,
                                      @Nullable FilePath workspace,
                                      @Nullable Launcher launcher,
-                                     @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                                     @NonNull TaskListener listener) throws IOException, InterruptedException {
             e.unbind();
         }
     }
 
 
-    @Override public final MultiEnvironment bind(@Nonnull Run<?,?> build,
+    @Override public final MultiEnvironment bind(@NonNull Run<?,?> build,
                                                  @Nullable FilePath workspace,
                                                  @Nullable Launcher launcher,
-                                                 @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                                                 @NonNull TaskListener listener) throws IOException, InterruptedException {
         SingleEnvironment single = bindSingle(build, workspace, launcher, listener);
         return new MultiEnvironment(Collections.singletonMap(variable, single.value), single.unbinder);
     }
 
-    @Override public final Set<String> variables(Run<?, ?> build) {
+    @Override public final Set<String> variables(@NonNull Run<?, ?> build) {
         return Collections.singleton(variable);
     }
 
     @Deprecated
-    protected final @Nonnull C getCredentials(@Nonnull AbstractBuild<?,?> build) throws IOException {
+    protected final @NonNull C getCredentials(@NonNull AbstractBuild<?,?> build) throws IOException {
         return super.getCredentials(build);
     }
 

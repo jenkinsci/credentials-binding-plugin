@@ -36,9 +36,9 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.io.IOException;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 
 public class PowerShellMaskerProviderTest {
@@ -56,7 +56,7 @@ public class PowerShellMaskerProviderTest {
     private String credentialId;
 
     @Before
-    public void assumeWindowsForBatch() throws Exception {
+    public void assumeWindowsForBatch() {
         // TODO: pwsh is also a valid executable name
         // https://github.com/jenkinsci/durable-task-plugin/pull/88
         assumeThat("powershell", is(executable()));
@@ -95,13 +95,12 @@ public class PowerShellMaskerProviderTest {
     private void assertStringPresentInOrder(WorkflowRun run, String... values) throws Exception {
         String fullLog = run.getLog();
         int currentIndex = 0;
-        for (int i = 0; i < values.length; i++) {
-            String currentValue = values[i];
+        for (String currentValue : values) {
             int nextIndex = fullLog.indexOf(currentValue, currentIndex);
-            if(nextIndex == -1){
+            if (nextIndex == -1) {
                 // use assertThat to have better output
                 assertThat(fullLog.substring(currentIndex), containsString(currentValue));
-            }else{
+            } else {
                 currentIndex = nextIndex + currentValue.length();
             }
         }

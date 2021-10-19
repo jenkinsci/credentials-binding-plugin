@@ -25,8 +25,8 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Item;
@@ -68,12 +68,14 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
             return FileCredentials.class;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.ZipFileBinding_secret_zip_file();
         }
 
         public FormValidation doCheckCredentialsId(@AncestorInPath Item owner, @QueryParameter String value) {
-            for (FileCredentials c : CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, Collections.<DomainRequirement>emptyList())) {
+            for (FileCredentials c : CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, Collections.emptyList())) {
                 if (c.getId().equals(value)) {
                     InputStream is = null;
                     try {

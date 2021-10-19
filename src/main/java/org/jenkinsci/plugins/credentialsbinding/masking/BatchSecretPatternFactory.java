@@ -24,11 +24,11 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.regex.Pattern;
@@ -38,8 +38,9 @@ import java.util.regex.Pattern;
 public class BatchSecretPatternFactory implements SecretPatternFactory {
     private static final Pattern QUOTED_CHARS = Pattern.compile("(\\^)(\\^?)");
 
+    @NonNull
     @Override
-    public @Nonnull Collection<String> getEncodedForms(@Nonnull String input) {
+    public Collection<String> getEncodedForms(@NonNull String input) {
         return input.contains("^")
                 ? Collections.singleton(QUOTED_CHARS.matcher(input).replaceAll("$2"))
                 : Collections.emptySet();

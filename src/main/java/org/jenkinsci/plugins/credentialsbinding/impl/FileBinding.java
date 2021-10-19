@@ -24,6 +24,8 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -36,8 +38,6 @@ import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.Nonnull;
 
 public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
 
@@ -71,10 +71,10 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
         }
 
         @Override
-        public void unbind(@Nonnull Run<?, ?> build,
-                           FilePath workspace,
-                           Launcher launcher,
-                           @Nonnull TaskListener listener) throws IOException, InterruptedException {
+        public void unbind(@NonNull Run<?, ?> build,
+                           @Nullable FilePath workspace,
+                           @Nullable Launcher launcher,
+                           @NonNull TaskListener listener) {
             // replaced by the UnbindableDir.UnbinderImpl implementation
         }
     }
@@ -86,7 +86,9 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
             return FileCredentials.class;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.FileBinding_secret_file();
         }
 

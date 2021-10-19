@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -33,10 +34,10 @@ import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.Secret;
-import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,7 +51,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import java.nio.charset.StandardCharsets;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -64,8 +64,6 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.Nonnull;
 
 /**
  * Workflow step to bind credentials.
@@ -84,7 +82,7 @@ public final class BindingStep extends Step {
     }
 
     @Override
-    public StepExecution start(StepContext context) throws Exception {
+    public StepExecution start(StepContext context) {
         return new Execution2(this, context);
     }
 
@@ -94,7 +92,7 @@ public final class BindingStep extends Step {
 
         private static final long serialVersionUID = 1;
 
-        @Override public boolean start() throws Exception {
+        @Override public boolean start() {
             throw new AssertionError();
         }
 
@@ -106,12 +104,12 @@ public final class BindingStep extends Step {
 
         private transient BindingStep step;
 
-        Execution2(@Nonnull BindingStep step, StepContext context) {
+        Execution2(@NonNull BindingStep step, StepContext context) {
             super(context);
             this.step = step;
         }
 
-        @Override public boolean start() throws Exception {
+        @Override public boolean start() {
             run(this::doStart);
             return false;
         }
@@ -137,7 +135,7 @@ public final class BindingStep extends Step {
                 publicOverrides.putAll(environment.getPublicValues());
             }
             if (!secretOverrides.isEmpty()) {
-                boolean unix = launcher != null ? launcher.isUnix() : true;
+                boolean unix = launcher == null || launcher.isUnix();
                 listener.getLogger().println("Masking supported pattern matches of " + secretOverrides.keySet().stream().map(
                     v -> unix ? "$" + v : "%" + v + "%"
                 ).collect(Collectors.joining(" or ")));
@@ -171,7 +169,7 @@ public final class BindingStep extends Step {
 
         private static final long serialVersionUID = 1;
 
-        private final Map<String,Secret> overrides = new HashMap<String,Secret>();
+        private final Map<String,Secret> overrides = new HashMap<>();
         private Map<String, String> publicOverrides;
 
         Overrider(Map<String,String> overrides, Map<String, String> publicOverrides) {
@@ -181,7 +179,7 @@ public final class BindingStep extends Step {
             this.publicOverrides = publicOverrides;
         }
 
-        @Override public void expand(EnvVars env) throws IOException, InterruptedException {
+        @Override public void expand(@NonNull EnvVars env) {
             for (Map.Entry<String,Secret> override : overrides.entrySet()) {
                 env.override(override.getKey(), override.getValue().getPlainText());
             }
@@ -190,7 +188,9 @@ public final class BindingStep extends Step {
             }
         }
 
-        @Override public Set<String> getSensitiveVariables() {
+        @NonNull
+        @Override
+        public Set<String> getSensitiveVariables() {
             return Collections.unmodifiableSet(overrides.keySet());
         }
 
@@ -223,7 +223,7 @@ public final class BindingStep extends Step {
             return this;
         }
 
-        @Override public OutputStream decorateLogger(AbstractBuild _ignore, OutputStream logger) throws IOException, InterruptedException {
+        @Override public OutputStream decorateLogger(AbstractBuild _ignore, OutputStream logger) {
             return new SecretPatterns.MaskingOutputStream(logger, () -> Pattern.compile(pattern.getPlainText()), charsetName);
         }
 
@@ -266,7 +266,9 @@ public final class BindingStep extends Step {
             return "withCredentials";
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return "Bind credentials to variables";
         }
 

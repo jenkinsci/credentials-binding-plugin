@@ -24,6 +24,8 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.console.ConsoleLogFilter;
@@ -37,11 +39,16 @@ import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.regex.Pattern;
 
 @SuppressWarnings({"rawtypes", "unchecked"}) // inherited from BuildWrapper
@@ -49,7 +56,7 @@ public class SecretBuildWrapper extends BuildWrapper {
 
     private /*almost final*/ List<? extends MultiBinding<?>> bindings;
 
-    private final static Map<AbstractBuild<?, ?>, Collection<String>> secretsForBuild = new WeakHashMap<AbstractBuild<?, ?>, Collection<String>>();
+    private final static Map<AbstractBuild<?, ?>, Collection<String>> secretsForBuild = new WeakHashMap<>();
 
     /**
      * Gets the {@link Pattern} for the secret values for a given build, if that build has secrets defined. If not, return
@@ -57,7 +64,7 @@ public class SecretBuildWrapper extends BuildWrapper {
      * @param build A non-null build.
      * @return A compiled {@link Pattern} from the build's secret values, if the build has any.
      */
-    public static @CheckForNull Pattern getPatternForBuild(@Nonnull AbstractBuild<?, ?> build) {
+    public static @CheckForNull Pattern getPatternForBuild(@NonNull AbstractBuild<?, ?> build) {
         if (secretsForBuild.containsKey(build)) {
             return SecretPatterns.getAggregateSecretPattern(secretsForBuild.get(build));
         } else {
@@ -66,7 +73,7 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
     @DataBoundConstructor public SecretBuildWrapper(List<? extends MultiBinding<?>> bindings) {
-        this.bindings = bindings == null ? Collections.<MultiBinding<?>>emptyList() : bindings;
+        this.bindings = bindings == null ? Collections.emptyList() : bindings;
     }
 
     public List<? extends MultiBinding<?>> getBindings() {
@@ -74,14 +81,14 @@ public class SecretBuildWrapper extends BuildWrapper {
     }
 
     @Override
-    public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws IOException, InterruptedException, Run.RunnerAbortedException {
+    public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws Run.RunnerAbortedException {
         return new Filter(build.getCharset().name()).decorateLogger(build, logger);
     }
 
     @Override public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        final List<MultiBinding.MultiEnvironment> m = new ArrayList<MultiBinding.MultiEnvironment>();
+        final List<MultiBinding.MultiEnvironment> m = new ArrayList<>();
 
-        Set<String> secrets = new HashSet<String>();
+        Set<String> secrets = new HashSet<>();
 
         for (MultiBinding binding : bindings) {
             MultiBinding.MultiEnvironment e = binding.bind(build, build.getWorkspace(), launcher, listener);
@@ -139,7 +146,7 @@ public class SecretBuildWrapper extends BuildWrapper {
             this.charsetName = charsetName;
         }
 
-        @Override public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws IOException, InterruptedException {
+        @Override public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) {
             return new SecretPatterns.MaskingOutputStream(logger, () -> getPatternForBuild(build), charsetName) {
                 @Override public void close() throws IOException {
                     super.close();
@@ -156,7 +163,9 @@ public class SecretBuildWrapper extends BuildWrapper {
             return true;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.SecretBuildWrapper_use_secret_text_s_or_file_s_();
         }
 

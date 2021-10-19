@@ -25,6 +25,8 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -40,9 +42,6 @@ import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernamePasswordCredentials> {
 
@@ -67,10 +66,10 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return StandardUsernamePasswordCredentials.class;
     }
 
-    @Override public MultiEnvironment bind(@Nonnull Run<?, ?> build,
+    @Override public MultiEnvironment bind(@NonNull Run<?, ?> build,
                                            @Nullable FilePath workspace,
                                            @Nullable Launcher launcher,
-                                           @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                                           @NonNull TaskListener listener) throws IOException, InterruptedException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         Map<String, String> secretValues = new LinkedHashMap<>();
         Map<String, String> publicValues = new LinkedHashMap<>();
@@ -79,7 +78,7 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
         return new MultiEnvironment(secretValues, publicValues);
     }
 
-    @Override public Set<String> variables(Run<?, ?> build) throws CredentialNotFoundException {
+    @Override public Set<String> variables(@NonNull Run<?, ?> build) throws CredentialNotFoundException {
         StandardUsernamePasswordCredentials credentials = getCredentials(build);
         Set<String> vars = new LinkedHashSet<>();
         if (credentials.isUsernameSecret()) {
@@ -96,7 +95,9 @@ public class UsernamePasswordMultiBinding extends MultiBinding<StandardUsernameP
             return StandardUsernamePasswordCredentials.class;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.UsernamePasswordMultiBinding_username_and_password();
         }
 

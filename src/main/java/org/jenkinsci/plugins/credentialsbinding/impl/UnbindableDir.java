@@ -3,8 +3,7 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import java.io.IOException;
 import java.util.UUID;
 
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding.Unbinder;
 import org.kohsuke.accmod.Restricted;
@@ -47,7 +46,7 @@ public class UnbindableDir {
      * @throws IOException
      * @throws InterruptedException
      */
-    public static UnbindableDir create(@Nonnull FilePath workspace)
+    public static UnbindableDir create(@NonNull FilePath workspace)
             throws IOException, InterruptedException {
         final FilePath secrets = secretsDir(workspace);
         final String dirName = UUID.randomUUID().toString();
@@ -77,10 +76,10 @@ public class UnbindableDir {
         }
 
         @Override
-        public void unbind(@Nonnull Run<?, ?> build,
+        public void unbind(@NonNull Run<?, ?> build,
                 FilePath workspace,
                 Launcher launcher,
-                @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                @NonNull TaskListener listener) throws IOException, InterruptedException {
             secretsDir(workspace).child(dirName).deleteRecursive();
         }
     }

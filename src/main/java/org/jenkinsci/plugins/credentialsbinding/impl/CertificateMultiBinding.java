@@ -9,9 +9,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
@@ -59,8 +58,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 	private String aliasVariable;
 
 	@DataBoundConstructor
-	@CheckForNull
-	public CertificateMultiBinding(@Nonnull String keystoreVariable, String credentialsId) {
+	public CertificateMultiBinding(@NonNull String keystoreVariable, String credentialsId) {
 		super(credentialsId);
 		this.keystoreVariable = keystoreVariable;
 	}
@@ -71,8 +69,11 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 	}
 
 	@Override
-	public org.jenkinsci.plugins.credentialsbinding.MultiBinding.MultiEnvironment bind(Run<?, ?> build,
-			FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+	public org.jenkinsci.plugins.credentialsbinding.MultiBinding.MultiEnvironment bind(@NonNull Run<?, ?> build,
+																					   @Nullable FilePath workspace,
+																					   @Nullable Launcher launcher,
+																					   @NonNull TaskListener listener)
+			throws IOException, InterruptedException {
 		StandardCertificateCredentials credentials = getCredentials(build);
 		final String storePassword = credentials.getPassword().getPlainText();
 		Map<String, String> m = new LinkedHashMap<>();
@@ -87,11 +88,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 			OutputStream out = secret.write();
 			try {
 				credentials.getKeyStore().store(out, storePassword.toCharArray());
-			} catch (KeyStoreException e) {
-				throw new IOException(e);
-			} catch (NoSuchAlgorithmException e) {
-				throw new IOException(e);
-			} catch (CertificateException e) {
+			} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException e) {
 				throw new IOException(e);
 			} finally {
 				org.apache.commons.io.IOUtils.closeQuietly(out);
@@ -105,7 +102,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 	}
 
 	@Override
-	public Set<String> variables(Run<?, ?> build) {
+	public Set<String> variables(@NonNull Run<?, ?> build) {
 		Set<String> set = new HashSet<>();
 		set.add(keystoreVariable);
 		if (aliasVariable != null && !aliasVariable.isEmpty()) {
@@ -126,6 +123,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 			return StandardCertificateCredentials.class;
 		}
 
+		@NonNull
 		@Override
 		public String getDisplayName() {
 			return Messages.CertificateMultiBinding_certificate_keystore();

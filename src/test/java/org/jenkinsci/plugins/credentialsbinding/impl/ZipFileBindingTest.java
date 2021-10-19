@@ -45,7 +45,7 @@ public class ZipFileBindingTest {
     @Issue("JENKINS-30941")
     @Test
     public void cleanUpSucceeds() throws Exception {
-        /** Issue was just present on Linux not windows - but the test will run on both */
+        /* Issue was just present on Linux not windows - but the test will run on both */
 
         final String credentialsId = "zipfile";
 

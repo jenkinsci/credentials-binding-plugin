@@ -48,14 +48,20 @@ import hudson.tasks.Shell;
 import java.util.Collections;
 import java.util.List;
 import jenkins.model.Jenkins;
-import static org.hamcrest.Matchers.*;
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
-import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.xmlunit.matchers.CompareMatcher;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class UsernamePasswordBindingTest {
 
@@ -88,8 +94,8 @@ public class UsernamePasswordBindingTest {
     @Test
     public void theSecretBuildWrapperTracksUsage() throws Exception {
         SystemCredentialsProvider.getInstance().setDomainCredentialsMap(
-        Collections.singletonMap(Domain.global(), Collections.<Credentials>emptyList()));
-        for (CredentialsStore s : CredentialsProvider.lookupStores(Jenkins.getInstance())) {
+        Collections.singletonMap(Domain.global(), Collections.emptyList()));
+        for (CredentialsStore s : CredentialsProvider.lookupStores(Jenkins.get())) {
             if (s.getProvider() instanceof SystemCredentialsProvider.ProviderImpl) {
                 store = s;
                 break;

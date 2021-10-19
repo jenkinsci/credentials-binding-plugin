@@ -38,7 +38,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.io.IOException;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 public class BatchSecretPatternFactoryTest {
@@ -67,7 +67,7 @@ public class BatchSecretPatternFactoryTest {
     private String credentialId;
 
     @Before
-    public void assumeWindowsForBatch() throws Exception {
+    public void assumeWindowsForBatch() {
         assumeTrue(Functions.isWindows());
     }
 
@@ -348,13 +348,12 @@ public class BatchSecretPatternFactoryTest {
     private void assertStringPresentInOrder(WorkflowRun run, String... values) throws Exception {
         String fullLog = run.getLog();
         int currentIndex = 0;
-        for (int i = 0; i < values.length; i++) {
-            String currentValue = values[i];
+        for (String currentValue : values) {
             int nextIndex = fullLog.indexOf(currentValue, currentIndex);
-            if(nextIndex == -1){
+            if (nextIndex == -1) {
                 // use assertThat to have better output
                 assertThat(fullLog.substring(currentIndex), containsString(currentValue));
-            }else{
+            } else {
                 currentIndex = nextIndex + currentValue.length();
             }
         }

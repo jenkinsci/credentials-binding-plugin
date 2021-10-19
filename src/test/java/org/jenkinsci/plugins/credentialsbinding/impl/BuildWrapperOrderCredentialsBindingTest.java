@@ -27,10 +27,15 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.Functions;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
 import hudson.tasks.BatchFile;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
@@ -45,12 +50,9 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.StaplerRequest;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class BuildWrapperOrderCredentialsBindingTest {
 
@@ -66,7 +68,7 @@ public class BuildWrapperOrderCredentialsBindingTest {
 
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), firstCreds);
 
-        SecretBuildWrapper wrapper = new SecretBuildWrapper(Arrays.asList(new StringBinding(bindingKey, credentialsId)));
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(Collections.singletonList(new StringBinding(bindingKey, credentialsId)));
 
         FreeStyleProject f = r.createFreeStyleProject("buildWrapperOrder");
 
@@ -112,7 +114,7 @@ public class BuildWrapperOrderCredentialsBindingTest {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
+            public BuildWrapper newInstance(StaplerRequest req, @NonNull JSONObject formData) {
                 return new BuildWrapperOrder();
             }
 

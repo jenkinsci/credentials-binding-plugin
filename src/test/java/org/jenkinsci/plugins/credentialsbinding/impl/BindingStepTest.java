@@ -41,13 +41,13 @@ import hudson.model.Node;
 import hudson.model.Result;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
-import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import hudson.slaves.WorkspaceList;
 import hudson.util.Secret;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,7 +60,6 @@ import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
 import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;
 import org.jenkinsci.plugins.authorizeproject.strategy.SpecificUsersAuthorizationStrategy;
-import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
@@ -86,7 +85,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.ClassRule;
 
 import org.junit.Rule;
@@ -105,17 +107,17 @@ public class BindingStepTest {
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
-    @Test public void configRoundTrip() throws Exception {
+    @Test public void configRoundTrip() {
         story.addStep(new Statement() {
             @SuppressWarnings("rawtypes")
             @Override public void evaluate() throws Throwable {
                 UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "bob", "s3cr3t");
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
-                BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(new UsernamePasswordBinding("userpass", "creds"))));
+                BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.singletonList(new UsernamePasswordBinding("userpass", "creds"))));
                 story.j.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(new UsernamePasswordBinding("userpass", "creds")));
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), new FileCredentialsImpl(CredentialsScope.GLOBAL, "secrets", "sample", "secrets.zip",
                     SecretBytes.fromBytes(new byte[] {0x50,0x4B,0x05,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}))); // https://en.wikipedia.org/wiki/Zip_(file_format)#Limits
-                new SnippetizerTester(story.j).assertRoundTrip(new BindingStep(Collections.<MultiBinding>singletonList(new ZipFileBinding("file", "secrets"))),
+                new SnippetizerTester(story.j).assertRoundTrip(new BindingStep(Collections.singletonList(new ZipFileBinding("file", "secrets"))),
                     "withCredentials([[$class: 'ZipFileBinding', credentialsId: 'secrets', variable: 'file']]) {\n    // some block\n}");
             }
         });
@@ -127,11 +129,11 @@ public class BindingStepTest {
             @Override public String getFunctionName() {return "zip";}
         }
         public static class Execution extends AbstractSynchronousStepExecution<Void> {
-            @Override protected Void run() throws Exception {return null;}
+            @Override protected Void run() {return null;}
         }
     }
 
-    @Test public void basics() throws Exception {
+    @Test public void basics() {
         final String credentialsId = "creds";
         final String username = "bob";
         final String password = "s$$cr3t";
@@ -177,7 +179,7 @@ public class BindingStepTest {
 
     @Issue("JENKINS-42999")
     @Test
-    public void limitedRequiredContext() throws Exception {
+    public void limitedRequiredContext() {
         final String credentialsId = "creds";
         final String username = "bob";
         final String password = "s3cr3t";
@@ -213,7 +215,7 @@ public class BindingStepTest {
 
     @Issue("JENKINS-42999")
     @Test
-    public void widerRequiredContext() throws Exception {
+    public void widerRequiredContext() {
         final String credentialsId = "creds";
         final String credsFile = "credsFile";
         final String credsContent = "s3cr3t";
@@ -237,7 +239,7 @@ public class BindingStepTest {
     @Inject
     StringCredentialsImpl.DescriptorImpl stringCredentialsDescriptor;
 
-    @Test public void incorrectType() throws Exception {
+    @Test public void incorrectType() {
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
                 StringCredentialsImpl c = new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t"));
@@ -259,14 +261,14 @@ public class BindingStepTest {
         });
     }
 
-    @Test public void cleanupAfterRestart() throws Exception {
+    @Test public void cleanupAfterRestart() {
         final String secret = "s3cr3t";
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
                 FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "secret.txt", SecretBytes.fromBytes(secret.getBytes()));
                 CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
                 // TODO JENKINS-26398: story.j.createSlave("myslave", null, null) does not work since the slave root is deleted after restart.
-                story.j.jenkins.addNode(new DumbSlave("myslave", "", tmp.newFolder().getAbsolutePath(), "1", Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP, Collections.<NodeProperty<?>>emptyList()));
+                story.j.jenkins.addNode(new DumbSlave("myslave", "", tmp.newFolder().getAbsolutePath(), "1", Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP, Collections.emptyList()));
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node('myslave') {"
@@ -365,7 +367,7 @@ public class BindingStepTest {
                 User.get("dummy", true);
                 
                 // enable the run as user strategy for the AuthorizeProject plugin
-                Map<String, Boolean> strategies = new HashMap<String, Boolean>();
+                Map<String, Boolean> strategies = new HashMap<>();
                 strategies.put(story.j.jenkins.getDescriptor(SpecificUsersAuthorizationStrategy.class).getId(), true);
                 QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new ProjectQueueItemAuthenticator(strategies));
 
@@ -476,7 +478,7 @@ public class BindingStepTest {
     }
 
     private static Set<String> grep(File dir, String text) throws IOException {
-        Set<String> matches = new TreeSet<String>();
+        Set<String> matches = new TreeSet<>();
         grep(dir, text, "", matches);
         return matches;
     }
@@ -489,7 +491,7 @@ public class BindingStepTest {
             String qualifiedName = prefix + kid.getName();
             if (kid.isDirectory()) {
                 grep(kid, text, qualifiedName + "/", matches);
-            } else if (kid.isFile() && FileUtils.readFileToString(kid).contains(text)) {
+            } else if (kid.isFile() && FileUtils.readFileToString(kid, StandardCharsets.UTF_8).contains(text)) {
                 matches.add(qualifiedName);
             }
         }

@@ -24,16 +24,14 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.jenkinsci.Symbol;
 
@@ -41,9 +39,6 @@ import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class StringBinding extends Binding<StringCredentials> {
 
@@ -55,10 +50,10 @@ public class StringBinding extends Binding<StringCredentials> {
         return StringCredentials.class;
     }
 
-    @Override public SingleEnvironment bindSingle(@Nonnull Run<?,?> build,
+    @Override public SingleEnvironment bindSingle(@NonNull Run<?,?> build,
                                                   @Nullable FilePath workspace,
                                                   @Nullable Launcher launcher,
-                                                  @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                                                  @NonNull TaskListener listener) throws IOException {
         return new SingleEnvironment(getCredentials(build).getSecret().getPlainText());
     }
 
@@ -73,7 +68,9 @@ public class StringBinding extends Binding<StringCredentials> {
             return StringCredentials.class;
         }
 
-        @Override public String getDisplayName() {
+        @NonNull
+        @Override
+        public String getDisplayName() {
             return Messages.StringBinding_secret_text();
         }
 

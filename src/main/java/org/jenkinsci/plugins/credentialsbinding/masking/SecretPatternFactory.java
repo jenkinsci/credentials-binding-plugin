@@ -24,12 +24,12 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 
 /**
@@ -43,12 +43,12 @@ public interface SecretPatternFactory extends ExtensionPoint {
     /**
      * Returns a collection of alternative forms the given input may be encoded as in logs.
      */
-    @Nonnull Collection<String> getEncodedForms(@Nonnull String input);
+    @NonNull Collection<String> getEncodedForms(@NonNull String input);
 
     /**
      * Returns all SecretPatternFactory extensions known at runtime.
      */
-    static @Nonnull ExtensionList<SecretPatternFactory> all() {
+    static @NonNull ExtensionList<SecretPatternFactory> all() {
         return ExtensionList.lookup(SecretPatternFactory.class);
     }
 

@@ -2,8 +2,7 @@ package org.jenkinsci.plugins.credentialsbinding.impl;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 
@@ -28,10 +27,10 @@ public abstract class AbstractOnDiskBinding<C extends StandardCredentials> exten
     }
 
     @Override
-    public final SingleEnvironment bindSingle(@Nonnull Run<?, ?> build,
+    public final SingleEnvironment bindSingle(@NonNull Run<?, ?> build,
                                               FilePath workspace,
                                               Launcher launcher,
-                                              @Nonnull TaskListener listener) throws IOException, InterruptedException {
+                                              @NonNull TaskListener listener) throws IOException, InterruptedException {
         if (workspace == null) {
             throw new IllegalArgumentException("This Binding implementation requires a non-null workspace");
         }

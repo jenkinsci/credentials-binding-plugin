@@ -103,7 +103,7 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         }
         
         Computer computer = keyFile.toComputer(); 
-	keyFile.write(contents.toString(), computer.getDefaultCharset());       
+	keyFile.write(contents.toString(), computer.getDefaultCharset().toString());       
  
 	keyFile.chmod(0400);
 

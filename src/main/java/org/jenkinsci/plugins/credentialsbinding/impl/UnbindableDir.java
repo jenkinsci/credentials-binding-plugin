@@ -57,14 +57,14 @@ public class UnbindableDir {
         return new UnbindableDir(dir);
     }
 
-    private static FilePath secretsDir(FilePath workspace) {
-        return tempDir(workspace).child("secretFiles");
+    private static FilePath secretsDir(FilePath workspace) throws IOException {
+        final FilePath path = WorkspaceList.tempDir(workspace);
+        if (path == null) {
+            throw new IOException("Failed to create tempDir");
+        }
+        return path.child("secretFiles");
     }
 
-    // TODO 1.652 use WorkspaceList.tempDir
-    private static FilePath tempDir(FilePath ws) {
-        return ws.sibling(ws.getName() + System.getProperty(WorkspaceList.class.getName(), "@") + "tmp");
-    }
 
     @Restricted(NoExternalUse.class)
     protected static class UnbinderImpl implements Unbinder {

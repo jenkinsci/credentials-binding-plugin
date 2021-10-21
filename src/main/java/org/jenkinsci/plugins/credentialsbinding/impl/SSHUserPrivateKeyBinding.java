@@ -41,7 +41,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.*;
 
 public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
@@ -104,21 +103,9 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
         }
         
         Computer computer = keyFile.toComputer(); 
-        String charset = null;
-        if (computer != null){
-            String encodingProperty = SSHUserPrivateKeyBinding.class.getName() + ".user.sshkey.file.encoding";
-            Object propValue = computer.getSystemProperties().get(encodingProperty);
-            if(propValue != null ){
-                charset = Charset.forName(propValue.toString()).toString();
-            }
-        }
-        
-        if (charset != null) {
-    	    keyFile.write(contents.toString(), charset);
-        } else { 
-            keyFile.write(contents.toString(), "UTF-8");
-        }
-        keyFile.chmod(0400);
+	keyFile.write(contents.toString(), computer.getDefaultCharset());       
+ 
+	keyFile.chmod(0400);
 
         Map<String, String> secretValues = new LinkedHashMap<>();
         Map<String, String> publicValues = new LinkedHashMap<>();

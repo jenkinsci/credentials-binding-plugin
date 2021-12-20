@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 
+import jenkins.model.Jenkins;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
@@ -43,6 +44,7 @@ import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
 
@@ -72,7 +74,22 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
             return Messages.ZipFileBinding_secret_zip_file();
         }
 
-        public FormValidation doCheckCredentialsId(@AncestorInPath Item owner, @QueryParameter String value) {
+        // @RequirePOST
+        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item owner, @QueryParameter String value) {
+            //TODO due to weird behavior in c:select, there are initial calls using GET
+            // so using this approach will prevent 405 errors
+            if (!req.getMethod().equals("POST")) {
+                return FormValidation.ok();
+            }
+            if (owner == null) {
+                if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+                    return FormValidation.ok();
+                }
+            } else {
+                if (!owner.hasPermission(Item.EXTENDED_READ) && !owner.hasPermission(CredentialsProvider.USE_ITEM)) {
+                    return FormValidation.ok();
+                }
+            }
             for (FileCredentials c : CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, Collections.<DomainRequirement>emptyList())) {
                 if (c.getId().equals(value)) {
                     InputStream is = null;

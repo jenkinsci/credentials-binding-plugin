@@ -26,7 +26,7 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:c="/lib/credentials">
     <st:include page="config-variables.jelly" class="${descriptor.clazz}"/>
     <f:entry title="${%Credentials}" field="credentialsId">
-        <c:select expressionAllowed="${expressionAllowed}"/>
+        <c:select expressionAllowed="${expressionAllowed}" checkMethod="post"/>
     </f:entry>
     <st:include page="config-details.jelly" class="${descriptor.clazz}" optional="true"/>
 </j:jelly>

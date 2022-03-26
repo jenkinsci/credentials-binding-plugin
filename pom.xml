@@ -20,7 +20,7 @@
   <properties>
     <revision>1.28</revision>
     <changelist>-SNAPSHOT</changelist>
-    <jenkins.version>2.249.1</jenkins.version>
+    <jenkins.version>2.319.1</jenkins.version>
     <java.level>8</java.level>
   </properties>
   <licenses>
@@ -54,8 +54,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.249.x</artifactId>
-        <version>984.vb5eaac999a7e</version>
+        <artifactId>bom-2.319.x</artifactId>
+        <version>1210.vcd41f6657f03</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -65,6 +65,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
+      <version>1087.v16065d268466</version> <!-- TODO until in BOM -->
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>

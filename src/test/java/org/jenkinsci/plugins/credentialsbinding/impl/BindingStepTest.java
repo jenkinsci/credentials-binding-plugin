@@ -24,11 +24,13 @@
 
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SecretBytes;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
 import hudson.model.Fingerprint;
@@ -39,6 +41,7 @@ import hudson.FilePath;
 import hudson.Functions;
 import hudson.model.Node;
 import hudson.model.Result;
+import hudson.model.Run;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.RetentionStrategy;
@@ -60,6 +63,7 @@ import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
 import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;
 import org.jenkinsci.plugins.authorizeproject.strategy.SpecificUsersAuthorizationStrategy;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
@@ -470,6 +474,30 @@ public class BindingStepTest {
             FlowNode echoNode = new DepthFirstScanner().findFirstMatch(exec, new NodeStepTypePredicate("echo"));
             assertThat(ArgumentsAction.getArguments(echoNode).get("message"), equalTo("Username is " + username));
         });
+    }
+
+    @Issue("https://github.com/jenkinsci/credentials-plugin/pull/293")
+    @Test public void forRun() throws Exception {
+        story.then(r -> {
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new SpecialCredentials(CredentialsScope.GLOBAL, "test", null));
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition("withCredentials([string(variable: 'SECRET', credentialsId: 'test')]) {echo(/got: ${SECRET.toUpperCase()}/)}", true));
+            r.assertLogContains("got: P#1", r.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
+        });
+    }
+    private static final class SpecialCredentials extends BaseStandardCredentials implements StringCredentials {
+        private Run<?, ?> build;
+        SpecialCredentials(CredentialsScope scope, String id, String description) {
+            super(scope, id, description);
+        }
+        @Override public Secret getSecret() {
+            return Secret.fromString(build != null ? build.getExternalizableId() : "unknown");
+        }
+        @Override public Credentials forRun(Run<?, ?> context) {
+            SpecialCredentials clone = new SpecialCredentials(getScope(), getId(), getDescription());
+            clone.build = context;
+            return clone;
+        }
     }
 
     private static Set<String> grep(File dir, String text) throws IOException {

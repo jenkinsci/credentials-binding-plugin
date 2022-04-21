@@ -1,2 +1,1 @@
 _extends: .github
-tag-template: credentials-binding-$NEXT_MINOR_VERSION

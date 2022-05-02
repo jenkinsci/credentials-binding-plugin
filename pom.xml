@@ -18,7 +18,7 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.319.1</jenkins.version>
-    <jenkins-test-harness.version>999999-SNAPSHOT</jenkins-test-harness.version> <!-- TODO https://github.com/jenkinsci/jenkins-test-harness/pull/428 -->
+    <jenkins-test-harness.version>1743.v70fb_de95fb_4c</jenkins-test-harness.version> <!-- TODO https://github.com/jenkinsci/jenkins-test-harness/pull/428 -->
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
   <licenses>

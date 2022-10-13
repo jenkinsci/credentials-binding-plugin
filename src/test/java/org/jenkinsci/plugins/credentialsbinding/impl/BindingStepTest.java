@@ -273,7 +273,7 @@ public class BindingStepTest {
                     + "node('myslave') {"
                     + "  withCredentials([file(variable: 'SECRET', credentialsId: 'creds')]) {\n"
                     + "    semaphore 'cleanupAfterRestart'\n"
-                    + "    if (isUnix()) {sh 'cp \"$SECRET\" key'} else {bat 'copy %SECRET% key'}\n"
+                    + "    if (isUnix()) {sh 'cp \"$SECRET\" key'} else {bat 'copy \"%SECRET%\" key'}\n"
                     + "  }\n"
                     + "}", true));
             WorkflowRun b = p.scheduleBuild2(0).waitForStart();

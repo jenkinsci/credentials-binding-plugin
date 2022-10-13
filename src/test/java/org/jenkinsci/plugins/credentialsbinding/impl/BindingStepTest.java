@@ -39,12 +39,9 @@ import jenkins.security.QueueItemAuthenticatorConfiguration;
 
 import hudson.FilePath;
 import hudson.Functions;
-import hudson.model.Node;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
-import hudson.slaves.DumbSlave;
-import hudson.slaves.RetentionStrategy;
 import hudson.slaves.WorkspaceList;
 import hudson.util.Secret;
 
@@ -97,10 +94,10 @@ import org.junit.ClassRule;
 
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -108,8 +105,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class BindingStepTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
-    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+    /*@Rule*/ public RestartableJenkinsRule story = new RestartableJenkinsRule();
+    @Rule public JenkinsSessionRule rr = new JenkinsSessionRule();
 
     @Test public void configRoundTrip() {
         story.addStep(new Statement() {
@@ -265,45 +262,40 @@ public class BindingStepTest {
         });
     }
 
-    @Test public void cleanupAfterRestart() {
+    @Test public void cleanupAfterRestart() throws Throwable {
         final String secret = "s3cr3t";
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
-                FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "secret.txt", SecretBytes.fromBytes(secret.getBytes()));
-                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
-                // TODO JENKINS-26398: story.j.createSlave("myslave", null, null) does not work since the slave root is deleted after restart.
-                story.j.jenkins.addNode(new DumbSlave("myslave", "", tmp.newFolder().getAbsolutePath(), "1", Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP, Collections.emptyList()));
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
-                p.setDefinition(new CpsFlowDefinition(""
-                        + "node('myslave') {"
-                        + "  withCredentials([file(variable: 'SECRET', credentialsId: 'creds')]) {\n"
-                        + "    semaphore 'cleanupAfterRestart'\n"
-                        + "    if (isUnix()) {sh 'cp $SECRET key'} else {bat 'copy %SECRET% key'}\n"
-                        + "  }\n"
-                        + "}", true));
-                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-                SemaphoreStep.waitForStart("cleanupAfterRestart/1", b);
-            }
+        rr.then(r -> {
+            FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "secret.txt", SecretBytes.fromBytes(secret.getBytes()));
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
+            r.createSlave("myslave", null, null);
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(""
+                    + "node('myslave') {"
+                    + "  withCredentials([file(variable: 'SECRET', credentialsId: 'creds')]) {\n"
+                    + "    semaphore 'cleanupAfterRestart'\n"
+                    + "    if (isUnix()) {sh 'cp \"$SECRET\" key'} else {bat 'copy \"%SECRET%\" key'}\n"
+                    + "  }\n"
+                    + "}", true));
+            WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+            SemaphoreStep.waitForStart("cleanupAfterRestart/1", b);
         });
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
-                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
-                assertNotNull(p);
-                WorkflowRun b = p.getBuildByNumber(1);
-                assertNotNull(b);
-                assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
-                SemaphoreStep.success("cleanupAfterRestart/1", null);
-                story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b));
-                story.j.assertLogNotContains(secret, b);
-                FilePath ws = story.j.jenkins.getNode("myslave").getWorkspaceFor(p);
-                FilePath key = ws.child("key");
-                assertTrue(key.exists());
-                assertEquals(secret, key.readToString());
-                FilePath secretFiles = WorkspaceList.tempDir(ws).child("secretFiles");
-                assertTrue(secretFiles.isDirectory());
-                assertEquals(Collections.emptyList(), secretFiles.list());
-                assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
-            }
+        rr.then(r -> {
+            WorkflowJob p = r.jenkins.getItemByFullName("p", WorkflowJob.class);
+            assertNotNull(p);
+            WorkflowRun b = p.getBuildByNumber(1);
+            assertNotNull(b);
+            assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
+            SemaphoreStep.success("cleanupAfterRestart/1", null);
+            r.assertBuildStatusSuccess(r.waitForCompletion(b));
+            r.assertLogNotContains(secret, b);
+            FilePath ws = r.jenkins.getNode("myslave").getWorkspaceFor(p);
+            FilePath key = ws.child("key");
+            assertTrue(key.exists());
+            assertEquals(secret, key.readToString());
+            FilePath secretFiles = WorkspaceList.tempDir(ws).child("secretFiles");
+            assertTrue(secretFiles.isDirectory());
+            assertEquals(Collections.emptyList(), secretFiles.list());
+            assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(), secret));
         });
     }
 

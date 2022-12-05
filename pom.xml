@@ -5,8 +5,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.49</version>
-    <relativePath />
+    <version>4.52</version>
+    <relativePath/>
   </parent>
 
   <artifactId>credentials-binding</artifactId>
@@ -17,7 +17,7 @@
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.319.3</jenkins.version>
+    <jenkins.version>2.361.4</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
   <licenses>
@@ -51,7 +51,7 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.319.x</artifactId>
+        <artifactId>bom-2.361.x</artifactId>
         <version>1654.vcb_69d035fa_20</version>
         <scope>import</scope>
         <type>pom</type>

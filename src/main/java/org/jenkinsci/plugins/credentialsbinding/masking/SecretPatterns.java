@@ -24,8 +24,8 @@
 
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.console.LineTransformationOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -70,7 +70,7 @@ public class SecretPatterns {
 
         private final @NonNull Supplier<Pattern> secretPattern;
         private final @NonNull String charsetName;
-        private @CheckForNull Pattern p;
+        private @Nullable Pattern p; // null until set
 
         /**
          * @param out the base output stream which will not be sent secrets

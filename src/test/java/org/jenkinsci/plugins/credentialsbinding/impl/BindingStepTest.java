@@ -55,8 +55,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.inject.Inject;
-
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
 import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;

@@ -33,37 +33,34 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.ExtensionList;
-
-import hudson.model.Fingerprint;
-import hudson.model.User;
-import jenkins.security.QueueItemAuthenticatorConfiguration;
-
 import hudson.FilePath;
 import hudson.Functions;
+import hudson.model.Fingerprint;
+import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.Run;
+import hudson.model.User;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import hudson.slaves.WorkspaceList;
 import hudson.util.Secret;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
+import jenkins.security.QueueItemAuthenticator;
+import jenkins.security.QueueItemAuthenticatorConfiguration;
 import org.apache.commons.io.FileUtils;
-import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
-import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;
-import org.jenkinsci.plugins.authorizeproject.strategy.SpecificUsersAuthorizationStrategy;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
-import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
-import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.BlanketWhitelist;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
@@ -78,19 +75,10 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 import org.junit.ClassRule;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
@@ -98,6 +86,7 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.springframework.security.core.Authentication;
 
 public class BindingStepTest {
 
@@ -322,22 +311,13 @@ public class BindingStepTest {
 
     @Issue("JENKINS-30326")
     @Test
-    @SuppressWarnings("deprecation") // using TestExtension would be better, as would calling ScriptApproval.preapprove
     public void testGlobalBindingWithAuthorization() throws Throwable {
         rr.then(r -> {
             // configure security
             r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
             r.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
-            // create the user.
-            User.get("dummy", true);
 
-            // enable the run as user strategy for the AuthorizeProject plugin
-            Map<String, Boolean> strategies = new HashMap<>();
-            strategies.put(r.jenkins.getDescriptor(SpecificUsersAuthorizationStrategy.class).getId(), true);
-            QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new ProjectQueueItemAuthenticator(strategies));
-
-            // blanket whitelist all methods (easier than whitelisting Jenkins.getAuthentication)
-            r.jenkins.getExtensionList(Whitelist.class).add(new BlanketWhitelist());
+            QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new DummyAuthenticator());
 
             String credentialsId = "creds";
             String secret = "s3cr3t";
@@ -346,8 +326,6 @@ public class BindingStepTest {
 
             p.setDefinition(new CpsFlowDefinition(""
                 + "node {\n"
-                + "  def authentication = Jenkins.getAuthentication()\n"
-                + "  echo \"running as user: $authentication.principal\"\n"
                 + "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'SECRET')]) {\n"
                 + "    writeFile file:'test', text: \"$env.SECRET\"\n"
                 + "    def content = readFile 'test'\n"
@@ -356,16 +334,21 @@ public class BindingStepTest {
                 + "    }\n"
                 + "  }\n"
                 + "}", true));
-            // run the job as a specific user
-            SpecificUsersAuthorizationStrategy strategy = new SpecificUsersAuthorizationStrategy("dummy");
-            strategy.setDontRestrictJobConfiguration(true);
-            p.addProperty(new AuthorizeProjectProperty(strategy));
 
             // the build will fail if we can not locate the credentials
             WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
             // make sure this was actually run as a user and not system
-            r.assertLogContains("running as user: dummy", b);
+            r.assertLogContains("Running as dummy", b);
         });
+    }
+    private static final class DummyAuthenticator extends QueueItemAuthenticator {
+        @Override public Authentication authenticate2(Queue.Task task) {
+            if (task instanceof WorkflowJob) {
+                return User.getById("dummy", true).impersonate2();
+            } else {
+                return null;
+            }
+        }
     }
 
     @Issue("JENKINS-38831")

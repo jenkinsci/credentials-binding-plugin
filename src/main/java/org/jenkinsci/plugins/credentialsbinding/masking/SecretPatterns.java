@@ -135,6 +135,10 @@ public class SecretPatterns {
             }
         }
 
+        @Override public String toString() {
+            return "MaskingOutputStream[" + out + "]";
+        }
+
     }
 
     private SecretPatterns() {}

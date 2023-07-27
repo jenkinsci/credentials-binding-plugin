@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.credentialsbinding.masking;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.console.LineTransformationOutputStream;
-import java.util.Arrays;
 import jenkins.util.JenkinsJVM;
 
 import java.io.IOException;
@@ -36,15 +35,11 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SecretPatterns {
-
-    private static final Logger LOGGER = Logger.getLogger(SecretPatterns.class.getName());
 
     private static final Comparator<String> BY_LENGTH_DESCENDING =
             Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo);
@@ -59,7 +54,8 @@ public class SecretPatterns {
      * absence of quoting, the longer form is masked.
      */
     public static @NonNull Pattern getAggregateSecretPattern(@NonNull Collection<String> inputs) {
-        List<SecretPatternFactory> secretPatternFactories = getSecretPatternFactories();
+        JenkinsJVM.checkJenkinsJVM();
+        List<SecretPatternFactory> secretPatternFactories = SecretPatternFactory.all();
         String pattern = inputs.stream()
                 .filter(input -> !input.isEmpty())
                 .flatMap(input ->
@@ -70,31 +66,6 @@ public class SecretPatterns {
                 .map(Pattern::quote)
                 .collect(Collectors.joining("|"));
         return Pattern.compile(pattern);
-    }
-
-    private static List<SecretPatternFactory> getSecretPatternFactories() {
-        if (JenkinsJVM.isJenkinsJVM()) {
-            return SecretPatternFactory.all();
-        } else {
-            // TODO Change this to a hard fail in future, e.g. JenkinsJVM.checkJenkinsJVM();
-            LOGGER.log(
-                    Level.WARNING,
-                    "An agent attempted to look up secret patterns from the controller, which is unsupported. " +
-                            "Falling back to basic implementation that may not mask common transformations of the secret. " +
-                            "This workaround will be removed in a future release. " +
-                            "This is a bug in the plugin calling SecretPatterns#getAggregateSecretPattern(String) " +
-                            "and should be reported to its maintainers. " +
-                            "The plugin can be identified through the stacktrace below.",
-                    new RuntimeException()
-            );
-            return Arrays.asList(
-                    new AlmquistShellSecretPatternFactory(),
-                    new BashSecretPatternFactory(),
-                    new BatchSecretPatternFactory(),
-                    new DollarSecretPatternFactory(),
-                    new LiteralSecretPatternFactory()
-            );
-        }
     }
 
     /**

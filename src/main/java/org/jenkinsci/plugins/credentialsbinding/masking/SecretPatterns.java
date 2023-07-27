@@ -35,14 +35,11 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SecretPatterns {
-
-    private static final Logger LOGGER = Logger.getLogger(SecretPatterns.class.getName());
 
     private static final Comparator<String> BY_LENGTH_DESCENDING =
             Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo);

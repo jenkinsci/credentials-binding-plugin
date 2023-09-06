@@ -26,7 +26,9 @@ package org.jenkinsci.plugins.credentialsbinding.test;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.model.ModelObject;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -53,6 +55,25 @@ public class CredentialsTestUtil {
      */
     public static void setStringCredentials(ModelObject context, String credentialsId, String value) throws IOException {
         StringCredentials creds = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, null, Secret.fromString(value));
+        CredentialsProvider.lookupStores(context).iterator().next().addCredentials(Domain.global(), creds);
+    }
+
+    /**
+     * Registers the given value as a {@link UsernamePasswordCredentials} into the default {@link CredentialsProvider}.
+     * Returns the generated credential id for the registered credentials.
+     */
+    public static String registerUsernamePasswordCredentials(ModelObject context, String username, String password) throws IOException {
+        String credentialsId = UUID.randomUUID().toString();
+        setUsernamePasswordCredentials(context, credentialsId, username, password);
+        return credentialsId;
+    }
+
+    /**
+     * Registers the given value as a {@link UsernamePasswordCredentials} into the default {@link CredentialsProvider} using the
+     * specified credentials id.
+     */
+    public static void setUsernamePasswordCredentials(ModelObject context, String credentialsId, String username, String password) throws IOException {
+        UsernamePasswordCredentials creds = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, null, username, password);
         CredentialsProvider.lookupStores(context).iterator().next().addCredentials(Domain.global(), creds);
     }
 }

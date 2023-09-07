@@ -20,29 +20,28 @@ public class Base64SecretPatternFactory implements SecretPatternFactory {
     }
 
     @NonNull
-    private Collection<String> getBase64Forms(@NonNull String secret) {
+    public Collection<String> getBase64Forms(@NonNull String secret) {
         if (secret.length() == 0) {
             return Collections.emptyList();
         }
 
-        Base64.Encoder encoder = Base64.getEncoder();
-        Collection<String> result = new ArrayList<>(3);
+        Base64.Encoder[] encoders = new Base64.Encoder[]{
+                Base64.getEncoder(),
+                Base64.getUrlEncoder(),
+        };
 
-        // default
-        String regularBase64 = encoder.encodeToString(secret.getBytes(StandardCharsets.UTF_8));
-        result.add(regularBase64);
-        result.add(removeTrailingEquals(regularBase64));
+        Collection<String> result = new ArrayList<>();
+        String[] shifts = {"", "a", "aa"};
 
-        // shifted by one
-        String shiftedByOne = encoder.encodeToString(("a" + secret).getBytes(StandardCharsets.UTF_8));
-        result.add(shiftedByOne.substring(2));
-        result.add(removeTrailingEquals(shiftedByOne.substring(2)));
-
-        // shifted by two
-        String shiftedByTwo = encoder.encodeToString(("aa" + secret).getBytes(StandardCharsets.UTF_8));
-        result.add(shiftedByTwo.substring(4));
-        result.add(removeTrailingEquals(shiftedByTwo.substring(4)));
-
+        for (String shift : shifts) {
+            for (Base64.Encoder encoder : encoders) {
+                String shiftedSecret = shift + secret;
+                String encoded = encoder.encodeToString(shiftedSecret.getBytes(StandardCharsets.UTF_8));
+                String processedEncoded = shift.length() > 0 ? encoded.substring(2 * shift.length()) : encoded;
+                result.add(processedEncoded);
+                result.add(removeTrailingEquals(processedEncoded));
+            }
+        }
         return result;
     }
 

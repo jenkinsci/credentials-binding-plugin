@@ -92,7 +92,7 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
                     return FormValidation.ok();
                 }
             }
-            for (FileCredentials c : CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, Collections.emptyList())) {
+            for (FileCredentials c : CredentialsProvider.lookupCredentialsInItem(FileCredentials.class, owner, null, Collections.emptyList())) {
                 if (c.getId().equals(value)) {
                     InputStream is = null;
                     try {

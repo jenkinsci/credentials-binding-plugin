@@ -193,7 +193,7 @@ public class SSHUserPrivateKeyBindingTest {
                 assertTrue(key.exists());
                 assertEquals(keyContent, key.readToString().trim());
 
-                ((DummyPrivateKey) CredentialsProvider.lookupCredentials(SSHUserPrivateKey.class, story.j.jenkins, ACL.SYSTEM, Collections.emptyList()).get(0)).usernameSecret = false;
+                ((DummyPrivateKey) CredentialsProvider.lookupCredentialsInItemGroup(SSHUserPrivateKey.class, story.j.jenkins, ACL.SYSTEM2, Collections.emptyList()).get(0)).usernameSecret = false;
                 SemaphoreStep.success("basics/2", null);
                 b = story.j.buildAndAssertSuccess(p);
                 story.j.assertLogContains(username, b);

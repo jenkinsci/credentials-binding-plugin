@@ -60,7 +60,7 @@ public abstract class BindingDescriptor<C extends StandardCredentials> extends D
         // when configuring the job, you only want those credentials that are available to ACL.SYSTEM selectable
         // as we cannot select from a user's credentials unless they are the only user submitting the build
         // (which we cannot assume) thus ACL.SYSTEM is correct here.
-        return new Model().withAll(CredentialsProvider.lookupCredentials(type(), owner, ACL.SYSTEM, Collections.emptyList()));
+        return new Model().withAll(CredentialsProvider.lookupCredentialsInItem(type(), owner, ACL.SYSTEM2, Collections.emptyList()));
     }
 
     private final class Model extends AbstractIdCredentialsListBoxModel<Model,C> {

@@ -26,6 +26,7 @@ import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -48,7 +49,9 @@ import java.util.Set;
 public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
 
     public final String keyFileVariable;
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO clean up")
     public String usernameVariable;
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO clean up")
     public String passphraseVariable;
 
     @DataBoundConstructor public SSHUserPrivateKeyBinding(@NonNull String keyFileVariable, String credentialsId) {

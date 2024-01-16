@@ -49,9 +49,9 @@ import java.util.Set;
 public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
 
     public final String keyFileVariable;
-    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "Preserve API compatibility.")
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO clean up")
     public String usernameVariable;
-    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "Preserve API compatibility.")
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO clean up")
     public String passphraseVariable;
 
     @DataBoundConstructor public SSHUserPrivateKeyBinding(@NonNull String keyFileVariable, String credentialsId) {

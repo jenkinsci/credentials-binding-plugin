@@ -127,7 +127,7 @@ public final class BindingStep extends Step {
             for (MultiBinding<?> binding : step.bindings) {
                 if (binding.getDescriptor().requiresWorkspace() &&
                         (workspace == null || launcher == null)) {
-                    throw new MissingContextVariableException(FilePath.class);
+                    throw new MissingContextVariableException(FilePath.class, step.getDescriptor());
                 }
                 MultiBinding.MultiEnvironment environment = binding.bind(run, workspace, launcher, listener);
                 unbinders.add(environment.getUnbinder());

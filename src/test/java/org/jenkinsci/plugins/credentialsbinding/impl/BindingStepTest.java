@@ -218,7 +218,7 @@ public class BindingStepTest {
             WorkflowRun b = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0));
             r.assertLogNotContains("We should fail before getting here", b);
             r.assertLogContains("Required context class hudson.FilePath is missing", b);
-            r.assertLogContains("Perhaps you forgot to surround the step with a step that provides this, such as: node", b);
+            r.assertLogContains("Perhaps you forgot to surround the withCredentials step with a step that provides this, such as: node", b);
         });
     }
 

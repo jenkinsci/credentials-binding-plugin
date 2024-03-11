@@ -321,6 +321,25 @@ public class BindingStepTest {
         });
     }
 
+    @Issue("JENKINS-72412")
+    @Test public void maskingOfOneCharSecretShouldNotMangleOutput() throws Throwable {
+        rr.then(r -> {
+            String credentialsId = "creds";
+            String secret = "a";
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(""
+                + "node {\n"
+                + "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'SECRET')]) {\n"
+                // forgot set +x, ran /usr/bin/env, etc.
+                + "    if (isUnix()) {sh 'echo $SECRET > oops'} else {bat 'echo %SECRET% > oops'}\n"
+                + "  }\n"
+                + "}", true));
+            WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+            r.assertLogContains("echo", b);
+        });
+    }
+
     @Issue("JENKINS-30326")
     @Test
     public void testGlobalBindingWithAuthorization() throws Throwable {

@@ -9,9 +9,13 @@ import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import java.util.Collection;
+import java.util.List;
 
 public class Base64SecretPatternFactoryTest {
 
@@ -51,5 +55,17 @@ public class Base64SecretPatternFactoryTest {
 
         j.assertLogContains("****", run);
         j.assertLogNotContains(SAMPLE_PASSWORD, run);
+    }
+
+    @Test
+    public void base64FormsAreNotEmpty() {
+        Base64SecretPatternFactory factory = new Base64SecretPatternFactory();
+        List<String> secrets = List.of("", "s", "s3", "s3cr3t");
+
+        secrets.forEach(secret -> {
+            Collection<String> base64Forms = factory.getBase64Forms(secret);
+            Assert.assertTrue("Failed for secret: '" + secret + "'. Method returned an empty string.",
+                    base64Forms.stream().noneMatch(String::isEmpty));
+        });
     }
 }

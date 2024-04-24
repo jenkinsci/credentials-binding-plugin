@@ -45,6 +45,12 @@ public class SecretPatterns {
             Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo);
 
     /**
+     * Masking (encoded) “secrets” shorter than this would just be ridiculous.
+     * Particularly relevant with {@link Base64SecretPatternFactory}.
+     */
+    private static final int MINIMUM_ENCODED_LENGTH = 3;
+
+    /**
      * Constructs a regular expression to match against all known forms that the given collection of input strings may
      * appear. This pattern is optimized such that longer masks are checked before shorter masks. By doing so, this
      * makes inputs that are substrings of other inputs be masked as the longer input, though there is no guarantee
@@ -61,6 +67,7 @@ public class SecretPatterns {
                 .flatMap(input ->
                         secretPatternFactories.stream().flatMap(factory ->
                                 factory.getEncodedForms(input).stream()))
+                .filter(encoded -> encoded.length() >= MINIMUM_ENCODED_LENGTH)
                 .sorted(BY_LENGTH_DESCENDING)
                 .distinct()
                 .map(Pattern::quote)

@@ -38,8 +38,13 @@ public class Base64SecretPatternFactory implements SecretPatternFactory {
                 String shiftedSecret = shift + secret;
                 String encoded = encoder.encodeToString(shiftedSecret.getBytes(StandardCharsets.UTF_8));
                 String processedEncoded = shift.length() > 0 ? encoded.substring(2 * shift.length()) : encoded;
-                result.add(processedEncoded);
-                result.add(removeTrailingEquals(processedEncoded));
+                if (!processedEncoded.isEmpty()) {
+                    result.add(processedEncoded);
+                }
+                String processedWithoutTrailingEquals = removeTrailingEquals(processedEncoded);
+                if (!processedWithoutTrailingEquals.isEmpty()) {
+                    result.add(removeTrailingEquals(processedEncoded));
+                }
             }
         }
         return result;

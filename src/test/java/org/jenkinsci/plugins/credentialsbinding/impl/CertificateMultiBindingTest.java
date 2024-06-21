@@ -62,6 +62,7 @@ import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 
 import hudson.FilePath;
 import hudson.Functions;
+import hudson.model.FileParameterValue;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
@@ -97,7 +98,7 @@ public class CertificateMultiBindingTest {
 		String alias = "androiddebugkey";
 		String password = "android";
 		StandardCertificateCredentials c = new CertificateCredentialsImpl(CredentialsScope.GLOBAL, null, alias,
-				password, new CertificateCredentialsImpl.FileOnMasterKeyStoreSource(certificate.getAbsolutePath()));
+				password, new CertificateCredentialsImpl.UploadedKeyStoreSource(new FileParameterValue.FileItemImpl(certificate), null));
 		CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
 		FreeStyleProject p = r.createFreeStyleProject();
 		CertificateMultiBinding binding = new CertificateMultiBinding("keystore", c.getId());

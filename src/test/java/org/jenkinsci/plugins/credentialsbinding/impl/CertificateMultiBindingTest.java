@@ -148,11 +148,11 @@ public class CertificateMultiBindingTest {
 		String alias = "androiddebugkey";
 		String password = "android";
 		StandardCertificateCredentials c = new CertificateCredentialsImpl(CredentialsScope.GLOBAL, "my-certificate", alias,
-				password, new CertificateCredentialsImpl.FileOnMasterKeyStoreSource(certificate.getAbsolutePath()));
+				password, new CertificateCredentialsImpl.UploadedKeyStoreSource(new FileParameterValue.FileItemImpl(certificate), null));
 		CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
 		// create the Pipeline job
 		WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-		String pipelineScript = IOUtils.toString(getTestResourceInputStream("basicsPipeline-Jenkinsfile"), StandardCharsets.UTF_8);
+		String pipelineScript = getTestResourceAsUTF8String("basicsPipeline-Jenkinsfile");
 		p.setDefinition(new CpsFlowDefinition(pipelineScript, true));
 		// copy resources into workspace
 		FilePath workspace = r.jenkins.getWorkspaceFor(p);
@@ -170,13 +170,20 @@ public class CertificateMultiBindingTest {
 		return getClass().getResourceAsStream(getClass().getSimpleName() + "/" + fileName);
 	}
 
+	private String getTestResourceAsUTF8String(String resourceName) throws IOException {
+		try (InputStream is = getTestResourceInputStream(resourceName)) {
+			return IOUtils.toString(is, StandardCharsets.UTF_8);
+		}
+	}
+
 	private FilePath copyTestResourceIntoWorkspace(FilePath workspace, String fileName, int mask)
 			throws IOException, InterruptedException {
-		InputStream in = getTestResourceInputStream(fileName);
-		FilePath f = workspace.child(fileName);
-		f.copyFrom(in);
-		f.chmod(mask);
-		return f;
+		try (InputStream in = getTestResourceInputStream(fileName)) {
+			FilePath f = workspace.child(fileName);
+			f.copyFrom(in);
+			f.chmod(mask);
+			return f;
+		}
 	}
 
 }

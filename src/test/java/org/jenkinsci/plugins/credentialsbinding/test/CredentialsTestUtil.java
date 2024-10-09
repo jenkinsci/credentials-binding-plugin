@@ -62,7 +62,7 @@ public class CredentialsTestUtil {
      * Registers the given value as a {@link UsernamePasswordCredentials} into the default {@link CredentialsProvider}.
      * Returns the generated credential id for the registered credentials.
      */
-    public static String registerUsernamePasswordCredentials(ModelObject context, String username, String password) throws IOException {
+    public static String registerUsernamePasswordCredentials(ModelObject context, String username, String password) throws Exception {
         String credentialsId = UUID.randomUUID().toString();
         setUsernamePasswordCredentials(context, credentialsId, username, password);
         return credentialsId;
@@ -72,7 +72,7 @@ public class CredentialsTestUtil {
      * Registers the given value as a {@link UsernamePasswordCredentials} into the default {@link CredentialsProvider} using the
      * specified credentials id.
      */
-    public static void setUsernamePasswordCredentials(ModelObject context, String credentialsId, String username, String password) throws IOException {
+    public static void setUsernamePasswordCredentials(ModelObject context, String credentialsId, String username, String password) throws Exception {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, null, username, password);
         CredentialsProvider.lookupStores(context).iterator().next().addCredentials(Domain.global(), creds);
     }

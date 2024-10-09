@@ -48,7 +48,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -114,7 +114,7 @@ public class BuildWrapperOrderCredentialsBindingTest {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, @NonNull JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest2 req, @NonNull JSONObject formData) {
                 return new BuildWrapperOrder();
             }
 

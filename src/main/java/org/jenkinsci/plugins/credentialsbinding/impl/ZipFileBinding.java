@@ -44,7 +44,7 @@ import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
 
@@ -77,7 +77,7 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
         }
 
         // @RequirePOST
-        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item owner, @QueryParameter String value) {
+        public FormValidation doCheckCredentialsId(StaplerRequest2 req, @AncestorInPath Item owner, @QueryParameter String value) {
             //TODO due to weird behavior in c:select, there are initial calls using GET
             // so using this approach will prevent 405 errors
             if (!req.getMethod().equals("POST")) {

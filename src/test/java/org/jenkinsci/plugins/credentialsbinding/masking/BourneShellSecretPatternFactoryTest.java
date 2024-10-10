@@ -38,7 +38,6 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -86,7 +85,7 @@ public class BourneShellSecretPatternFactoryTest {
     }
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws Exception {
         project = j.createProject(WorkflowJob.class);
         credentialsId = UUID.randomUUID().toString();
         project.setDefinition(new CpsFlowDefinition(

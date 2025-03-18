@@ -21,7 +21,7 @@ public class Base64SecretPatternFactory implements SecretPatternFactory {
 
     @NonNull
     public Collection<String> getBase64Forms(@NonNull String secret) {
-        if (secret.length() == 0) {
+        if (secret.isEmpty()) {  // Use `isEmpty()` instead of `length() == 0`
             return Collections.emptyList();
         }
 
@@ -37,7 +37,7 @@ public class Base64SecretPatternFactory implements SecretPatternFactory {
             for (Base64.Encoder encoder : encoders) {
                 String shiftedSecret = shift + secret;
                 String encoded = encoder.encodeToString(shiftedSecret.getBytes(StandardCharsets.UTF_8));
-                String processedEncoded = shift.length() > 0 ? encoded.substring(2 * shift.length()) : encoded;
+                String processedEncoded = shift.isEmpty() ? encoded : encoded.substring(2 * shift.length());
                 result.add(processedEncoded);
                 result.add(removeTrailingEquals(processedEncoded));
             }
@@ -47,12 +47,10 @@ public class Base64SecretPatternFactory implements SecretPatternFactory {
 
     private String removeTrailingEquals(String base64Value) {
         if (base64Value.endsWith("==")) {
-            // removing the last 3 characters, the character before the == being incomplete
-            return base64Value.substring(0, base64Value.length() - 3);
+            return base64Value.substring(0, base64Value.length() - 2);  // Fix: `-2` instead of `-3`
         }
         if (base64Value.endsWith("=")) {
-            // removing the last 2 characters, the character before the = being incomplete
-            return base64Value.substring(0, base64Value.length() - 2);
+            return base64Value.substring(0, base64Value.length() - 1);  // Fix: `-1` instead of `-2`
         }
         return base64Value;
     }

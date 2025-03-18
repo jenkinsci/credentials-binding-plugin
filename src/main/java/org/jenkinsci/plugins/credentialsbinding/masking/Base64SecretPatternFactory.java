@@ -3,57 +3,48 @@ package org.jenkinsci.plugins.credentialsbinding.masking;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 @Extension
 @Restricted(NoExternalUse.class)
 public class Base64SecretPatternFactory implements SecretPatternFactory {
+
     @NonNull
     @Override
     public Collection<String> getEncodedForms(@NonNull String input) {
-        return getBase64Forms(input);
+        return generateBase64Variants(input);
     }
 
     @NonNull
-    public Collection<String> getBase64Forms(@NonNull String secret) {
-        if (secret.length() == 0) {
+    private Collection<String> generateBase64Variants(@NonNull String secret) {
+        if (secret.isEmpty()) {
             return Collections.emptyList();
         }
 
-        Base64.Encoder[] encoders = new Base64.Encoder[]{
-                Base64.getEncoder(),
-                Base64.getUrlEncoder(),
-        };
+        List<String> encodedVariants = new ArrayList<>();
+        Base64.Encoder standardEncoder = Base64.getEncoder();
+        Base64.Encoder urlEncoder = Base64.getUrlEncoder();
 
-        Collection<String> result = new ArrayList<>();
+        // Variants with slight shifts
         String[] shifts = {"", "a", "aa"};
 
         for (String shift : shifts) {
-            for (Base64.Encoder encoder : encoders) {
-                String shiftedSecret = shift + secret;
-                String encoded = encoder.encodeToString(shiftedSecret.getBytes(StandardCharsets.UTF_8));
-                String processedEncoded = shift.length() > 0 ? encoded.substring(2 * shift.length()) : encoded;
-                result.add(processedEncoded);
-                result.add(removeTrailingEquals(processedEncoded));
-            }
+            String shiftedSecret = shift + secret;
+            byte[] secretBytes = shiftedSecret.getBytes(StandardCharsets.UTF_8);
+
+            encodedVariants.add(standardEncoder.encodeToString(secretBytes));
+            encodedVariants.add(urlEncoder.encodeToString(secretBytes));
+
+            encodedVariants.add(removeBase64Padding(standardEncoder.encodeToString(secretBytes)));
+            encodedVariants.add(removeBase64Padding(urlEncoder.encodeToString(secretBytes)));
         }
-        return result;
+
+        return encodedVariants;
     }
 
-    private String removeTrailingEquals(String base64Value) {
-        if (base64Value.endsWith("==")) {
-            // removing the last 3 characters, the character before the == being incomplete
-            return base64Value.substring(0, base64Value.length() - 3);
-        }
-        if (base64Value.endsWith("=")) {
-            // removing the last 2 characters, the character before the = being incomplete
-            return base64Value.substring(0, base64Value.length() - 2);
-        }
-        return base64Value;
+    private String removeBase64Padding(String base64Encoded) {
+        return base64Encoded.replaceAll("=+$", ""); // Removes all trailing '=' characters
     }
 }

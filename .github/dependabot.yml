@@ -5,8 +5,6 @@ updates:
   schedule:
     interval: weekly
   open-pull-requests-limit: 10
-  reviewers:
-  - jglick
 - package-ecosystem: github-actions
   directory: /
   schedule:

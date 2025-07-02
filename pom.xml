@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>5.1</version>
+    <version>5.9</version>
     <relativePath/>
   </parent>
 
@@ -17,8 +17,11 @@
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.479</jenkins.version>
+    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+    <jenkins.baseline>2.479</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <useBeta>true</useBeta> <!-- FailureHandler -->
   </properties>
   <licenses>
     <license>
@@ -51,10 +54,22 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.462.x</artifactId>
-        <version>3435.v238d66a_043fb_</version>
+        <artifactId>bom-${jenkins.baseline}.x</artifactId>
+        <version>4488.v7fe26526366e</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <!-- TODO: Remove once the BOM has caught up -->
+      <dependency>
+        <groupId>org.jenkins-ci.plugins.workflow</groupId>
+        <artifactId>workflow-step-api</artifactId>
+        <version>704.ve4f0967e98fa_</version>
+      </dependency>
+      <!-- TODO: Remove once the BOM has caught up -->
+      <dependency>
+        <groupId>org.jenkins-ci.plugins.workflow</groupId>
+        <artifactId>workflow-cps</artifactId>
+        <version>4106.4108.v841a_e1819d4d</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

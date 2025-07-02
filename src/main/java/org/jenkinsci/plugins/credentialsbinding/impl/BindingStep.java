@@ -57,6 +57,7 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
+import org.jenkinsci.plugins.workflow.steps.FailureHandler;
 import org.jenkinsci.plugins.workflow.steps.GeneralNonBlockingStepExecution;
 import org.jenkinsci.plugins.workflow.steps.MissingContextVariableException;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -140,11 +141,30 @@ public final class BindingStep extends Step {
                     v -> unix ? "$" + v : "%" + v + "%"
                 ).collect(Collectors.joining(" or ")));
             }
+
             getContext().newBodyInvoker().
                     withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), new Overrider(secretOverrides, publicOverrides))).
                     withContext(BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class), new Filter(secretOverrides.values(), run.getCharset().name()))).
+                    withContext(FailureHandler.merge(getContext().get(FailureHandler.class), new Handler(secretOverrides.values()))).
                     withCallback(new Callback2(unbinders)).
                     start();
+        }
+
+        private static final class Handler implements FailureHandler {
+
+            private static final long serialVersionUID = 1;
+
+            private final Secret secretPattern;
+
+            Handler(Collection<String> secrets) {
+                this.secretPattern = Secret.fromString(SecretPatterns.getAggregateSecretPattern(secrets).pattern());
+            }
+
+            @NonNull
+            @Override
+            public Throwable handle(@NonNull StepContext ctx, @NonNull Throwable t) {
+                return MaskedException.of(t, Pattern.compile(secretPattern.getPlainText()));
+            }
         }
 
         private final class Callback2 extends TailCall {

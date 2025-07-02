@@ -46,24 +46,31 @@ import hudson.util.Secret;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+
 import jenkins.security.QueueItemAuthenticator;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 import org.apache.commons.io.FileUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
+import org.jenkinsci.plugins.workflow.actions.ErrorAction;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
@@ -460,6 +467,103 @@ public class BindingStepTest {
             r.assertLogContains("got: P#1", r.assertBuildStatusSuccess(p.scheduleBuild2(0).get()));
         });
     }
+
+    @Issue("SECURITY-3499")
+    @Test public void maskingExceptionInError() throws Throwable {
+        rr.then(r -> {
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t")));
+            var p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(
+                    """
+                            withCredentials([string(credentialsId: 'creds', variable: 'SECRET')]) {
+                                error(/should not mention $SECRET/)
+                            }
+                            """, true));
+            var b = r.buildAndAssertStatus(Result.FAILURE, p);
+            r.assertLogNotContains("s3cr3t", b);
+            r.assertLogContains("should not mention ****", b);
+            assertErrorActionsDoNotContainString(b, "s3cr3t");
+        });
+    }
+
+    @Issue("SECURITY-3499")
+    @Test public void maskingExceptionInNestedError() throws Throwable {
+        rr.then(r -> {
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t")));
+            var p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(
+                    """
+                            withCredentials([string(credentialsId: 'creds', variable: 'SECRET')]) {
+                                try {
+                                    error(/nested exception should not mention $SECRET/)
+                                }
+                                catch (err) {
+                                    throw new Exception("normal exception should not mention $SECRET", err)
+                                }
+                            }
+                            """, false));
+            var b = r.buildAndAssertStatus(Result.FAILURE, p);
+            r.assertLogNotContains("s3cr3t", b);
+            r.assertLogContains("nested exception should not mention ****", b);
+            r.assertLogContains("normal exception should not mention ****", b);
+            assertErrorActionsDoNotContainString(b, "s3cr3t");
+        });
+    }
+
+    @Issue("SECURITY-3499")
+    @Test public void maskingExceptionInSuppressedError() throws Throwable {
+        rr.then(r -> {
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t")));
+            var p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(
+                    """
+                            withCredentials([string(credentialsId: 'creds', variable: 'SECRET')]) {
+                                def main = new Exception("normal exception should not mention $SECRET")
+                                main.addSuppressed(new Exception("suppressed exception should not mention $SECRET"))
+                                throw main
+                            }
+                            """, false));
+            var b = r.buildAndAssertStatus(Result.FAILURE, p);
+            r.assertLogNotContains("s3cr3t", b);
+            r.assertLogContains("suppressed exception should not mention ****", b);
+            r.assertLogContains("normal exception should not mention ****", b);
+            assertErrorActionsDoNotContainString(b, "s3cr3t");
+        });
+    }
+
+    @Issue("SECURITY-3499")
+    @Test public void maskingExceptionForIncorrectArgs() throws Throwable {
+        rr.then(r -> {
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t")));
+            var p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(
+                    """
+                            withCredentials([string(credentialsId: 'creds', variable: 'SECRET')]) {
+                                writeFile([file: "creds.txt", text: "${SECRET}", encoding: 'Base64']) {
+                                }
+                            }
+                            """, false));
+            var b = r.buildAndAssertStatus(Result.FAILURE, p);
+            r.assertLogNotContains("s3cr3t", b);
+            r.assertLogContains("text=****", b);
+            assertErrorActionsDoNotContainString(b, "s3cr3t");
+        });
+    }
+
+    private void assertErrorActionsDoNotContainString(WorkflowRun b, String needle) {
+        var errorActionStackTraces = new DepthFirstScanner().allNodes(b.getExecution()).stream()
+                .map(n -> n.getPersistentAction(ErrorAction.class))
+                .filter(ea -> ea != null)
+                .map(ea -> ea.getError())
+                .map(t -> {
+                    var writer = new StringWriter();
+                    t.printStackTrace(new PrintWriter(writer));
+                    return writer.toString();
+                })
+                .collect(Collectors.toList());
+        assertThat(errorActionStackTraces, not(hasItem(containsString(needle))));
+    }
+
     private static final class SpecialCredentials extends BaseStandardCredentials implements StringCredentials {
         private Run<?, ?> build;
         SpecialCredentials(CredentialsScope scope, String id, String description) {

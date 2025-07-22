@@ -550,6 +550,23 @@ public class BindingStepTest {
         });
     }
 
+    @Issue("JENKINS-75914")
+    @Test public void emptyOrBlankCredsOnExceptions() throws Throwable {
+        rr.then(r -> {
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("")));
+            var p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(
+                    """
+                            withCredentials([string(credentialsId: 'creds', variable: 'SECRET')]) {
+                                error(/random String/)
+                            }
+                            """, true));
+            var b = r.buildAndAssertStatus(Result.FAILURE, p);
+            r.assertLogNotContains("****", b);
+            r.assertLogContains("random String", b);
+        });
+    }
+
     private void assertErrorActionsDoNotContainString(WorkflowRun b, String needle) {
         var errorActionStackTraces = new DepthFirstScanner().allNodes(b.getExecution()).stream()
                 .map(n -> n.getPersistentAction(ErrorAction.class))

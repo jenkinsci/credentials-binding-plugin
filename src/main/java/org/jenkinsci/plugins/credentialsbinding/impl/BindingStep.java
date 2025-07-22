@@ -163,6 +163,9 @@ public final class BindingStep extends Step {
             @NonNull
             @Override
             public Throwable handle(@NonNull StepContext ctx, @NonNull Throwable t) {
+                if (Secret.toString(secretPattern).isEmpty()) {
+                    return t;
+                }
                 return MaskedException.of(t, Pattern.compile(secretPattern.getPlainText()));
             }
         }

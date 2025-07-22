@@ -12,6 +12,9 @@ final class MaskedException extends Exception {
     private static final long serialVersionUID = 1L;
 
     static Throwable of(@NonNull Throwable unmasked, Pattern pattern) {
+        if (pattern.toString().length() < 3) {
+            return unmasked;
+        }
         return of(unmasked, new HashSet<>(), pattern);
     }
 

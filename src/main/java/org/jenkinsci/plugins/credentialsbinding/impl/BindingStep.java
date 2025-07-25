@@ -73,6 +73,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public final class BindingStep extends Step {
 
     private final List<MultiBinding> bindings;
+    private String disableSecurityLogging = System.getenv("DISABLE_SECURITY_LOGGING").equalsIgnoreCase("false");
 
     @DataBoundConstructor public BindingStep(List<MultiBinding> bindings) {
         this.bindings = bindings;
@@ -137,9 +138,11 @@ public final class BindingStep extends Step {
             }
             if (!secretOverrides.isEmpty()) {
                 boolean unix = launcher == null || launcher.isUnix();
-                listener.getLogger().println("Masking supported pattern matches of " + secretOverrides.keySet().stream().map(
-                    v -> unix ? "$" + v : "%" + v + "%"
-                ).collect(Collectors.joining(" or ")));
+                if (!disableSecurityLogging) {
+                    listener.getLogger().println("Masking supported pattern matches of " + secretOverrides.keySet().stream().map(
+                        v -> unix ? "$" + v : "%" + v + "%"
+                    ).collect(Collectors.joining(" or ")));
+                }
             }
 
             getContext().newBodyInvoker().

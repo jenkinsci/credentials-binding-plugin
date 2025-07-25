@@ -102,7 +102,7 @@ public final class BindingStep extends Step {
     private static final class Execution2 extends GeneralNonBlockingStepExecution {
 
         private static final long serialVersionUID = 1;
-        private static final boolean disableSecurityLogging = System.getenv("DISABLE_SECURITY_LOGGING").equalsIgnoreCase("false");
+        private static final boolean disableSecurityLogging = "false".equalsIgnoreCase(System.getenv("DISABLE_SECURITY_LOGGING"));
 
         private transient BindingStep step;
 

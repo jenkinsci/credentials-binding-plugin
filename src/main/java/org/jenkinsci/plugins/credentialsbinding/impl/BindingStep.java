@@ -73,7 +73,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public final class BindingStep extends Step {
 
     private final List<MultiBinding> bindings;
-    private boolean disableSecurityLogging = System.getenv("DISABLE_SECURITY_LOGGING").equalsIgnoreCase("false");
 
     @DataBoundConstructor public BindingStep(List<MultiBinding> bindings) {
         this.bindings = bindings;
@@ -103,6 +102,7 @@ public final class BindingStep extends Step {
     private static final class Execution2 extends GeneralNonBlockingStepExecution {
 
         private static final long serialVersionUID = 1;
+        private static final boolean disableSecurityLogging = System.getenv("DISABLE_SECURITY_LOGGING").equalsIgnoreCase("false");
 
         private transient BindingStep step;
 

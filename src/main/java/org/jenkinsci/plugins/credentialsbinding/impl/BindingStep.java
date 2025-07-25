@@ -73,7 +73,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public final class BindingStep extends Step {
 
     private final List<MultiBinding> bindings;
-    private String disableSecurityLogging = System.getenv("DISABLE_SECURITY_LOGGING").equalsIgnoreCase("false");
+    private boolean disableSecurityLogging = System.getenv("DISABLE_SECURITY_LOGGING").equalsIgnoreCase("false");
 
     @DataBoundConstructor public BindingStep(List<MultiBinding> bindings) {
         this.bindings = bindings;

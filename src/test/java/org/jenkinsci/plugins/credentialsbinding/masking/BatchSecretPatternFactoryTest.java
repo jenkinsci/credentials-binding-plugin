@@ -30,18 +30,20 @@ import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.io.IOException;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-public class BatchSecretPatternFactoryTest {
+@WithJenkins
+class BatchSecretPatternFactoryTest {
 
     private static final String SIMPLE = "abcABC123";
     private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
@@ -58,119 +60,119 @@ public class BatchSecretPatternFactoryTest {
 
     private static final String ALL_ASCII = "!\"#$%&'()*+,-./ 0123456789:;<=>? @ABCDEFGHIJKLMNO PQRSTUVWXYZ[\\]^_ `abcdefghijklmno pqrstuvwxyz{|}~";
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule r;
 
     private WorkflowJob project;
 
     private String credentialPlainText;
     private String credentialId;
 
-    @Before
-    public void assumeWindowsForBatch() {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
         assumeTrue(Functions.isWindows());
     }
 
     private void registerCredentials(String password) throws IOException {
         this.credentialPlainText = password;
-        this.credentialId = CredentialsTestUtil.registerStringCredentials(j.jenkins, password);
+        this.credentialId = CredentialsTestUtil.registerStringCredentials(r.jenkins, password);
     }
 
     private WorkflowRun runProject() throws Exception {
-        return j.assertBuildStatusSuccess(project.scheduleBuild2(0));
+        return r.assertBuildStatusSuccess(project.scheduleBuild2(0));
     }
 
     @Test
-    public void simple_noQuote() throws Exception {
+    void simple_noQuote() throws Exception {
         registerCredentials(SIMPLE);
         assertDirectNoPlainTextButStars(runDirectNoQuote());
     }
 
     @Test
-    public void simple_singleQuote() throws Exception {
+    void simple_singleQuote() throws Exception {
         registerCredentials(SIMPLE);
         assertDirectNoPlainTextButStars(runDirectSingleQuote());
     }
 
     @Test
-    public void simple_doubleQuote() throws Exception {
+    void simple_doubleQuote() throws Exception {
         registerCredentials(SIMPLE);
         assertDirectNoPlainTextButStars(runDirectDoubleQuote());
     }
 
     @Test
-    public void simple_delayed() throws Exception {
+    void simple_delayed() throws Exception {
         registerCredentials(SIMPLE);
         assertDelayedNoPlainTextButStars(runDelayedAllQuotes());
     }
 
     @Test
-    public void nonDangerous_noQuote() throws Exception {
+    void nonDangerous_noQuote() throws Exception {
         registerCredentials(NON_DANGEROUS);
         assertDirectNoPlainTextButStars(runDirectNoQuote());
     }
 
     @Test
-    public void nonDangerous_singleQuote() throws Exception {
+    void nonDangerous_singleQuote() throws Exception {
         registerCredentials(NON_DANGEROUS);
         assertDirectNoPlainTextButStars(runDirectSingleQuote());
     }
 
     @Test
-    public void nonDangerous_doubleQuote() throws Exception {
+    void nonDangerous_doubleQuote() throws Exception {
         registerCredentials(NON_DANGEROUS);
         assertDirectNoPlainTextButStars(runDirectDoubleQuote());
     }
 
     @Test
-    public void nonDangerous_delayed() throws Exception {
+    void nonDangerous_delayed() throws Exception {
         registerCredentials(NON_DANGEROUS);
         assertDelayedNoPlainTextButStars(runDelayedAllQuotes());
     }
 
     // we do NOT support dangerous characters in direct expansion mode
     @Test
-    public void allAscii_direct_noQuote() throws Exception {
+    void allAscii_direct_noQuote() throws Exception {
         registerCredentials(ALL_ASCII);
 
         WorkflowRun run = runDirectNoQuote();
-        j.assertLogNotContains(credentialPlainText, run);
+        r.assertLogNotContains(credentialPlainText, run);
 
         // EFGHIJK is a part of the credentials that should be masked
         assertStringPresentInOrder(run, "before1", "EFGHIJK", "after1");
-        j.assertLogNotContains("before1 **** after1", run);
+        r.assertLogNotContains("before1 **** after1", run);
     }
 
     // we do NOT support dangerous characters in direct expansion mode
     @Test
-    public void allAscii_direct_singleQuote() throws Exception {
+    void allAscii_direct_singleQuote() throws Exception {
         registerCredentials(ALL_ASCII);
 
         WorkflowRun run = runDirectSingleQuote();
-        j.assertLogNotContains(credentialPlainText, run);
+        r.assertLogNotContains(credentialPlainText, run);
 
         // EFGHIJK is a part of the credentials that should be masked
         assertStringPresentInOrder(run, "before1", "EFGHIJK", "after1");
-        j.assertLogNotContains("before1 **** after1", run);
+        r.assertLogNotContains("before1 **** after1", run);
     }
 
     // we do NOT support dangerous characters in direct expansion mode
     @Test
-    public void allAscii_direct_doubleQuote() throws Exception {
+    void allAscii_direct_doubleQuote() throws Exception {
         registerCredentials(ALL_ASCII);
     
         runDirectDoubleQuote_andFail();
     }
 
     @Test
-    public void allAscii_delayed() throws Exception {
+    void allAscii_delayed() throws Exception {
         registerCredentials(ALL_ASCII);
         assertDelayedNoPlainTextButStars(runDelayedAllQuotes());
     }
 
     // we do NOT support dangerous characters in direct expansion mode
     @Test
-    public void samplePassword_noQuote() throws Exception {
+    void samplePassword_noQuote() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
 
         runDirectNoQuote_andFail();
@@ -178,80 +180,80 @@ public class BatchSecretPatternFactoryTest {
 
     // we do NOT support dangerous characters in direct expansion mode
     @Test
-    public void samplePassword_singleQuote() throws Exception {
+    void samplePassword_singleQuote() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
 
         runDirectSingleQuote_andFail();
     }
 
     @Test
-    public void samplePassword_doubleQuote() throws Exception {
+    void samplePassword_doubleQuote() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
         assertDirectNoPlainTextButStars(runDirectDoubleQuote());
     }
 
     @Test
-    public void samplePassword_delayed() throws Exception {
+    void samplePassword_delayed() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
         assertDelayedNoPlainTextButStars(runDelayedAllQuotes());
     }
 
     @Test
-    public void escape_noQuote() throws Exception {
+    void escape_noQuote() throws Exception {
         registerCredentials(ESCAPE);
     
         WorkflowRun run = runDirectNoQuote();
-        j.assertLogNotContains(credentialPlainText, run);
-        j.assertLogContains("before1 **** after1", run);
-        j.assertLogContains("before2 **** after2", run);
+        r.assertLogNotContains(credentialPlainText, run);
+        r.assertLogContains("before1 **** after1", run);
+        r.assertLogContains("before2 **** after2", run);
     }
 
     @Test
-    public void escape_singleQuote() throws Exception {
+    void escape_singleQuote() throws Exception {
         registerCredentials(ESCAPE);
     
         WorkflowRun run = runDirectSingleQuote();
-        j.assertLogNotContains(credentialPlainText, run);
-        j.assertLogContains("before1 **** after1", run);
-        j.assertLogContains("before2 **** after2", run);
+        r.assertLogNotContains(credentialPlainText, run);
+        r.assertLogContains("before1 **** after1", run);
+        r.assertLogContains("before2 **** after2", run);
     }
 
     @Test
-    public void escape_doubleQuote() throws Exception {
+    void escape_doubleQuote() throws Exception {
         registerCredentials(ESCAPE);
         assertDirectNoPlainTextButStars(runDirectDoubleQuote());
     }
 
     @Test
-    public void escape_delayed() throws Exception {
+    void escape_delayed() throws Exception {
         registerCredentials(ESCAPE);
         assertDelayedNoPlainTextButStars(runDelayedAllQuotes());
     }
 
     // special cases
     @Test
-    public void dangerousOutOfDouble_doubleQuote() throws Exception {
+    void dangerousOutOfDouble_doubleQuote() throws Exception {
         registerCredentials(NON_DANGEROUS_IN_DOUBLE);
         assertDirectNoPlainTextButStars(runDirectDoubleQuote());
     }
 
     @Test
-    public void needsQuoting_doubleQuote() throws Exception {
+    void needsQuoting_doubleQuote() throws Exception {
         registerCredentials(NEEDS_QUOTING);
         assertDirectNoPlainTextButStars(runDirectDoubleQuote());
     }
 
     private void assertDirectNoPlainTextButStars(WorkflowRun run) throws Exception {
-        j.assertLogNotContains(credentialPlainText, run);
-        j.assertLogContains("before1 **** after1", run);
-        j.assertLogContains("before2 **** after2", run);
+        r.assertLogNotContains(credentialPlainText, run);
+        r.assertLogContains("before1 **** after1", run);
+        r.assertLogContains("before2 **** after2", run);
     }
 
     private void assertDelayedNoPlainTextButStars(WorkflowRun run) throws Exception {
-        j.assertLogNotContains(credentialPlainText, run);
-        j.assertLogContains("before1 **** after1", run);
-        j.assertLogContains("before2 **** after2", run);
-        j.assertLogContains("before3 **** after3", run);
+        r.assertLogNotContains(credentialPlainText, run);
+        r.assertLogContains("before1 **** after1", run);
+        r.assertLogContains("before2 **** after2", run);
+        r.assertLogContains("before3 **** after3", run);
     }
 
     private WorkflowRun runDirectNoQuote() throws Exception {
@@ -261,7 +263,7 @@ public class BatchSecretPatternFactoryTest {
 
     private void runDirectNoQuote_andFail() throws Exception {
         setupNoQuoteProject();
-        j.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+        r.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
     }
 
     private void setupNoQuoteProject() throws Exception {
@@ -287,7 +289,7 @@ public class BatchSecretPatternFactoryTest {
 
     private void runDirectSingleQuote_andFail() throws Exception {
         setupSingleQuoteProject();
-        j.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+        r.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
     }
 
     private void setupSingleQuoteProject() throws Exception {
@@ -313,7 +315,7 @@ public class BatchSecretPatternFactoryTest {
 
     private void runDirectDoubleQuote_andFail() throws Exception {
         setupDoubleQuoteProject();
-        j.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+        r.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
     }
 
     private void setupDoubleQuoteProject() throws Exception {
@@ -360,7 +362,7 @@ public class BatchSecretPatternFactoryTest {
     }
 
     private void setupProject(String pipeline) throws Exception {
-        project = j.createProject(WorkflowJob.class);
+        project = r.createProject(WorkflowJob.class);
         project.setDefinition(new CpsFlowDefinition(pipeline, true));
     }
 }

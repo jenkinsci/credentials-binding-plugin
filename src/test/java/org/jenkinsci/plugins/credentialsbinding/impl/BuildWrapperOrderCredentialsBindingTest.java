@@ -43,32 +43,41 @@ import hudson.tasks.Shell;
 import hudson.util.Secret;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-public class BuildWrapperOrderCredentialsBindingTest {
+@WithJenkins
+class BuildWrapperOrderCredentialsBindingTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
 
-    static String credentialsId = "creds_1";
-    static String password = "p4ss";
-    static String bindingKey = "PASS_1";
+    private static final String CREDENTIALS_ID = "creds_1";
+    private static final String PASSWORD = "p4ss";
+    private static final String BINDING_KEY = "PASS_1";
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Issue("JENKINS-37871")
-    @Test public void secretBuildWrapperRunsBeforeNormalWrapper() throws Exception {
-        StringCredentialsImpl firstCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample1", Secret.fromString(password));
+    @Test
+    void secretBuildWrapperRunsBeforeNormalWrapper() throws Exception {
+        StringCredentialsImpl firstCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, CREDENTIALS_ID, "sample1", Secret.fromString(PASSWORD));
 
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), firstCreds);
 
-        SecretBuildWrapper wrapper = new SecretBuildWrapper(Collections.singletonList(new StringBinding(bindingKey, credentialsId)));
+        SecretBuildWrapper wrapper = new SecretBuildWrapper(Collections.singletonList(new StringBinding(BINDING_KEY, CREDENTIALS_ID)));
 
         FreeStyleProject f = r.createFreeStyleProject("buildWrapperOrder");
 
@@ -92,7 +101,7 @@ public class BuildWrapperOrderCredentialsBindingTest {
             // Lookup secret provided by SecretBuildWrapper.
             // This only works if this BuildWrapper is executed AFTER the SecretBuildWrapper so the binding is already done.
             for (Map.Entry<String, String> entry : env.entrySet()) {
-                if (entry.getKey().equals(bindingKey) && entry.getValue().equals(password)) {
+                if (entry.getKey().equals(BINDING_KEY) && entry.getValue().equals(PASSWORD)) {
                     listener.getLogger().format("Secret found!");
                     break;
                 }

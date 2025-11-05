@@ -32,34 +32,34 @@ import hudson.FilePath;
 import hudson.Functions;
 import hudson.security.ACL;
 import hudson.util.Secret;
+
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.ClassRule;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class SSHUserPrivateKeyBindingTest {
+class SSHUserPrivateKeyBindingTest {
 
-    @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
-    @ClassRule public static BuildWatcher bw = new BuildWatcher();
-    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+    @RegisterExtension
+    private final JenkinsSessionExtension extension = new JenkinsSessionExtension();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
     private static class DummyPrivateKey extends BaseCredentials implements SSHUserPrivateKey, Serializable {
 
@@ -122,46 +122,51 @@ public class SSHUserPrivateKeyBindingTest {
         }
     }
 
-    @Test public void configRoundTrip() {
-        story.then(r -> {
-            SnippetizerTester st = new SnippetizerTester(r);
+    @Test
+    void configRoundTrip() throws Throwable {
+        extension.then(j -> {
+            SnippetizerTester st = new SnippetizerTester(j);
             SSHUserPrivateKey c = new DummyPrivateKey("creds", "bob", "secret", "the-key");
-            CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+            CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), c);
             SSHUserPrivateKeyBinding binding = new SSHUserPrivateKeyBinding("keyFile", "creds");
-            BindingStep s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.singletonList(binding)));
+            BindingStep s = new StepConfigTester(j).configRoundTrip(new BindingStep(Collections.singletonList(binding)));
             st.assertRoundTrip(s, "withCredentials([sshUserPrivateKey(credentialsId: 'creds', keyFileVariable: 'keyFile')]) {\n    // some block\n}");
-            r.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(binding));
+            j.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(binding));
             binding.setPassphraseVariable("passphrase");
             binding.setUsernameVariable("user");
-            s = new StepConfigTester(story.j).configRoundTrip(new BindingStep(Collections.singletonList(binding)));
+            s = new StepConfigTester(j).configRoundTrip(new BindingStep(Collections.singletonList(binding)));
             st.assertRoundTrip(s, "withCredentials([sshUserPrivateKey(credentialsId: 'creds', keyFileVariable: 'keyFile', passphraseVariable: 'passphrase', usernameVariable: 'user')]) {\n    // some block\n}");
-            r.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(binding));
+            j.assertEqualDataBoundBeans(s.getBindings(), Collections.singletonList(binding));
         });
     }
 
-    @Test public void basics() {
+    @Test
+    void basics() throws Throwable {
         final String credentialsId = "creds";
         final String username = "bob";
         final String passphrase = "s3cr3t";
         final String keyContent = "the-key";
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
+        extension.then(j -> {
                 SSHUserPrivateKey c = new DummyPrivateKey(credentialsId, username, passphrase, keyContent);
-                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
                 String script;
                 if (Functions.isWindows()) {
                     script =
-                        "    bat '''\n"
-                        + "      echo %THEUSER%:%THEPASS% > out.txt\n"
-                        + "      type \"%THEKEY%\" > key.txt"
-                        + "    '''\n";
+                            """
+                                        bat '''
+                                          echo %THEUSER%:%THEPASS% > out.txt
+                                          type "%THEKEY%" > key.txt\
+                                        '''
+                                    """;
                 } else {
                     script =
-                        "    sh '''\n"
-                        + "      echo $THEUSER:$THEPASS > out.txt\n"
-                        + "      cat \"$THEKEY\" > key.txt"
-                        + "    '''\n";
+                            """
+                                        sh '''
+                                          echo $THEUSER:$THEPASS > out.txt
+                                          cat "$THEKEY" > key.txt\
+                                        '''
+                                    """;
                 }
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
@@ -173,54 +178,57 @@ public class SSHUserPrivateKeyBindingTest {
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 SemaphoreStep.waitForStart("basics/1", b);
             }
-        });
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
-                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
+        );
+        extension.then(j -> {
+                WorkflowJob p = j.jenkins.getItemByFullName("p", WorkflowJob.class);
                 assertNotNull(p);
                 WorkflowRun b = p.getBuildByNumber(1);
                 assertNotNull(b);
                 SemaphoreStep.success("basics/1", null);
-                story.j.waitForCompletion(b);
-                story.j.assertBuildStatusSuccess(b);
-                story.j.assertLogNotContains(username, b);
-                story.j.assertLogNotContains(passphrase, b);
-                FilePath out = story.j.jenkins.getWorkspaceFor(p).child("out.txt");
+                j.waitForCompletion(b);
+                j.assertBuildStatusSuccess(b);
+                j.assertLogNotContains(username, b);
+                j.assertLogNotContains(passphrase, b);
+                FilePath out = j.jenkins.getWorkspaceFor(p).child("out.txt");
                 assertTrue(out.exists());
                 assertEquals(username + ":" + passphrase, out.readToString().trim());
 
-                FilePath key = story.j.jenkins.getWorkspaceFor(p).child("key.txt");
+                FilePath key = j.jenkins.getWorkspaceFor(p).child("key.txt");
                 assertTrue(key.exists());
                 assertEquals(keyContent, key.readToString().trim());
 
-                ((DummyPrivateKey) CredentialsProvider.lookupCredentialsInItemGroup(SSHUserPrivateKey.class, story.j.jenkins, ACL.SYSTEM2, Collections.emptyList()).get(0)).usernameSecret = false;
+                ((DummyPrivateKey) CredentialsProvider.lookupCredentialsInItemGroup(SSHUserPrivateKey.class, j.jenkins, ACL.SYSTEM2, Collections.emptyList()).get(0)).usernameSecret = false;
                 SemaphoreStep.success("basics/2", null);
-                b = story.j.buildAndAssertSuccess(p);
-                story.j.assertLogContains(username, b);
-                story.j.assertLogNotContains(passphrase, b);
+                b = j.buildAndAssertSuccess(p);
+                j.assertLogContains(username, b);
+                j.assertLogNotContains(passphrase, b);
             }
-        });
+        );
     }
 
-    @Test public void noUsernameOrPassphrase() {
+    @Test
+    void noUsernameOrPassphrase() throws Throwable {
         final String credentialsId = "creds";
         final String keyContent = "the-key";
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
+        extension.then(j -> {
                 SSHUserPrivateKey c = new DummyPrivateKey(credentialsId, "", "", keyContent);
-                CredentialsProvider.lookupStores(story.j.jenkins).iterator().next().addCredentials(Domain.global(), c);
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+                WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
                 String script;
                 if (Functions.isWindows()) {
                     script =
-                        "    bat '''\n"
-                        + "      type \"%THEKEY%\" > key.txt"
-                        + "    '''\n";
+                            """
+                                        bat '''
+                                          type "%THEKEY%" > key.txt\
+                                        '''
+                                    """;
                 } else {
                     script =
-                        "    sh '''\n"
-                        + "      cat \"$THEKEY\" > key.txt"
-                        + "    '''\n";
+                            """
+                                        sh '''
+                                          cat "$THEKEY" > key.txt\
+                                        '''
+                                    """;
                 }
                 p.setDefinition(new CpsFlowDefinition(""
                         + "node {\n"
@@ -232,21 +240,20 @@ public class SSHUserPrivateKeyBindingTest {
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 SemaphoreStep.waitForStart("basics/1", b);
             }
-        });
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
-                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
+        );
+        extension.then(j -> {
+                WorkflowJob p = j.jenkins.getItemByFullName("p", WorkflowJob.class);
                 assertNotNull(p);
                 WorkflowRun b = p.getBuildByNumber(1);
                 assertNotNull(b);
                 SemaphoreStep.success("basics/1", null);
-                story.j.waitForCompletion(b);
-                story.j.assertBuildStatusSuccess(b);
+                j.waitForCompletion(b);
+                j.assertBuildStatusSuccess(b);
 
-                FilePath key = story.j.jenkins.getWorkspaceFor(p).child("key.txt");
+                FilePath key = j.jenkins.getWorkspaceFor(p).child("key.txt");
                 assertTrue(key.exists());
                 assertEquals(keyContent, key.readToString().trim());
             }
-        });
+        );
     }
 }

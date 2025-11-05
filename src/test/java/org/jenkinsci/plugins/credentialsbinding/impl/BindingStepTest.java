@@ -51,9 +51,9 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 import jenkins.security.QueueItemAuthenticator;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
@@ -86,27 +86,31 @@ import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.jenkinsci.plugins.workflow.steps.SynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.security.core.Authentication;
 
-public class BindingStepTest {
+class BindingStepTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsSessionRule rr = new JenkinsSessionRule();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    @RegisterExtension
+    private final JenkinsSessionExtension extension = new JenkinsSessionExtension();
 
-    @SuppressWarnings("rawtypes")
-    @Test public void configRoundTrip() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void configRoundTrip() throws Throwable {
+        extension.then(r -> {
             UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "bob", "s3cr3t");
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
             BindingStep s = new StepConfigTester(r).configRoundTrip(new BindingStep(Collections.singletonList(new UsernamePasswordBinding("userpass", "creds"))));
@@ -117,14 +121,27 @@ public class BindingStepTest {
                 "withCredentials([[$class: 'ZipFileBinding', credentialsId: 'secrets', variable: 'file']]) {\n    // some block\n}");
         });
     }
+    
     public static class ZipStep extends Step {
-        @DataBoundConstructor public ZipStep() {}
-        @Override public StepExecution start(StepContext context) throws Exception {
+        
+        @DataBoundConstructor
+        public ZipStep() {}
+        
+        @Override
+        public StepExecution start(StepContext context) throws Exception {
             return new Execution(context);
         }
-        @TestExtension("configRoundTrip") public static class DescriptorImpl extends StepDescriptor {
-            @Override public String getFunctionName() {return "zip";}
-            @Override public Set<? extends Class<?>> getRequiredContext() {
+        
+        @TestExtension("configRoundTrip")
+        public static class DescriptorImpl extends StepDescriptor {
+            
+            @Override
+            public String getFunctionName() {
+                return "zip";
+            }
+            
+            @Override
+            public Set<? extends Class<?>> getRequiredContext() {
                 return Set.of();
             }
         }
@@ -132,15 +149,20 @@ public class BindingStepTest {
             Execution(StepContext context) {
                 super(context);
             }
-            @Override protected Void run() {return null;}
+            
+            @Override
+            protected Void run() {
+                return null;
+            }
         }
     }
 
-    @Test public void basics() throws Throwable {
+    @Test
+    void basics() throws Throwable {
         final String credentialsId = "creds";
         final String username = "bob";
         final String password = "s$$cr3t";
-        rr.then(r -> {
+        extension.then(r -> {
             UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", username, password);
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
             WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
@@ -159,7 +181,7 @@ public class BindingStepTest {
             SemaphoreStep.waitForStart("basics/1", b);
             r.assertLogContains(Functions.isWindows() ? "Masking supported pattern matches of %PASSWORD%" : "Masking supported pattern matches of $PASSWORD", b);
         });
-        rr.then(r -> {
+        extension.then(r -> {
             WorkflowJob p = r.jenkins.getItemByFullName("p", WorkflowJob.class);
             assertNotNull(p);
             WorkflowRun b = p.getBuildByNumber(1);
@@ -178,11 +200,11 @@ public class BindingStepTest {
 
     @Issue("JENKINS-42999")
     @Test
-    public void limitedRequiredContext() throws Throwable {
+    void limitedRequiredContext() throws Throwable {
         final String credentialsId = "creds";
         final String username = "bob";
         final String password = "s3cr3t";
-        rr.then(r -> {
+        extension.then(r -> {
             UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", username, password);
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
             WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
@@ -194,7 +216,7 @@ public class BindingStepTest {
             WorkflowRun b = p.scheduleBuild2(0).waitForStart();
             SemaphoreStep.waitForStart("basics/1", b);
         });
-        rr.then(r -> {
+        extension.then(r -> {
             WorkflowJob p = r.jenkins.getItemByFullName("p", WorkflowJob.class);
             assertNotNull(p);
             WorkflowRun b = p.getBuildByNumber(1);
@@ -210,11 +232,11 @@ public class BindingStepTest {
 
     @Issue("JENKINS-42999")
     @Test
-    public void widerRequiredContext() throws Throwable {
+    void widerRequiredContext() throws Throwable {
         final String credentialsId = "creds";
         final String credsFile = "credsFile";
         final String credsContent = "s3cr3t";
-        rr.then(r -> {
+        extension.then(r -> {
             FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", credsFile, SecretBytes.fromBytes(credsContent.getBytes()));
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
             WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
@@ -229,16 +251,18 @@ public class BindingStepTest {
         });
     }
 
-    @Test public void incorrectType() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void incorrectType() throws Throwable {
+        extension.then(r -> {
             StringCredentialsImpl c = new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t"));
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
             WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-            p.setDefinition(new CpsFlowDefinition(""
-                + "node {\n"
-                + "  withCredentials([usernamePassword(usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: 'creds')]) {\n"
-                + "  }\n"
-                + "}", true));
+            p.setDefinition(new CpsFlowDefinition("""
+                    \
+                    node {
+                      withCredentials([usernamePassword(usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD', credentialsId: 'creds')]) {
+                      }
+                    }""", true));
             WorkflowRun b = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
 
             // make sure error message contains information about the actual type and the expected type
@@ -249,24 +273,26 @@ public class BindingStepTest {
         });
     }
 
-    @Test public void cleanupAfterRestart() throws Throwable {
+    @Test
+    void cleanupAfterRestart() throws Throwable {
         final String secret = "s3cr3t";
-        rr.then(r -> {
+        extension.then(r -> {
             FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "secret.txt", SecretBytes.fromBytes(secret.getBytes()));
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
             r.createSlave("myslave", null, null);
             WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-            p.setDefinition(new CpsFlowDefinition(""
-                    + "node('myslave') {"
-                    + "  withCredentials([file(variable: 'SECRET', credentialsId: 'creds')]) {\n"
-                    + "    semaphore 'cleanupAfterRestart'\n"
-                    + "    if (isUnix()) {sh 'cp \"$SECRET\" key'} else {bat 'copy \"%SECRET%\" key'}\n"
-                    + "  }\n"
-                    + "}", true));
+            p.setDefinition(new CpsFlowDefinition("""
+                    \
+                    node('myslave') {\
+                      withCredentials([file(variable: 'SECRET', credentialsId: 'creds')]) {
+                        semaphore 'cleanupAfterRestart'
+                        if (isUnix()) {sh 'cp "$SECRET" key'} else {bat 'copy "%SECRET%" key'}
+                      }
+                    }""", true));
             WorkflowRun b = p.scheduleBuild2(0).waitForStart();
             SemaphoreStep.waitForStart("cleanupAfterRestart/1", b);
         });
-        rr.then(r -> {
+        extension.then(r -> {
             WorkflowJob p = r.jenkins.getItemByFullName("p", WorkflowJob.class);
             assertNotNull(p);
             WorkflowRun b = p.getBuildByNumber(1);
@@ -287,8 +313,9 @@ public class BindingStepTest {
     }
 
     @Issue("JENKINS-27389")
-    @Test public void grabEnv() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void grabEnv() throws Throwable {
+        extension.then(r -> {
             String credentialsId = "creds";
             String secret = "s3cr3t";
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
@@ -309,8 +336,9 @@ public class BindingStepTest {
     }
 
     @Issue("JENKINS-27486")
-    @Test public void masking() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void masking() throws Throwable {
+        extension.then(r -> {
             String credentialsId = "creds";
             String secret = "s3cr3t";
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
@@ -329,8 +357,9 @@ public class BindingStepTest {
     }
 
     @Issue("JENKINS-72412")
-    @Test public void maskingOfOneCharSecretShouldNotMangleOutput() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void maskingOfOneCharSecretShouldNotMangleOutput() throws Throwable {
+        extension.then(r -> {
             String credentialsId = "creds";
             String secret = "a";
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret)));
@@ -349,8 +378,8 @@ public class BindingStepTest {
 
     @Issue("JENKINS-30326")
     @Test
-    public void testGlobalBindingWithAuthorization() throws Throwable {
-        rr.then(r -> {
+    void testGlobalBindingWithAuthorization() throws Throwable {
+        extension.then(r -> {
             // configure security
             r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
             r.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
@@ -379,8 +408,11 @@ public class BindingStepTest {
             r.assertLogContains("Running as dummy", b);
         });
     }
+
     private static final class DummyAuthenticator extends QueueItemAuthenticator {
-        @Override public Authentication authenticate2(Queue.Task task) {
+
+        @Override
+        public Authentication authenticate2(Queue.Task task) {
             if (task instanceof WorkflowJob) {
                 return User.getById("dummy", true).impersonate2();
             } else {
@@ -391,8 +423,8 @@ public class BindingStepTest {
 
     @Issue("JENKINS-38831")
     @Test
-    public void testTrackingOfCredential() throws Throwable {
-        rr.then(r -> {
+    void testTrackingOfCredential() throws Throwable {
+        extension.then(r -> {
             String credentialsId = "creds";
             String secret = "s3cr3t";
             StringCredentialsImpl credentials = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample", Secret.fromString(secret));
@@ -424,8 +456,9 @@ public class BindingStepTest {
     }
 
     @Issue("JENKINS-41760")
-    @Test public void emptyOrBlankCreds() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void emptyOrBlankCreds() throws Throwable {
+        extension.then(r -> {
             WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition("node {withCredentials([]) {echo 'normal output'}}", true));
             r.assertLogContains("normal output", r.buildAndAssertSuccess(p));
@@ -437,8 +470,8 @@ public class BindingStepTest {
 
     @Issue("JENKINS-64631")
     @Test
-    public void usernameUnmaskedInStepArguments() throws Throwable {
-        rr.then(r -> {
+    void usernameUnmaskedInStepArguments() throws Throwable {
+        extension.then(r -> {
             String credentialsId = "my-credentials";
             String username = "alice";
             // UsernamePasswordCredentialsImpl.isUsernameSecret defaults to false for new credentials.
@@ -459,8 +492,9 @@ public class BindingStepTest {
     }
 
     @Issue("https://github.com/jenkinsci/credentials-plugin/pull/293")
-    @Test public void forRun() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void forRun() throws Throwable {
+        extension.then(r -> {
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new SpecialCredentials(CredentialsScope.GLOBAL, "test", null));
             WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition("withCredentials([string(variable: 'SECRET', credentialsId: 'test')]) {echo(/got: ${SECRET.toUpperCase()}/)}", true));
@@ -469,8 +503,9 @@ public class BindingStepTest {
     }
 
     @Issue("SECURITY-3499")
-    @Test public void maskingExceptionInError() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void maskingExceptionInError() throws Throwable {
+        extension.then(r -> {
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t")));
             var p = r.jenkins.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
@@ -487,8 +522,9 @@ public class BindingStepTest {
     }
 
     @Issue("SECURITY-3499")
-    @Test public void maskingExceptionInNestedError() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void maskingExceptionInNestedError() throws Throwable {
+        extension.then(r -> {
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t")));
             var p = r.jenkins.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
@@ -511,8 +547,9 @@ public class BindingStepTest {
     }
 
     @Issue("SECURITY-3499")
-    @Test public void maskingExceptionInSuppressedError() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void maskingExceptionInSuppressedError() throws Throwable {
+        extension.then(r -> {
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t")));
             var p = r.jenkins.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
@@ -532,8 +569,9 @@ public class BindingStepTest {
     }
 
     @Issue("SECURITY-3499")
-    @Test public void maskingExceptionForIncorrectArgs() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void maskingExceptionForIncorrectArgs() throws Throwable {
+        extension.then(r -> {
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("s3cr3t")));
             var p = r.jenkins.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
@@ -551,8 +589,9 @@ public class BindingStepTest {
     }
 
     @Issue("JENKINS-75914")
-    @Test public void emptyOrBlankCredsOnExceptions() throws Throwable {
-        rr.then(r -> {
+    @Test
+    void emptyOrBlankCredsOnExceptions() throws Throwable {
+        extension.then(r -> {
             CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", Secret.fromString("")));
             var p = r.jenkins.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
@@ -570,26 +609,31 @@ public class BindingStepTest {
     private void assertErrorActionsDoNotContainString(WorkflowRun b, String needle) {
         var errorActionStackTraces = new DepthFirstScanner().allNodes(b.getExecution()).stream()
                 .map(n -> n.getPersistentAction(ErrorAction.class))
-                .filter(ea -> ea != null)
-                .map(ea -> ea.getError())
+                .filter(Objects::nonNull)
+                .map(ErrorAction::getError)
                 .map(t -> {
                     var writer = new StringWriter();
                     t.printStackTrace(new PrintWriter(writer));
                     return writer.toString();
                 })
-                .collect(Collectors.toList());
+                .toList();
         assertThat(errorActionStackTraces, not(hasItem(containsString(needle))));
     }
 
     private static final class SpecialCredentials extends BaseStandardCredentials implements StringCredentials {
         private Run<?, ?> build;
+
         SpecialCredentials(CredentialsScope scope, String id, String description) {
             super(scope, id, description);
         }
-        @Override public Secret getSecret() {
+
+        @Override
+        public Secret getSecret() {
             return Secret.fromString(build != null ? build.getExternalizableId() : "unknown");
         }
-        @Override public Credentials forRun(Run<?, ?> context) {
+
+        @Override
+        public Credentials forRun(Run<?, ?> context) {
             SpecialCredentials clone = new SpecialCredentials(getScope(), getId(), getDescription());
             clone.build = context;
             return clone;
@@ -601,6 +645,7 @@ public class BindingStepTest {
         grep(dir, text, "", matches);
         return matches;
     }
+
     private static void grep(File dir, String text, String prefix, Set<String> matches) throws IOException {
         File[] kids = dir.listFiles();
         if (kids == null) {

@@ -28,37 +28,35 @@ import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.DataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
-import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
-import static org.junit.Assume.assumeThat;
+import static org.jenkinsci.plugins.credentialsbinding.test.Executables.isExecutable;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@RunWith(Theories.class)
-public class BourneShellSecretPatternFactoryTest {
+@WithJenkins
+class BourneShellSecretPatternFactoryTest {
 
-    public static final @DataPoint String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
-    public static final @DataPoint String ANOTHER_SAMPLE_PASSWORD = "a'b\"c\\d(e)#";
+    private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
+    private static final String ANOTHER_SAMPLE_PASSWORD = "a'b\"c\\d(e)#";
 
-    @DataPoints
-    public static List<String> generatePasswords() {
+    static List<String> generatePasswords() {
         Random random = new Random(100);
-        List<String> passwords = new ArrayList<>(10);
+        List<String> passwords = new ArrayList<>();
+
+        passwords.add(SAMPLE_PASSWORD);
+        passwords.add(ANOTHER_SAMPLE_PASSWORD);
+
         for (int i = 0; i < 10; i++) {
             int length = random.nextInt(24) + 8;
             StringBuilder sb = new StringBuilder(length);
@@ -71,22 +69,23 @@ public class BourneShellSecretPatternFactoryTest {
         return passwords;
     }
 
-    @Rule public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule r;
 
     private WorkflowJob project;
     private String credentialsId;
 
-    @BeforeClass
-    public static void assumeBash() {
-        assumeThat("sh", is(executable()));
+    @BeforeAll
+    static void beforeAll() {
+        assumeTrue(isExecutable("sh"));
         // due to https://github.com/jenkinsci/durable-task-plugin/blob/e75123eda986f20a390d92cc892c3d206e60aefb/src/main/java/org/jenkinsci/plugins/durabletask/BourneShellScript.java#L149
         // on Windows
-        assumeThat("nohup", is(executable()));
+        assumeTrue(isExecutable("nohup"));
     }
 
-    @Before
-    public void setUp() throws Exception {
-        project = j.createProject(WorkflowJob.class);
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        r = rule;
+        project = r.createProject(WorkflowJob.class);
         credentialsId = UUID.randomUUID().toString();
         project.setDefinition(new CpsFlowDefinition(
                 "node {\n" +
@@ -97,20 +96,21 @@ public class BourneShellSecretPatternFactoryTest {
                         "}", true));
     }
 
-    @Theory
-    public void credentialsAreMaskedInLogs(String credentials) throws Exception {
-        assumeThat(credentials, not(startsWith("****")));
+    @ParameterizedTest
+    @MethodSource("generatePasswords")
+    void credentialsAreMaskedInLogs(String credentials) throws Exception {
+        assumeFalse(credentials.startsWith("****"));
 
-        CredentialsTestUtil.setStringCredentials(j.jenkins, credentialsId, credentials);
+        CredentialsTestUtil.setStringCredentials(r.jenkins, credentialsId, credentials);
         WorkflowRun run = runProject();
 
-        j.assertLogContains(": ****", run);
-        j.assertLogContains("< **** >", run);
-        j.assertLogNotContains(credentials, run);
+        r.assertLogContains(": ****", run);
+        r.assertLogContains("< **** >", run);
+        r.assertLogNotContains(credentials, run);
     }
 
     private WorkflowRun runProject() throws Exception {
-        return j.assertBuildStatusSuccess(project.scheduleBuild2(0));
+        return r.assertBuildStatusSuccess(project.scheduleBuild2(0));
     }
 
 }

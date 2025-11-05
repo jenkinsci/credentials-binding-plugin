@@ -42,7 +42,6 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
-import hudson.remoting.Future;
 import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
 import java.util.Collections;
@@ -50,9 +49,11 @@ import java.util.List;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.credentialsbinding.Binding;
 import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.xmlunit.matchers.CompareMatcher;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -60,15 +61,21 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class UsernamePasswordBindingTest {
+@WithJenkins
+class UsernamePasswordBindingTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
-    private CredentialsStore store = null;
+    private JenkinsRule r;
 
-    @Test public void basics() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
+
+    @Test
+    void basics() throws Exception {
         String username = "bob";
         String password = "s3cr3t";
         UsernamePasswordCredentialsImpl c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, "sample", username, password);
@@ -92,7 +99,9 @@ public class UsernamePasswordBindingTest {
     }
 
     @Test
-    public void theSecretBuildWrapperTracksUsage() throws Exception {
+    void theSecretBuildWrapperTracksUsage() throws Exception {
+        CredentialsStore store = null;
+
         SystemCredentialsProvider.getInstance().setDomainCredentialsMap(
         Collections.singletonMap(Domain.global(), Collections.emptyList()));
         for (CredentialsStore s : CredentialsProvider.lookupStores(Jenkins.get())) {
@@ -127,7 +136,7 @@ public class UsernamePasswordBindingTest {
                               false
                         )));
 
-        r.assertBuildStatusSuccess((Future) job.scheduleBuild2(0,
+        r.assertBuildStatusSuccess(job.scheduleBuild2(0,
                         new ParametersAction(new CredentialsParameterValue("SECRET", "secret-id", "The secret", true))));
 
         fingerprint = CredentialsProvider.getFingerprintOf(credentials);
@@ -141,7 +150,7 @@ public class UsernamePasswordBindingTest {
         // check that the wrapper works as expected
         job.getBuildWrappersList().add(new SecretBuildWrapper(Collections.<Binding<?>>singletonList(new UsernamePasswordBinding("AUTH", credentials.getId()))));
 
-        r.assertBuildStatusSuccess((Future) job.scheduleBuild2(0, new ParametersAction(new CredentialsParameterValue("SECRET", "secret-id", "The secret", true))));
+        r.assertBuildStatusSuccess(job.scheduleBuild2(0, new ParametersAction(new CredentialsParameterValue("SECRET", "secret-id", "The secret", true))));
 
         fingerprint = CredentialsProvider.getFingerprintOf(credentials);
         assertThat(fingerprint, notNullValue());

@@ -28,18 +28,17 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Functions;
 import org.apache.commons.io.IOUtils;
-import org.hamcrest.CustomTypeSafeMatcher;
-import org.hamcrest.Matcher;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
 public class Executables {
+
     private static final String LOCATOR = Functions.isWindows() ? "where.exe" : "which";
 
-    public static @CheckForNull
-    String getPathToExecutable(@NonNull String executable) {
+    @CheckForNull
+    public static String getPathToExecutable(@NonNull String executable) {
         try {
             Process process = new ProcessBuilder(LOCATOR, executable).start();
             List<String> output = IOUtils.readLines(process.getInputStream(), Charset.defaultCharset());
@@ -52,16 +51,11 @@ public class Executables {
         }
     }
 
-    public static Matcher<String> executable() {
-        return new CustomTypeSafeMatcher<String>("executable") {
-            @Override
-            protected boolean matchesSafely(String item) {
-                try {
-                    return new ProcessBuilder(LOCATOR, item).start().waitFor() == 0;
-                } catch (InterruptedException | IOException e) {
-                    return false;
-                }
-            }
-        };
+    public static boolean isExecutable(@NonNull String item) {
+        try {
+            return new ProcessBuilder(LOCATOR, item).start().waitFor() == 0;
+        } catch (InterruptedException | IOException e) {
+            return false;
+        }
     }
 }

@@ -41,24 +41,36 @@ import hudson.tasks.Recorder;
 import hudson.tasks.Shell;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import org.junit.ClassRule;
-import org.jvnet.hudson.test.BuildWatcher;
 
-public class SecretBuildWrapperTest {
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
+@WithJenkins
+class SecretBuildWrapperTest {
+
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Issue("JENKINS-24805")
-    @Test public void maskingFreeStyleSecrets() throws Exception {
+    @Test
+    void maskingFreeStyleSecrets() throws Exception {
         String firstCredentialsId = "creds_1";
         String firstPassword = "p4$$";
         StringCredentialsImpl firstCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, firstCredentialsId, "sample1", Secret.fromString(firstPassword));
@@ -90,7 +102,8 @@ public class SecretBuildWrapperTest {
     }
 
     @Issue("JENKINS-24805")
-    @Test public void emptySecretsList() throws Exception {
+    @Test
+    void emptySecretsList() throws Exception {
         SecretBuildWrapper wrapper = new SecretBuildWrapper(new ArrayList<>());
 
         FreeStyleProject f = r.createFreeStyleProject();
@@ -106,7 +119,8 @@ public class SecretBuildWrapperTest {
     }
 
     @Issue("JENKINS-41760")
-    @Test public void emptySecret() throws Exception {
+    @Test
+    void emptySecret() throws Exception {
         CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "creds", null, Secret.fromString("")));
         FreeStyleProject p = r.createFreeStyleProject();
         p.getBuildWrappersList().add(new SecretBuildWrapper(Collections.singletonList(new StringBinding("SECRET", "creds"))));
@@ -115,7 +129,8 @@ public class SecretBuildWrapperTest {
     }
 
     @Issue("SECURITY-1374")
-    @Test public void maskingPostBuild() throws Exception {
+    @Test
+    void maskingPostBuild() throws Exception {
         String credentialsId = "creds_1";
         String password = "p4$$";
         StringCredentialsImpl firstCreds = new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "sample1", Secret.fromString(password));
@@ -138,14 +153,14 @@ public class SecretBuildWrapperTest {
 
     static class PasswordPublisher extends Recorder {
 
-        private String password;
+        private final String password;
 
         public PasswordPublisher(String password) {
             this.password = password;
         }
 
-        public @Override
-        boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
+        @Override
+        public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
             listener.getLogger().println("Sneak it in during the postbuild: " + password + " :done.");
             return true;
         }

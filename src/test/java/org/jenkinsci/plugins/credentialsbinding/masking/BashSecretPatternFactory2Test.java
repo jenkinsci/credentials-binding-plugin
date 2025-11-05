@@ -30,36 +30,38 @@ import org.jenkinsci.plugins.credentialsbinding.test.Executables;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-import static org.hamcrest.Matchers.is;
-import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
-import static org.junit.Assume.assumeThat;
+import static org.jenkinsci.plugins.credentialsbinding.test.Executables.isExecutable;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @For(BashSecretPatternFactory.class)
-public class BashSecretPatternFactory2Test {
+@WithJenkins
+class BashSecretPatternFactory2Test {
 
-    public @Rule JenkinsRule j = new JenkinsRule();
+    private JenkinsRule r;
 
-    @Before
-    public void setUp() {
-        assumeThat("bash", is(executable()));
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+        assumeTrue(isExecutable("bash"));
         // due to https://github.com/jenkinsci/durable-task-plugin/blob/e75123eda986f20a390d92cc892c3d206e60aefb/src/main/java/org/jenkinsci/plugins/durabletask/BourneShellScript.java#L149
         // on Windows
-        assumeThat("nohup", is(executable()));
-        j.jenkins.getDescriptorByType(Shell.DescriptorImpl.class).setShell(Executables.getPathToExecutable("bash"));
+        assumeTrue(isExecutable("nohup"));
+        r.jenkins.getDescriptorByType(Shell.DescriptorImpl.class).setShell(Executables.getPathToExecutable("bash"));
     }
 
-    @Test
     // DO NOT DO THIS IN PRODUCTION; IT IS QUOTED WRONG
-    public void testSecretsWithBackslashesStillMaskedWhenUsedWithoutProperQuoting() throws Exception {
-        WorkflowJob project = j.createProject(WorkflowJob.class);
+    @Test
+    void testSecretsWithBackslashesStillMaskedWhenUsedWithoutProperQuoting() throws Exception {
+        WorkflowJob project = r.createProject(WorkflowJob.class);
         String password = "foo\\bar\\";
-        String credentialsId = CredentialsTestUtil.registerStringCredentials(j.jenkins, password);
+        String credentialsId = CredentialsTestUtil.registerStringCredentials(r.jenkins, password);
         project.setDefinition(new CpsFlowDefinition(
                 "node {\n" +
                 "  withCredentials([string(credentialsId: '" + credentialsId + "', variable: 'CREDENTIALS')]) {\n" +
@@ -68,11 +70,11 @@ public class BashSecretPatternFactory2Test {
                         "  }\n" +
                         "}", true));
 
-        WorkflowRun run = j.assertBuildStatusSuccess(project.scheduleBuild2(0));
+        WorkflowRun run = r.assertBuildStatusSuccess(project.scheduleBuild2(0));
 
-        j.assertLogContains(": ****", run);
-        j.assertLogNotContains(password, run);
-        j.assertLogNotContains("foo", run);
-        j.assertLogNotContains("bar", run);
+        r.assertLogContains(": ****", run);
+        r.assertLogNotContains(password, run);
+        r.assertLogNotContains("foo", run);
+        r.assertLogNotContains("bar", run);
     }
 }

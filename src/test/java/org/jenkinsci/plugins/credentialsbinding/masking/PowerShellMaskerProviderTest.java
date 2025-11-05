@@ -28,71 +28,72 @@ import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.io.IOException;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
-import static org.junit.Assume.assumeThat;
+import static org.jenkinsci.plugins.credentialsbinding.test.Executables.isExecutable;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-public class PowerShellMaskerProviderTest {
+@WithJenkins
+class PowerShellMaskerProviderTest {
 
     private static final String SIMPLE = "abcABC123";
     private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
     private static final String ALL_ASCII = "!\"#$%&'()*+,-./ 0123456789:;<=>? @ABCDEFGHIJKLMNO PQRSTUVWXYZ[\\]^_ `abcdefghijklmno pqrstuvwxyz{|}~";
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule r;
 
     private WorkflowJob project;
 
     private String credentialPlainText;
     private String credentialId;
 
-    @Before
-    public void assumeWindowsForBatch() {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
         // TODO: pwsh is also a valid executable name
         // https://github.com/jenkinsci/durable-task-plugin/pull/88
-        assumeThat("powershell", is(executable()));
+        assumeTrue(isExecutable("powershell"));
     }
 
     private void registerCredentials(String password) throws IOException {
         this.credentialPlainText = password;
-        this.credentialId = CredentialsTestUtil.registerStringCredentials(j.jenkins, password);
+        this.credentialId = CredentialsTestUtil.registerStringCredentials(r.jenkins, password);
     }
 
     @Test
-    public void simple() throws Exception {
+    void simple() throws Exception {
         registerCredentials(SIMPLE);
         assertDirectNoPlainTextButStars(runPowerShellInterpretation());
     }
-    
+
     @Test
-    public void allAscii() throws Exception {
+    void allAscii() throws Exception {
         registerCredentials(ALL_ASCII);
         assertDirectNoPlainTextButStars(runPowerShellInterpretation());
     }
-    
+
     @Test
-    public void samplePassword() throws Exception {
+    void samplePassword() throws Exception {
         registerCredentials(SAMPLE_PASSWORD);
         assertDirectNoPlainTextButStars(runPowerShellInterpretation());
     }
 
     private void assertDirectNoPlainTextButStars(WorkflowRun run) throws Exception {
-        j.assertLogNotContains(credentialPlainText, run);
+        r.assertLogNotContains(credentialPlainText, run);
         // powershell x y z => output in 3 different lines
         assertStringPresentInOrder(run, "before1", "****", "after1");
-        j.assertLogContains("before2 **** after2", run);
+        r.assertLogContains("before2 **** after2", run);
     }
     
-    private void assertStringPresentInOrder(WorkflowRun run, String... values) throws Exception {
+    private static void assertStringPresentInOrder(WorkflowRun run, String... values) throws Exception {
         String fullLog = run.getLog();
         int currentIndex = 0;
         for (String currentValue : values) {
@@ -119,11 +120,11 @@ public class PowerShellMaskerProviderTest {
                 "  }\n" +
                 "}"
         );
-        return j.assertBuildStatusSuccess(project.scheduleBuild2(0));
+        return r.assertBuildStatusSuccess(project.scheduleBuild2(0));
     }
 
     private void setupProject(String pipeline) throws Exception {
-        project = j.createProject(WorkflowJob.class);
+        project = r.createProject(WorkflowJob.class);
         project.setDefinition(new CpsFlowDefinition(pipeline, true));
     }
 }

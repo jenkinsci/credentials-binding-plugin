@@ -29,8 +29,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,12 +46,11 @@ import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
+
 import org.jvnet.hudson.test.JenkinsRule;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -68,24 +67,28 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class CertificateMultiBindingTest {
+@WithJenkins
+class CertificateMultiBindingTest {
 
-	@ClassRule
-	public static BuildWatcher buildWatcher = new BuildWatcher();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
-	@Rule
-	public JenkinsRule r = new JenkinsRule();
+	private JenkinsRule r;
 
-	@Rule
-	public TemporaryFolder tmp = new TemporaryFolder();
+	@TempDir
+	private File tmp;
 
-	File certificate;
+	private File certificate;
 
-	@Before
-	public void setUp() throws IOException {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        r = rule;
 		/* do the dance to get a simple zip file into jenkins */
-		certificate = tmp.newFile("a.certificate");
+		certificate = newFile(tmp, "a.certificate");
 		final URL resource = this.getClass().getResource("certificate.p12");
 		assertThat(resource, is(not(nullValue())));
 		FileUtils.copyURLToFile(resource, certificate);
@@ -93,8 +96,8 @@ public class CertificateMultiBindingTest {
 
     // TODO configRoundtrip to test form, null hygiene on @DataBoundSetter
 
-	@Test
-	public void basics() throws Exception {
+    @Test
+    void basics() throws Exception {
 		String alias = "androiddebugkey";
 		String password = "android";
 		StandardCertificateCredentials c = new CertificateCredentialsImpl(CredentialsScope.GLOBAL, null, alias,
@@ -108,22 +111,24 @@ public class CertificateMultiBindingTest {
 				.<MultiBinding<?>> singletonList(binding)));
 		if (Functions.isWindows()) {
 			p.getBuildersList().add(new BatchFile(
-					  "echo | set /p=\"%alias%/%password%/\" > secrets.txt\r\n"
-					+ "IF EXIST \"%keystore%\" (\r\n"
-					+ "echo | set /p=\"exists\" >> secrets.txt\r\n"
-					+ ") ELSE (\r\n"
-					+ "echo | set /p=\"missing\" >> secrets.txt\r\n"
-					+ ")\r\n"
-                    + "exit 0"));
+                    """
+                            echo | set /p="%alias%/%password%/" > secrets.txt\r
+                            IF EXIST "%keystore%" (\r
+                            echo | set /p="exists" >> secrets.txt\r
+                            ) ELSE (\r
+                            echo | set /p="missing" >> secrets.txt\r
+                            )\r
+                            exit 0"""));
 		} else {
 			p.getBuildersList().add(new Shell(
-					  "printf $alias/$password/ > secrets.txt\n"
-					+ "if [ -f \"$keystore\" ]\n"
-					+ "then\n"
-					+ "printf exists >> secrets.txt\n"
-					+ "else\n"
-					+ "printf missing >> secrets.txt\n"
-					+ "fi"));
+                    """
+                            printf $alias/$password/ > secrets.txt
+                            if [ -f "$keystore" ]
+                            then
+                            printf exists >> secrets.txt
+                            else
+                            printf missing >> secrets.txt
+                            fi"""));
 		}
 		r.configRoundtrip((Item) p);
 		SecretBuildWrapper wrapper = p.getBuildWrappersList().get(SecretBuildWrapper.class);
@@ -142,8 +147,8 @@ public class CertificateMultiBindingTest {
 		assertThat(b.getSensitiveBuildVariables(), containsInAnyOrder("keystore", "password", "alias"));
 	}
 
-	@Test
-	public void basicsPipeline() throws Exception {
+    @Test
+    void basicsPipeline() throws Exception {
 		// create the Credentials
 		String alias = "androiddebugkey";
 		String password = "android";
@@ -185,5 +190,11 @@ public class CertificateMultiBindingTest {
 			return f;
 		}
 	}
+
+    private static File newFile(File parent, String child) throws IOException {
+        File result = new File(parent, child);
+        result.createNewFile();
+        return result;
+    }
 
 }

@@ -1,43 +1,53 @@
 package org.jenkinsci.plugins.credentialsbinding.masking;
 
-import static org.hamcrest.Matchers.is;
-import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
-import static org.junit.Assume.assumeThat;
+import static org.jenkinsci.plugins.credentialsbinding.test.Executables.isExecutable;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import hudson.Functions;
 import org.jenkinsci.plugins.credentialsbinding.test.CredentialsTestUtil;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class Base64SecretPatternFactoryTest {
+@WithJenkins
+class Base64SecretPatternFactoryTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
 
-    public static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void base64SecretsAreMaskedInLogs() throws Exception {
-        WorkflowJob project = j.createProject(WorkflowJob.class);
-        String credentialsId = CredentialsTestUtil.registerUsernamePasswordCredentials(j.jenkins, "user", SAMPLE_PASSWORD);
+    void base64SecretsAreMaskedInLogs() throws Exception {
+        WorkflowJob project = r.createProject(WorkflowJob.class);
+        String credentialsId = CredentialsTestUtil.registerUsernamePasswordCredentials(r.jenkins, "user", SAMPLE_PASSWORD);
         String script;
 
         if (Functions.isWindows()) {
-            assumeThat("powershell", is(executable()));
+            assumeTrue(isExecutable("powershell"));
             script =
-                    "    powershell '''\n"
-                            + "      $secret = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(\"$env:PASSWORD\"))\n"
-                            + "      echo $secret\n"
-                            + "    '''\n";
+                    """
+                                powershell '''
+                                  $secret = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$env:PASSWORD"))
+                                  echo $secret
+                                '''
+                            """;
         } else {
             script =
-                    "    sh '''\n"
-                            + "      echo -n $PASSWORD | base64\n"
-                            + "    '''\n";
+                    """
+                                sh '''
+                                  echo -n $PASSWORD | base64
+                                '''
+                            """;
         }
 
         project.setDefinition(new CpsFlowDefinition(
@@ -47,9 +57,9 @@ public class Base64SecretPatternFactoryTest {
                         + "  }\n"
                         + "}", true));
 
-        WorkflowRun run = j.assertBuildStatusSuccess(project.scheduleBuild2(0));
+        WorkflowRun run = r.assertBuildStatusSuccess(project.scheduleBuild2(0));
 
-        j.assertLogContains("****", run);
-        j.assertLogNotContains(SAMPLE_PASSWORD, run);
+        r.assertLogContains("****", run);
+        r.assertLogNotContains(SAMPLE_PASSWORD, run);
     }
 }

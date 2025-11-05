@@ -30,50 +30,59 @@ import org.jenkinsci.plugins.credentialsbinding.test.Executables;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.DataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
-import static org.jenkinsci.plugins.credentialsbinding.test.Executables.executable;
-import static org.junit.Assume.assumeThat;
+import static org.jenkinsci.plugins.credentialsbinding.test.Executables.isExecutable;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@RunWith(Theories.class)
-public class AlmquistShellSecretPatternFactoryTest {
+@WithJenkins
+class AlmquistShellSecretPatternFactoryTest {
 
     // ' is escaped as '"'"', '' as '"''"', ''' as '"'''"'
-    public static final @DataPoint String MULTIPLE_QUOTES = "ab'cd''ef'''gh";
+    private static final String MULTIPLE_QUOTES = "ab'cd''ef'''gh";
     // "starting" and "ending" single quotes are escaped as "middle" single quotes
-    public static final @DataPoint String SURROUNDED_BY_QUOTES = "'abc'";
-    public static final @DataPoint String SURROUNDED_BY_QUOTES_AND_MIDDLE = "'ab'cd'";
-    public static final @DataPoint String SIMPLE_CASE_1 = "abc";
-    public static final @DataPoint String SIMPLE_CASE_2 = "ab'cd";
-    public static final @DataPoint String SIMPLE_CASE_3 = "ab''cd";
-    public static final @DataPoint String SIMPLE_CASE_4 = "ab'c'd";
-    public static final @DataPoint String LEADING_QUOTE = "'a\"b\"c d";
-    public static final @DataPoint String TRAILING_QUOTE = "a\"b\"c d'";
-    public static final @DataPoint String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
-    public static final @DataPoint String ANOTHER_SAMPLE_PASSWORD = "a'b\"c\\d(e)#";
-    public static final @DataPoint String ONE_MORE = "'\"'(foo)'\"'";
-    public static final @DataPoint String FULL_ASCII = "!\"#$%&'()*+,-./ 0123456789:;<=>? @ABCDEFGHIJKLMNO PQRSTUVWXYZ[\\]^_ `abcdefghijklmno pqrstuvwxyz{|}~";
+    private static final String SURROUNDED_BY_QUOTES = "'abc'";
+    private static final String SURROUNDED_BY_QUOTES_AND_MIDDLE = "'ab'cd'";
+    private static final String SIMPLE_CASE_1 = "abc";
+    private static final String SIMPLE_CASE_2 = "ab'cd";
+    private static final String SIMPLE_CASE_3 = "ab''cd";
+    private static final String SIMPLE_CASE_4 = "ab'c'd";
+    private static final String LEADING_QUOTE = "'a\"b\"c d";
+    private static final String TRAILING_QUOTE = "a\"b\"c d'";
+    private static final String SAMPLE_PASSWORD = "}#T14'GAz&H!{$U_";
+    private static final String ANOTHER_SAMPLE_PASSWORD = "a'b\"c\\d(e)#";
+    private static final String ONE_MORE = "'\"'(foo)'\"'";
+    private static final String FULL_ASCII = "!\"#$%&'()*+,-./ 0123456789:;<=>? @ABCDEFGHIJKLMNO PQRSTUVWXYZ[\\]^_ `abcdefghijklmno pqrstuvwxyz{|}~";
 
-    @DataPoints
-    public static List<String> generatePasswords() {
+    static List<String> generatePasswords() {
         Random random = new Random(100);
-        List<String> passwords = new ArrayList<>(10);
+        List<String> passwords = new ArrayList<>();
+
+        passwords.add(MULTIPLE_QUOTES);
+        passwords.add(SURROUNDED_BY_QUOTES);
+        passwords.add(SURROUNDED_BY_QUOTES_AND_MIDDLE);
+        passwords.add(SIMPLE_CASE_1);
+        passwords.add(SIMPLE_CASE_2);
+        passwords.add(SIMPLE_CASE_3);
+        passwords.add(SIMPLE_CASE_4);
+        passwords.add(LEADING_QUOTE);
+        passwords.add(TRAILING_QUOTE);
+        passwords.add(SAMPLE_PASSWORD);
+        passwords.add(ANOTHER_SAMPLE_PASSWORD);
+        passwords.add(ONE_MORE);
+        passwords.add(FULL_ASCII);
+
         for (int i = 0; i < 10; i++) {
             int length = random.nextInt(24) + 8;
             StringBuilder sb = new StringBuilder(length);
@@ -88,24 +97,25 @@ public class AlmquistShellSecretPatternFactoryTest {
         return passwords;
     }
 
-    @ClassRule public static JenkinsRule j = new JenkinsRule();
+    private static JenkinsRule r;
 
     private WorkflowJob project;
     private String credentialsId;
 
-    @BeforeClass
-    public static void assumeAsh() {
+    @BeforeAll
+    static void beforeAll(JenkinsRule rule) {
+        r = rule;
         // ash = Almquist shell, default one used in Alpine
-        assumeThat("ash", is(executable()));
+        assumeTrue(isExecutable("ash"));
         // due to https://github.com/jenkinsci/durable-task-plugin/blob/e75123eda986f20a390d92cc892c3d206e60aefb/src/main/java/org/jenkinsci/plugins/durabletask/BourneShellScript.java#L149
         // on Windows
-        assumeThat("nohup", is(executable()));
+        assumeTrue(isExecutable("nohup"));
     }
 
-    @Before
-    public void setUp() throws Exception {
-        j.jenkins.getDescriptorByType(Shell.DescriptorImpl.class).setShell(Executables.getPathToExecutable("ash"));
-        project = j.createProject(WorkflowJob.class);
+    @BeforeEach
+    void beforeEach() throws Exception {
+        r.jenkins.getDescriptorByType(Shell.DescriptorImpl.class).setShell(Executables.getPathToExecutable("ash"));
+        project = r.createProject(WorkflowJob.class);
         credentialsId = UUID.randomUUID().toString();
 
         project.setDefinition(new CpsFlowDefinition(
@@ -120,20 +130,21 @@ public class AlmquistShellSecretPatternFactoryTest {
                         "}", true));
     }
 
-    @Theory
-    public void credentialsAreMaskedInLogs(String credentials) throws Exception {
-        assumeThat(credentials, not(startsWith("****")));
+    @ParameterizedTest
+    @MethodSource("generatePasswords")
+    void credentialsAreMaskedInLogs(String credentials) throws Exception {
+        assumeFalse(credentials.startsWith("****"));
 
-        CredentialsTestUtil.setStringCredentials(j.jenkins, credentialsId, credentials);
+        CredentialsTestUtil.setStringCredentials(r.jenkins, credentialsId, credentials);
         WorkflowRun run = runProject();
 
-        j.assertLogContains("begin0 **** end0", run);
-        j.assertLogContains("begin2 **** end2", run);
-        j.assertLogNotContains(credentials, run);
+        r.assertLogContains("begin0 **** end0", run);
+        r.assertLogContains("begin2 **** end2", run);
+        r.assertLogNotContains(credentials, run);
     }
 
     private WorkflowRun runProject() throws Exception {
-        return j.buildAndAssertSuccess(project);
+        return r.buildAndAssertSuccess(project);
     }
 
 }

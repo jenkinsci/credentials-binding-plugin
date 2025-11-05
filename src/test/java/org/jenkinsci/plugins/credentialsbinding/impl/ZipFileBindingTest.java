@@ -32,29 +32,36 @@ import org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class ZipFileBindingTest {
+@WithJenkins
+class ZipFileBindingTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Issue("JENKINS-30941")
     @Test
-    public void cleanUpSucceeds() throws Exception {
+    void cleanUpSucceeds() throws Exception {
         /* Issue was just present on Linux not windows - but the test will run on both */
 
         final String credentialsId = "zipfile";
 
         FileCredentialsImpl fc = new FileCredentialsImpl(CredentialsScope.GLOBAL, credentialsId, "Just a zip file", "a.zip", SecretBytes.fromBytes(IOUtils.toByteArray(ZipFileBindingTest.class.getResource("a.zip"))));
-        CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), fc);
+        CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), fc);
 
         final String contents = "Test of ZipFileBinding\n";
         
-        WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(""
                                               + "node {\n"
                                               + "  withCredentials([[$class: 'ZipFileBinding', credentialsId: '"+ credentialsId +"', variable: 'ziploc']]) {\n"
@@ -64,7 +71,7 @@ public class ZipFileBindingTest {
                                               , true));
 
         WorkflowRun run = p.scheduleBuild2(0).get();
-        j.assertBuildStatusSuccess(run);
-        j.assertLogContains(contents, run);
+        r.assertBuildStatusSuccess(run);
+        r.assertLogContains(contents, run);
     }
 }

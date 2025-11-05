@@ -34,25 +34,43 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.FlagRule;
-import org.jvnet.hudson.test.InboundAgentRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.InboundAgentExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public final class SecretPatternsTest {
+@WithJenkins
+class SecretPatternsTest {
 
-    @ClassRule public static BuildWatcher watcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public InboundAgentRule agents = new InboundAgentRule();
-    @Rule public FlagRule<Boolean> useWatching = new FlagRule<>(() -> DurableTaskStep.USE_WATCHING, v -> DurableTaskStep.USE_WATCHING = v);
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+    @RegisterExtension
+    private final InboundAgentExtension agents = new InboundAgentExtension();
+    private boolean useWatching;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+        useWatching = DurableTaskStep.USE_WATCHING;
+    }
+
+    @AfterEach
+    void afterEach() {
+        DurableTaskStep.USE_WATCHING = useWatching;
+    }
 
     @Issue("SECURITY-3075")
-    @Test public void secretPatternFactoriesRetrievedFromAgent() throws Exception {
+    @Test
+    void secretPatternFactoriesRetrievedFromAgent() throws Exception {
         DurableTaskStep.USE_WATCHING = true;
         WorkflowJob p = r.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("node('remote') {def msg = 'echo do not look at s3cr3t please'; if (isUnix()) {sh msg} else {bat msg}}", true));
@@ -69,12 +87,18 @@ public final class SecretPatternsTest {
     }
 
     public static final class BadMasker extends TaskListenerDecorator {
-        @Override public OutputStream decorate(OutputStream logger) throws IOException, InterruptedException {
+
+        @Override
+        public OutputStream decorate(OutputStream logger) throws IOException, InterruptedException {
             Pattern pattern = SecretPatterns.getAggregateSecretPattern(Set.of("s3cr3t"));
             return new SecretPatterns.MaskingOutputStream(logger, () -> pattern, "UTF-8");
         }
-        @TestExtension("secretPatternFactoriesRetrievedFromAgent") public static final class Factory implements TaskListenerDecorator.Factory {
-            @Override public TaskListenerDecorator of(FlowExecutionOwner owner) {
+
+        @TestExtension("secretPatternFactoriesRetrievedFromAgent")
+        public static final class Factory implements TaskListenerDecorator.Factory {
+
+            @Override
+            public TaskListenerDecorator of(FlowExecutionOwner owner) {
                 return new BadMasker();
             }
         }

@@ -22,6 +22,7 @@
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <useBeta>true</useBeta> <!-- FailureHandler -->
+    <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
   </properties>
   <licenses>
     <license>

@@ -1,16 +1,19 @@
 package org.jenkinsci.plugins.credentialsbinding.test;
 
 import org.jenkinsci.plugins.credentialsbinding.masking.Base64SecretPatternFactory;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Base64;
 import java.util.Collection;
 
-public class Base64PatternTest {
+class Base64PatternTest {
+
     @Test
-    public void checkSecretDetected() {
+    void checkSecretDetected() {
         assertBase64PatternFound("abcde", "abcde");
         assertBase64PatternFound("abcde", "1abcde");
         assertBase64PatternFound("abcde", "12abcde");
@@ -64,7 +67,7 @@ public class Base64PatternTest {
     }
 
     @Test
-    public void checkSecretNotDetected() {
+    void checkSecretNotDetected() {
         assertBase64PatternNotFound("ab1cde", "abcde");
         assertBase64PatternNotFound("ab1cde", "1abcde");
         assertBase64PatternNotFound("ab1cde", "12abcde");
@@ -117,15 +120,15 @@ public class Base64PatternTest {
         assertBase64PatternNotFound("b1cd", "123abcde123");
     }
 
-    private void assertBase64PatternFound(String secret, String plainText) {
-        Assert.assertTrue("Pattern " + plainText + " not detected as containing " + secret, isPatternContainingSecret(secret, plainText));
+    private static void assertBase64PatternFound(String secret, String plainText) {
+        assertTrue(isPatternContainingSecret(secret, plainText), "Pattern " + plainText + " not detected as containing " + secret);
     }
 
-    private void assertBase64PatternNotFound(String secret, String plainText) {
-        Assert.assertFalse("Pattern " + plainText + " was detected as containing " + secret, isPatternContainingSecret(secret, plainText));
+    private static void assertBase64PatternNotFound(String secret, String plainText) {
+        assertFalse(isPatternContainingSecret(secret, plainText), "Pattern " + plainText + " was detected as containing " + secret);
     }
 
-    public boolean isPatternContainingSecret(String secret, String plainText) {
+    private static boolean isPatternContainingSecret(String secret, String plainText) {
         Base64SecretPatternFactory factory = new Base64SecretPatternFactory();
         Collection<String> allPatterns = factory.getBase64Forms(secret);
 

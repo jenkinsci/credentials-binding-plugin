@@ -33,6 +33,7 @@ import hudson.Launcher;
 import hudson.Util;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.Computer;
 import hudson.util.Secret;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
@@ -109,8 +110,11 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
             contents.append(key);
             contents.append('\n');
         }
-        keyFile.write(contents.toString(), "UTF-8");
-        keyFile.chmod(0400);
+        
+        Computer computer = keyFile.toComputer(); 
+	keyFile.write(contents.toString(), computer.getDefaultCharset().toString());       
+ 
+	keyFile.chmod(0400);
 
         Map<String, String> secretValues = new LinkedHashMap<>();
         Map<String, String> publicValues = new LinkedHashMap<>();

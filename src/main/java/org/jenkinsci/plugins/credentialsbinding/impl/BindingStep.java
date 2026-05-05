@@ -34,6 +34,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.Secret;
+import jenkins.util.SystemProperties;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -102,6 +103,7 @@ public final class BindingStep extends Step {
     private static final class Execution2 extends GeneralNonBlockingStepExecution {
 
         private static final long serialVersionUID = 1;
+        private static final boolean enableMaskLogging = SystemProperties.getBoolean(BindingStep.class.getName() + ".ENABLE_MASK_LOGGING", true);
 
         private transient BindingStep step;
 
@@ -137,9 +139,11 @@ public final class BindingStep extends Step {
             }
             if (!secretOverrides.isEmpty()) {
                 boolean unix = launcher == null || launcher.isUnix();
-                listener.getLogger().println("Masking supported pattern matches of " + secretOverrides.keySet().stream().map(
-                    v -> unix ? "$" + v : "%" + v + "%"
-                ).collect(Collectors.joining(" or ")));
+                if (enableMaskLogging) {
+                    listener.getLogger().println("Masking supported pattern matches of " + secretOverrides.keySet().stream().map(
+                        v -> unix ? "$" + v : "%" + v + "%"
+                    ).collect(Collectors.joining(" or ")));
+                }
             }
 
             getContext().newBodyInvoker().

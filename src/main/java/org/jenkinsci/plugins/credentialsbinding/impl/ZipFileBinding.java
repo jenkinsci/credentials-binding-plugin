@@ -58,7 +58,7 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
     }
 
     @Override protected final FilePath write(FileCredentials credentials, FilePath dir) throws IOException, InterruptedException {
-        String baseName = new File(credentials.getFileName()).getName();
+        String baseName = new FilePath(new File(credentials.getFileName())).getName();
 
         FilePath secret = dir.child(baseName);
         secret.unzipFrom(credentials.getContent());

@@ -34,6 +34,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.Secret;
+import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -263,11 +264,27 @@ public final class BindingStep extends Step {
         }
 
         @Override protected void finished(StepContext context) throws Exception {
+            final FilePath workspace;
+            final Launcher launcher;
+            try {
+                workspace = context.get(FilePath.class);
+                launcher = context.get(Launcher.class);
+            } catch (IOException x) {
+                // The agent that hosted the workspace is no longer online (e.g. AgentOfflineException:
+                // the build agent's pod/node was deleted or lost). The temporary credential files lived
+                // in that workspace and are gone with it, so there is nothing to unbind. Skipping cleanup
+                // here avoids turning a recoverable agent loss into a build failure (and, under retry,
+                // avoids this late cleanup becoming the terminal build result).
+                context.get(TaskListener.class).getLogger().println(
+                        "Skipping credentials cleanup because the agent is no longer online: " + x.getMessage());
+                return;
+            }
+
             Exception xx = null;
 
             for (MultiBinding.Unbinder unbinder : unbinders) {
                 try {
-                    unbinder.unbind(context.get(Run.class), context.get(FilePath.class), context.get(Launcher.class), context.get(TaskListener.class));
+                    unbinder.unbind(context.get(Run.class), workspace, launcher, context.get(TaskListener.class));
                 } catch (Exception x) {
                     if (xx == null) {
                         xx = x;

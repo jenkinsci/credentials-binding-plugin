@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.credentialsbinding.impl;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.KeyStoreException;
@@ -84,7 +85,8 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 
 		if (workspace != null) {
 			final UnbindableDir secrets = UnbindableDir.create(workspace);
-			final FilePath secret = secrets.getDirPath().child("keystore-" + keystoreVariable);
+			String safeKeystoreVariable = new FilePath(new File(keystoreVariable)).getName();
+			final FilePath secret = secrets.getDirPath().child("keystore-" + safeKeystoreVariable);
 			OutputStream out = secret.write();
 			try {
 				credentials.getKeyStore().store(out, storePassword.toCharArray());

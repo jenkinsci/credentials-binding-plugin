@@ -50,6 +50,7 @@ import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
 import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -255,5 +256,31 @@ class SSHUserPrivateKeyBindingTest {
                 assertEquals(keyContent, key.readToString().trim());
             }
         );
+    }
+
+    @Test
+    void keyFileVariablePathTraversal() throws Throwable {
+        String payload = "../../../../p0wn3d-ssh.key";
+
+        extension.then(j -> {
+            SSHUserPrivateKey c = new DummyPrivateKey("sshCred", "bob", "secret", "the-key");
+            CredentialsProvider.lookupStores(j.jenkins).iterator().next().addCredentials(Domain.global(), c);
+
+            WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(
+                    "node {\n" +
+                            "  withCredentials([sshUserPrivateKey(credentialsId: 'sshCred', keyFileVariable: '" + payload + "')]) {\n" +
+                            "    echo 'bound'\n" +
+                            "  }\n" +
+                            "}", true));
+
+            WorkflowRun run = j.buildAndAssertSuccess(p);
+
+            FilePath workspace = j.jenkins.getWorkspaceFor(p);
+            FilePath keyDir = UnbindableDir.create(workspace).getDirPath();
+            FilePath resolvedPath = keyDir.child("ssh-key-" + payload);
+
+            assertFalse(resolvedPath.exists(), "SSH key file should not exist outside secure directory");
+        });
     }
 }

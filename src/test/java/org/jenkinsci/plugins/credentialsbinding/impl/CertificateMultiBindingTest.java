@@ -30,6 +30,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
@@ -197,4 +198,29 @@ class CertificateMultiBindingTest {
         return result;
     }
 
+    @Test
+    void keystoreVariablePathTraversal() throws Exception {
+        String payload = "../../../../p0wn3d-keystore";
+		String alias = "androiddebugkey";
+		String password = "android";
+		StandardCertificateCredentials c = new CertificateCredentialsImpl(CredentialsScope.GLOBAL, null, alias,
+				password, new CertificateCredentialsImpl.UploadedKeyStoreSource(new FileParameterValue.FileItemImpl(certificate), null));
+		CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
+
+		WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+		p.setDefinition(new CpsFlowDefinition(
+				"node {\n" +
+						"  withCredentials([certificate(credentialsId: '" + c.getId() + "', keystoreVariable: '" + payload + "')]) {\n" +
+						"    echo 'bound'\n" +
+						"  }\n" +
+						"}", true));
+
+		r.buildAndAssertSuccess(p);
+
+		FilePath workspace = r.jenkins.getWorkspaceFor(p);
+		FilePath secretsDir = UnbindableDir.create(workspace).getDirPath();
+		FilePath resolvedPath = secretsDir.child("keystore-" + payload);
+
+		assertFalse(resolvedPath.exists(), "Keystore file should not exist outside secure directory");
+    }
 }

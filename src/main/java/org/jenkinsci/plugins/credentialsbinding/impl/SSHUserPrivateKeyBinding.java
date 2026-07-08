@@ -40,6 +40,7 @@ import org.jenkinsci.plugins.credentialsbinding.MultiBinding;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -102,7 +103,8 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
                                            @NonNull TaskListener listener) throws IOException, InterruptedException {
         SSHUserPrivateKey sshKey = getCredentials(build);
         UnbindableDir keyDir = UnbindableDir.create(workspace);
-        FilePath keyFile =  keyDir.getDirPath().child("ssh-key-" + keyFileVariable);
+        String safeKeyFileVariable = new FilePath(new File(keyFileVariable)).getName();
+        FilePath keyFile =  keyDir.getDirPath().child("ssh-key-" + safeKeyFileVariable);
 
         StringBuilder contents = new StringBuilder();
         for (String key : sshKey.getPrivateKeys()) {

@@ -5,7 +5,7 @@ set -e -x
 keystore_path=$(cat keystore-path)
 
 # check it was where we would expect it to be
-echo "$keystore_path" | grep -q '/workspace/p@tmp/secretFiles/[-0-9a-f]\{36\}/keystore-MY_KEYSTORE$'
+echo "$keystore_path" | grep -q '/workspace/p@tmp/secretFiles/[-0-9a-f]\{36\}/file.\+[.]tmp$'
 
 # check it has been deleted
 if [ -e "$keystore_path" ] ; then

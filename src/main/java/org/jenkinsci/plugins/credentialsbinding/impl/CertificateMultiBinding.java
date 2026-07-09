@@ -84,7 +84,7 @@ public class CertificateMultiBinding extends MultiBinding<StandardCertificateCre
 
 		if (workspace != null) {
 			final UnbindableDir secrets = UnbindableDir.create(workspace);
-			final FilePath secret = secrets.getDirPath().child("keystore-" + keystoreVariable);
+			final FilePath secret = secrets.getDirPath().createTempFile("file", null);
 			OutputStream out = secret.write();
 			try {
 				credentials.getKeyStore().store(out, storePassword.toCharArray());

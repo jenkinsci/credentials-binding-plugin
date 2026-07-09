@@ -32,7 +32,6 @@ import hudson.FilePath;
 import hudson.model.Item;
 import hudson.util.FormValidation;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -58,9 +57,7 @@ public class ZipFileBinding extends AbstractOnDiskBinding<FileCredentials> {
     }
 
     @Override protected final FilePath write(FileCredentials credentials, FilePath dir) throws IOException, InterruptedException {
-        String baseName = new FilePath(new File(credentials.getFileName())).getName();
-
-        FilePath secret = dir.child(baseName);
+        FilePath secret = dir.createTempDir("file", null);
         secret.unzipFrom(credentials.getContent());
         secret.chmod(0700); // note: it's a directory
         return secret;

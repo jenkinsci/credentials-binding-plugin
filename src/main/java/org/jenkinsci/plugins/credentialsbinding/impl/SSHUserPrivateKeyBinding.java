@@ -102,7 +102,7 @@ public class SSHUserPrivateKeyBinding extends MultiBinding<SSHUserPrivateKey> {
                                            @NonNull TaskListener listener) throws IOException, InterruptedException {
         SSHUserPrivateKey sshKey = getCredentials(build);
         UnbindableDir keyDir = UnbindableDir.create(workspace);
-        FilePath keyFile =  keyDir.getDirPath().child("ssh-key-" + keyFileVariable);
+        FilePath keyFile =  keyDir.getDirPath().createTempFile("file", null);
 
         StringBuilder contents = new StringBuilder();
         for (String key : sshKey.getPrivateKeys()) {

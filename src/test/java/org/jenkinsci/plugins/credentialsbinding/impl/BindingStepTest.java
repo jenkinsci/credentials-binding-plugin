@@ -312,6 +312,33 @@ class BindingStepTest {
         });
     }
 
+    @Test
+    void cleanupSkippedWhenAgentGoesOffline() throws Throwable {
+        final String secret = "s3cr3t";
+        extension.then(r -> {
+            FileCredentialsImpl c = new FileCredentialsImpl(CredentialsScope.GLOBAL, "creds", "sample", "secret.txt", SecretBytes.fromBytes(secret.getBytes()));
+            CredentialsProvider.lookupStores(r.jenkins).iterator().next().addCredentials(Domain.global(), c);
+            r.createSlave("myslave", null, null);
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition("""
+                    node('myslave') {
+                      withCredentials([file(variable: 'SECRET', credentialsId: 'creds')]) {
+                        semaphore 'wait'
+                      }
+                    }""", true));
+            WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+            SemaphoreStep.waitForStart("wait/1", b);
+            // Simulate the agent's pod/node being lost mid-body (e.g. a Kubernetes pod deleted or a
+            // node preemption): the workspace FilePath can no longer be resolved, so the
+            // withCredentials cleanup would otherwise raise AgentOfflineException.
+            r.jenkins.removeNode(Objects.requireNonNull(r.jenkins.getNode("myslave")));
+            r.waitForCompletion(b);
+            // The cleanup must detect the offline agent and skip, rather than throwing (which would
+            // compound the agent-loss failure and, under retry, could become the terminal result).
+            r.assertLogContains("Skipping credentials cleanup because the agent is no longer online", b);
+        });
+    }
+
     @Issue("JENKINS-27389")
     @Test
     void grabEnv() throws Throwable {

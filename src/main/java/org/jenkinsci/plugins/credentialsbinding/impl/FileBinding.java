@@ -32,17 +32,29 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.credentialsbinding.BindingDescriptor;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
 
+    private boolean useOriginalFilename = false;
+
     @DataBoundConstructor public FileBinding(String variable, String credentialsId) {
         super(variable, credentialsId);
+    }
+
+    @DataBoundSetter public void setUseOriginalFilename(boolean useOriginalFilename) {
+        this.useOriginalFilename = useOriginalFilename;
+    }
+
+    public boolean isUseOriginalFilename() {
+        return useOriginalFilename;
     }
 
     @Override protected Class<FileCredentials> type() {
@@ -50,7 +62,13 @@ public class FileBinding extends AbstractOnDiskBinding<FileCredentials> {
     }
 
     @Override protected final FilePath write(FileCredentials credentials, FilePath dir) throws IOException, InterruptedException {
-        FilePath secret = dir.createTempFile("file", null);
+        FilePath secret;
+        if (useOriginalFilename) {
+            String baseName = new FilePath(new File(credentials.getFileName())).getName();
+            secret = dir.child(baseName);
+        } else {
+            secret = dir.createTempFile("file", null);
+        }
         secret.copyFrom(credentials.getContent());
         secret.chmod(0400);
         return secret;

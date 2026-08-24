@@ -2,7 +2,7 @@
 <!--
 The MIT License
 
-Copyright 2013 jglick.
+Copyright 2026 mawinter69.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:c="/lib/credentials">
-    <f:entry title="${%Variable}" field="variable">
-        <f:textbox/>
-    </f:entry>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
     <f:entry title="${%Use original filename}" field="useOriginalFilename">
         <f:checkbox/>
     </f:entry>
